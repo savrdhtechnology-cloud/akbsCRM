@@ -99,14 +99,14 @@ interface QuotationProjectDefaults {
 const QUOTATION_DEFAULTS_STORAGE_KEY = 'akbs-soft-quotation-defaults-v1';
 
 const DEFAULT_TEMPLATE_CONFIG: QuotationTemplateConfig = {
-  companyName: 'AKBS Poultry Farming Private Limited',
+  companyName: '{templateConfig.companyName}',
   tagline: 'HEALTHY BIRDS | BETTER TOMORROW',
   officeAddress: '01 Rajaram House, Bamhori, Raisen (M.P.) - 464551',
   companyEmail: 'akbspoultryfarming@gmail.com',
   website: 'www.Akbspoultry.com',
-  quotationTitle: 'Send Soft Quotation (कच्चा कोटेशन)',
-  quotationSubtitle: 'Instant Turnkey Poultry Farm Project Feasibility & Cost Estimate',
-  estimateLabel: 'Soft Project Estimate',
+  quotationTitle: '{templateConfig.quotationTitle}',
+  quotationSubtitle: '{templateConfig.quotationSubtitle}',
+  estimateLabel: '{templateConfig.estimateLabel}',
   quotationPrefix: 'AKBS-SQ',
   validityDays: 30,
   preparedByTitle: 'Prepared by:',
@@ -126,12 +126,12 @@ const DEFAULT_TEMPLATE_CONFIG: QuotationTemplateConfig = {
   showTagline: true,
   showFinanceSection: true,
   itemTitles: {
-    civil: 'Shed Civil Construction & Pre-Engineered Steel Structure',
+    civil: '{templateConfig.itemTitles.civil}',
     ventilation: 'EC Climate Control & Ventilation System',
-    feeding: 'Automated Pan Feeding & Nipple Drinking Lines',
-    silo: 'Outdoor Galvanized Feed Storage Silo & Flex Auger',
-    electrical: 'Electrical Control Panel, Lighting & Internal Plumbing',
-    biosecurity: 'Biosecurity Disinfection System & Farm Staff Room'
+    feeding: '{templateConfig.itemTitles.feeding}',
+    silo: '{templateConfig.itemTitles.silo}',
+    electrical: '{templateConfig.itemTitles.electrical}',
+    biosecurity: '{templateConfig.itemTitles.biosecurity}'
   }
 };
 
@@ -654,6 +654,174 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
           {/* CUSTOMIZE TAB */}
           {activeTab === 'customize' && (
             <div className="space-y-4 animate-in fade-in duration-150">
+
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <SlidersHorizontal className="w-4 h-4 text-emerald-700" />
+                      <h3 className="font-bold text-slate-900">Quotation Template Builder</h3>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Customize branding, labels, terms and defaults. Changes preview instantly.</p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleResetFactoryDefaults}
+                      className="px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-[11px] flex items-center gap-1.5"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Reset
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveAsDefault}
+                      className="px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-sm"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      Save as Default
+                    </button>
+                  </div>
+                </div>
+
+                {defaultSaveStatus && (
+                  <div className="px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    {defaultSaveStatus}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Company & Header</div>
+                    {[
+                      ['Company Name','companyName'],
+                      ['Tagline','tagline'],
+                      ['Office Address','officeAddress'],
+                      ['Company Email','companyEmail'],
+                      ['Website','website'],
+                      ['Quotation Title','quotationTitle'],
+                      ['Quotation Subtitle','quotationSubtitle'],
+                      ['Estimate Label','estimateLabel'],
+                      ['Quotation Prefix','quotationPrefix'],
+                      ['Prepared By Label','preparedByTitle'],
+                      ['Prepared By Department','preparedByDepartment'],
+                      ['Verifier Name','verifierName'],
+                      ['Verifier Designation','verifierDesignation']
+                    ].map(([label,key]) => (
+                      <label key={key} className="block">
+                        <span className="text-[10px] font-bold text-slate-500 block mb-1">{label}</span>
+                        <input
+                          value={String(templateConfig[key as keyof QuotationTemplateConfig] ?? '')}
+                          onChange={(e) => updateTemplateField(key as keyof QuotationTemplateConfig, e.target.value as any)}
+                          className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-slate-50 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                      </label>
+                    ))}
+
+                    <label className="block">
+                      <span className="text-[10px] font-bold text-slate-500 block mb-1">Validity Days</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={templateConfig.validityDays}
+                        onChange={(e) => updateTemplateField('validityDays', Math.max(1, Number(e.target.value) || 30))}
+                        className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-slate-50 text-[11px] font-medium text-slate-800"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">
+                        <Palette className="w-3.5 h-3.5" /> Appearance & Sections
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <label className="block">
+                          <span className="text-[10px] font-bold text-slate-500 block mb-1">Primary Color</span>
+                          <div className="flex items-center gap-2 h-9 px-2 rounded-lg border border-slate-200 bg-slate-50">
+                            <input type="color" value={templateConfig.primaryColor} onChange={(e) => updateTemplateField('primaryColor', e.target.value)} className="w-7 h-7 rounded border-0 bg-transparent" />
+                            <input value={templateConfig.primaryColor} onChange={(e) => updateTemplateField('primaryColor', e.target.value)} className="min-w-0 flex-1 bg-transparent text-[10px] font-mono outline-none" />
+                          </div>
+                        </label>
+                        <label className="block">
+                          <span className="text-[10px] font-bold text-slate-500 block mb-1">Accent Color</span>
+                          <div className="flex items-center gap-2 h-9 px-2 rounded-lg border border-slate-200 bg-slate-50">
+                            <input type="color" value={templateConfig.accentColor} onChange={(e) => updateTemplateField('accentColor', e.target.value)} className="w-7 h-7 rounded border-0 bg-transparent" />
+                            <input value={templateConfig.accentColor} onChange={(e) => updateTemplateField('accentColor', e.target.value)} className="min-w-0 flex-1 bg-transparent text-[10px] font-mono outline-none" />
+                          </div>
+                        </label>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {[
+                          ['Show Logo','showLogo'],
+                          ['Show Tagline','showTagline'],
+                          ['Show Finance Section','showFinanceSection']
+                        ].map(([label,key]) => (
+                          <label key={key} className="flex items-center gap-2 p-2.5 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(templateConfig[key as keyof QuotationTemplateConfig])}
+                              onChange={(e) => updateTemplateField(key as keyof QuotationTemplateConfig, e.target.checked as any)}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-[10px] font-semibold text-slate-700">{label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Cost Table Item Titles</div>
+                      <div className="space-y-2">
+                        {([
+                          ['Civil / Shed','civil'],
+                          ['Ventilation','ventilation'],
+                          ['Feeding & Drinking','feeding'],
+                          ['Silo','silo'],
+                          ['Electrical','electrical'],
+                          ['Biosecurity','biosecurity']
+                        ] as const).map(([label,key]) => (
+                          <label key={key} className="block">
+                            <span className="text-[9.5px] font-semibold text-slate-500 block mb-1">{label}</span>
+                            <input
+                              value={templateConfig.itemTitles[key]}
+                              onChange={(e) => updateItemTitle(key, e.target.value)}
+                              className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-slate-50 text-[10.5px] text-slate-800"
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Commercial Terms</div>
+                        <input
+                          value={templateConfig.termsTitle}
+                          onChange={(e) => updateTemplateField('termsTitle', e.target.value)}
+                          className="w-48 h-8 px-2 rounded-lg border border-slate-200 bg-slate-50 text-[9.5px] font-semibold"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        {templateConfig.terms.map((term,index) => (
+                          <textarea
+                            key={index}
+                            value={term}
+                            onChange={(e) => updateTerm(index,e.target.value)}
+                            rows={2}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-[10px] leading-relaxed text-slate-700 resize-y"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Controls card */}
               <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-4">
                 <h3 className="font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center justify-between">
@@ -793,23 +961,33 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
           {/* OFFICIAL QUOTATION DOCUMENT LETTERHEAD (PRINTABLE & PREVIEW) */}
           <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200 shadow-sm space-y-6 print:p-0 print:border-none print:shadow-none">
             {/* Letterhead Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b-2 border-[#0b2818] gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b-2 gap-4" style={{ borderColor: templateConfig.primaryColor }}>
               <div className="flex items-center gap-3.5">
-                <div className="w-14 h-14 rounded-full bg-white p-0.5 border-[3px] border-[#00C853] flex items-center justify-center shrink-0 shadow-md overflow-hidden">
-                  <img src={akbsLogoImg} alt="AKBS Logo" className="w-full h-full object-cover rounded-full" />
-                </div>
+                {templateConfig.showLogo && (
+                  <div
+                    className="w-14 h-14 rounded-full bg-white p-0.5 border-[3px] flex items-center justify-center shrink-0 shadow-md overflow-hidden"
+                    style={{ borderColor: templateConfig.accentColor }}
+                  >
+                    <img src={akbsLogoImg} alt="AKBS Logo" className="w-full h-full object-cover rounded-full" />
+                  </div>
+                )}
                 <div>
                   <h1 className="font-['Outfit',sans-serif] text-lg sm:text-xl font-black text-slate-950 tracking-tight leading-none">
                     AKBS Poultry Farming Private Limited
                   </h1>
-                  <p className="font-['Outfit',sans-serif] text-[10.5px] font-bold text-[#00873E] tracking-[0.08em] uppercase mt-1">
-                    HEALTHY BIRDS | BETTER TOMORROW
+                  {templateConfig.showTagline && (
+                    <p
+                      className="font-['Outfit',sans-serif] text-[10.5px] font-bold tracking-[0.08em] uppercase mt-1"
+                      style={{ color: templateConfig.accentColor }}
+                    >
+                      {templateConfig.tagline}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-slate-500 mt-0.5 font-['Plus_Jakarta_Sans',sans-serif]">
+                    Office Address: {templateConfig.officeAddress}
                   </p>
                   <p className="text-[10px] text-slate-500 mt-0.5 font-['Plus_Jakarta_Sans',sans-serif]">
-                    Office Address: 01 Rajaram House, Bamhori, Raisen (M.P.) - 464551
-                  </p>
-                  <p className="text-[10px] text-slate-500 mt-0.5 font-['Plus_Jakarta_Sans',sans-serif]">
-                    Mail: akbspoultryfarming@gmail.com | Website: www.Akbspoultry.com
+                    Mail: {templateConfig.companyEmail} | Website: {templateConfig.website}
                   </p>
                 </div>
               </div>
@@ -874,7 +1052,7 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
               <div className="overflow-x-auto rounded-xl border border-slate-200">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-[#0b2818] text-white text-[11px]">
+                    <tr className="text-white text-[11px]" style={{ backgroundColor: templateConfig.primaryColor }}>
                       <th className="py-2.5 px-3 font-semibold">#</th>
                       <th className="py-2.5 px-3 font-semibold">Scope of Work & Technical Specification</th>
                       <th className="py-2.5 px-3 font-semibold text-center">Qty / Dim</th>
@@ -901,7 +1079,7 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
                         <td className="py-2 px-3 font-mono text-slate-400">02</td>
                         <td className="py-2 px-3">
                           <span className="font-bold text-slate-900 block">
-                            {shedTech === 'EC' ? 'EC Climate Control & Ventilation System' : 'Natural Ventilation System'}
+                            {shedTech === 'EC' ? templateConfig.itemTitles.ventilation : 'Natural Ventilation System'}
                           </span>
                           <span className="text-[10px] text-slate-500">
                             {shedTech === 'EC'
@@ -989,6 +1167,7 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
             </div>
 
             {/* Financial & Subsidy Structuring Card */}
+            {templateConfig.showFinanceSection && (
             <div className="bg-gradient-to-br from-emerald-900 to-[#082014] text-white p-4 rounded-xl space-y-3">
               <div className="flex items-center justify-between border-b border-emerald-800 pb-2">
                 <div className="flex items-center gap-2">
@@ -1024,27 +1203,27 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
                 </div>
               </div>
             </div>
+            )}
 
             {/* Terms & Notes Footer */}
             <div className="pt-2 border-t border-slate-200 text-[10px] text-slate-500 space-y-1 leading-relaxed">
-              <div className="font-bold text-slate-700">Important Notes & Commercial Terms:</div>
-              <div>1. <b>Nature of Document:</b> This is a preliminary soft quotation / rough budget estimate for project planning, farmer discussions, and initial bank feasibility. Final detailed project report (DPR) will be stamped after site soil/water inspection.</div>
-              <div>2. <b>Validity:</b> The quoted prices are tentative and valid for 30 calendar days from the date of issue.</div>
-              <div>3. <b>Civil Land & Utilities:</b> 3-phase commercial electricity line and clean borewell water connection to be arranged at site boundary by client.</div>
-              <div>4. <b>Subsidy Support:</b> AKBS provides complete assistance in DPR preparation and bank loan sanction under NABARD / National Livestock Mission (NLM) / AHIDF schemes.</div>
+              <div className="font-bold text-slate-700">{templateConfig.termsTitle}</div>
+              {templateConfig.terms.map((term,index) => (
+                <div key={index}>{index + 1}. {term}</div>
+              ))}
             </div>
 
             {/* Signature row */}
             <div className="pt-4 flex items-end justify-between text-xs">
               <div>
-                <div className="font-bold text-slate-800">Prepared by:</div>
-                <div className="text-slate-600">Technical Sales Engineering Team</div>
+                <div className="font-bold text-slate-800">{templateConfig.preparedByTitle}</div>
+                <div className="text-slate-600">{templateConfig.preparedByDepartment}</div>
                 <div className="text-[10px] text-slate-400 font-mono">AKBS Poultry Farming Private Limited</div>
               </div>
 
               <div className="text-right">
-                <div className="font-bold text-emerald-950">Verified by Balram Singh Ahirwar</div>
-                <div className="text-[10px] text-slate-500">Authorized Signatory</div>
+                <div className="font-bold text-emerald-950">Verified by {templateConfig.verifierName}</div>
+                <div className="text-[10px] text-slate-500">{templateConfig.verifierDesignation}</div>
               </div>
             </div>
           </div>

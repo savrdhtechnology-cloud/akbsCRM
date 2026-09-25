@@ -1,1 +1,74 @@
 @import "tailwindcss";
+
+:root {
+  --font-ui: "Plus Jakarta Sans", "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: "Outfit", "Plus Jakarta Sans", "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-mono-premium: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+html {
+  font-family: var(--font-ui);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-ui);
+  letter-spacing: -0.008em;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.025em;
+  font-feature-settings: "ss01" 1, "ss02" 1, "cv02" 1, "cv03" 1;
+}
+
+.font-mono,
+code,
+kbd,
+pre,
+[data-numeric="true"] {
+  font-family: var(--font-mono-premium) !important;
+  letter-spacing: -0.015em;
+}
+
+button,
+a,
+label,
+th {
+  font-feature-settings: "ss01" 1, "cv02" 1;
+}
+
+input,
+select,
+textarea {
+  font-weight: 500;
+}
+
+::placeholder {
+  font-family: var(--font-ui);
+  letter-spacing: -0.01em;
+}
+
+.premium-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.premium-ui {
+  font-family: var(--font-ui);
+  letter-spacing: -0.012em;
+}

@@ -199,7 +199,7 @@ export const SoftQuotationModal: React.FC<SoftQuotationModalProps> = ({
   // WhatsApp Message Generator
   const generateWhatsAppMessage = () => {
     return (
-`*AKBS POULTRY FARMING PVT. LTD.*
+`*AKBS Poultry Farming Private Limited*
 *PRELIMINARY SOFT QUOTATION / अनुमानित प्राक्कलन*
 Ref No: ${quotationNo} | Date: ${quotationDate}
 
@@ -227,9 +227,11 @@ Ref No: ${quotationNo} | Date: ${quotationDate}
 • Farmer Margin (Equity): *${formatLakhs(farmerEquity)}*
 • Est. Annual Farm Profit: *${formatLakhs(netEstimatedAnnualIncome)}* (Payback: ~${estPaybackYears} Years)
 
-📞 *Contact Our Technical Team:*
-Er. Ankit Mishra (Project Head): +91 98765 43210
-AKBS Poultry Farming Pvt. Ltd., Kokta Transport Nagar, Bhopal (M.P.)
+*AKBS Poultry Farming Private Limited*
+Office: 01 Rajaram House, Bamhori, Raisen (M.P.) - 464551
+Mail: akbspoultryfarming@gmail.com
+Website: www.Akbspoultry.com
+Verified by: Balram Singh Ahirwar
 _Note: This is a preliminary soft quotation for bank feasibility and planning purpose._`
     );
   };
@@ -590,13 +592,16 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
                 </div>
                 <div>
                   <h1 className="font-['Outfit',sans-serif] text-lg sm:text-xl font-black text-slate-950 tracking-tight leading-none">
-                    AKBS POULTRY FARMING PVT. LTD.
+                    AKBS Poultry Farming Private Limited
                   </h1>
                   <p className="font-['Outfit',sans-serif] text-[10.5px] font-bold text-[#00873E] tracking-[0.08em] uppercase mt-1">
                     HEALTHY BIRDS | BETTER TOMORROW
                   </p>
                   <p className="text-[10px] text-slate-500 mt-0.5 font-['Plus_Jakarta_Sans',sans-serif]">
-                    Reg. Office: Kokta Transport Nagar, Raisen Road, Bhopal, M.P. - 462022 | GSTIN: 23AABCA4821P1Z9
+                    Office Address: 01 Rajaram House, Bamhori, Raisen (M.P.) - 464551
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-0.5 font-['Plus_Jakarta_Sans',sans-serif]">
+                    Mail: akbspoultryfarming@gmail.com | Website: www.Akbspoultry.com
                   </p>
                 </div>
               </div>
@@ -826,15 +831,12 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
               <div>
                 <div className="font-bold text-slate-800">Prepared by:</div>
                 <div className="text-slate-600">Technical Sales Engineering Team</div>
-                <div className="text-[10px] text-slate-400 font-mono">AKBS Poultry Farming Pvt. Ltd.</div>
+                <div className="text-[10px] text-slate-400 font-mono">AKBS Poultry Farming Private Limited</div>
               </div>
 
               <div className="text-right">
-                <div className="w-24 border-b border-slate-400 pb-1 mx-auto mb-1 text-[10px] font-mono text-slate-400 text-center">
-                  [Verified Stamp]
-                </div>
-                <div className="font-bold text-emerald-950">Er. Ankit Mishra</div>
-                <div className="text-[10px] text-slate-500">Chief Project Consultant</div>
+                <div className="font-bold text-emerald-950">Verified by Balram Singh Ahirwar</div>
+                <div className="text-[10px] text-slate-500">Authorized Signatory</div>
               </div>
             </div>
           </div>

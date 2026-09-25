@@ -375,7 +375,7 @@ Ref No: ${quotationNo} | Date: ${quotationDate}
 • Farmer Margin (Equity): *${formatLakhs(farmerEquity)}*
 • Est. Annual Farm Profit: *${formatLakhs(netEstimatedAnnualIncome)}* (Payback: ~${estPaybackYears} Years)
 
-*AKBS Poultry Farming Private Limited*
+*${templateConfig.companyName}*
 Office: ${templateConfig.officeAddress}
 Mail: ${templateConfig.companyEmail}
 Website: ${templateConfig.website}
@@ -453,6 +453,9 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
     };
 
     window.localStorage.setItem(QUOTATION_DEFAULTS_STORAGE_KEY, JSON.stringify(payload));
+    const currentYear = new Date().getFullYear();
+    const existingSuffix = quotationNo.split('-').pop() || String(Math.floor(1000 + Math.random() * 9000));
+    setQuotationNo(`${templateConfig.quotationPrefix}-${currentYear}-${existingSuffix}`);
     setDefaultSaveStatus('Saved as default. New quotations will use these settings.');
     window.setTimeout(() => setDefaultSaveStatus(null), 3500);
   };
@@ -508,14 +511,14 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-white">
-                  Send Soft Quotation (कच्चा कोटेशन)
+                  {templateConfig.quotationTitle}
                 </h2>
                 <span className="text-[10px] bg-emerald-700/80 text-emerald-100 font-mono px-2 py-0.5 rounded-full font-bold border border-emerald-600">
                   {quotationNo}
                 </span>
               </div>
               <p className="text-[11px] text-emerald-300">
-                Instant Turnkey Poultry Farm Project Feasibility & Cost Estimate
+                {templateConfig.quotationSubtitle}
               </p>
             </div>
           </div>
@@ -589,6 +592,9 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
           
           {/* Quick Beneficiary Bar */}
           <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div className="sm:col-span-4 -mb-1 text-[9.5px] text-slate-400">
+              Client details are specific to this quotation and are not stored in template defaults.
+            </div>
             <div>
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">
                 Client / Farmer Name
@@ -833,8 +839,8 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
               {/* Controls card */}
               <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-4">
                 <h3 className="font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center justify-between">
-                  <span>Project Configuration & Inclusions</span>
-                  <span className="text-[11px] text-slate-400 font-normal">Adjust specifications to recalculate quotation</span>
+                  <span>Default Project Configuration & Inclusions</span>
+                  <span className="text-[11px] text-slate-400 font-normal">These values can also be saved as defaults for new quotations</span>
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1072,7 +1078,7 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
                       <tr className="hover:bg-slate-50/60">
                         <td className="py-2 px-3 font-mono text-slate-400">01</td>
                         <td className="py-2 px-3">
-                          <span className="font-bold text-slate-900 block">Shed Civil Construction & Pre-Engineered Steel Structure</span>
+                          <span className="font-bold text-slate-900 block">{templateConfig.itemTitles.civil}</span>
                           <span className="text-[10px] text-slate-500">
                             High tensile steel truss, columns, roof purlins, 0.50mm galvalume roofing sheets with thermal insulation barrier, civil foundation & PCC concrete flooring.
                           </span>
@@ -1104,7 +1110,7 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
                       <tr className="hover:bg-slate-50/60">
                         <td className="py-2 px-3 font-mono text-slate-400">03</td>
                         <td className="py-2 px-3">
-                          <span className="font-bold text-slate-900 block">Automated Pan Feeding & Nipple Drinking Lines</span>
+                          <span className="font-bold text-slate-900 block">{templateConfig.itemTitles.feeding}</span>
                           <span className="text-[10px] text-slate-500">
                             Automatic pan feeder lines with drive motors & ultrasonic feed level sensors, SS 360° nipple drinking lines with pressure regulators, filter and Dosatron medicator.
                           </span>
@@ -1118,7 +1124,7 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
                       <tr className="hover:bg-slate-50/60">
                         <td className="py-2 px-3 font-mono text-slate-400">04</td>
                         <td className="py-2 px-3">
-                          <span className="font-bold text-slate-900 block">Outdoor Galvanized Feed Storage Silo & Flex Auger</span>
+                          <span className="font-bold text-slate-900 block">{templateConfig.itemTitles.silo}</span>
                           <span className="text-[10px] text-slate-500">
                             12-Ton corrugated hot-dip galvanized bulk silo with safety ladder, inspection glass, and automated feed transfer auger into shed hoppers.
                           </span>
@@ -1132,7 +1138,7 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
                       <tr className="hover:bg-slate-50/60">
                         <td className="py-2 px-3 font-mono text-slate-400">05</td>
                         <td className="py-2 px-3">
-                          <span className="font-bold text-slate-900 block">Electrical Control Panel, Lighting & Internal Plumbing</span>
+                          <span className="font-bold text-slate-900 block">{templateConfig.itemTitles.electrical}</span>
                           <span className="text-[10px] text-slate-500">
                             IP65 main control panel with phase failure & overload relays, dimmable LED poultry lighting system, generator switchgear provision, and overhead water tank plumbing.
                           </span>
@@ -1146,7 +1152,7 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
                       <tr className="hover:bg-slate-50/60">
                         <td className="py-2 px-3 font-mono text-slate-400">06</td>
                         <td className="py-2 px-3">
-                          <span className="font-bold text-slate-900 block">Biosecurity Disinfection System & Farm Staff Room</span>
+                          <span className="font-bold text-slate-900 block">{templateConfig.itemTitles.biosecurity}</span>
                           <span className="text-[10px] text-slate-500">
                             Vehicle tire dip bath, high-pressure fogger/sprayer for terminal disinfection, boot dip station, and basic operator supervisor room.
                           </span>

@@ -329,6 +329,14 @@ export const EmployeePortalView: React.FC<EmployeePortalViewProps> = ({
 
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setQuotationLead(lead)}
+                      className="px-2 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 text-[10px] font-black transition-colors flex items-center gap-1"
+                      title="Send Soft Quotation"
+                    >
+                      <span>📜</span>
+                      <span>Quotation</span>
+                    </button>
                     <a
                       href={`tel:${lead.phone}`}
                       className="p-1.5 rounded-lg bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 transition-colors"

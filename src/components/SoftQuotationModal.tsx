@@ -19,7 +19,11 @@ import {
   Landmark,
   ShieldCheck,
   FileCheck,
-  Share2
+  Share2,
+  Save,
+  RotateCcw,
+  Palette,
+  SlidersHorizontal
 } from 'lucide-react';
 import akbsLogoImg from '../assets/images/akbs_poultry_logo_1790286883961.jpg';
 
@@ -45,6 +49,104 @@ interface SoftQuotationModalProps {
   initialData?: SoftQuotationData | null;
   onQuotationSent?: (leadId?: string, summary?: any) => void;
 }
+
+
+interface QuotationTemplateConfig {
+  companyName: string;
+  tagline: string;
+  officeAddress: string;
+  companyEmail: string;
+  website: string;
+  quotationTitle: string;
+  quotationSubtitle: string;
+  estimateLabel: string;
+  quotationPrefix: string;
+  validityDays: number;
+  preparedByTitle: string;
+  preparedByDepartment: string;
+  verifierName: string;
+  verifierDesignation: string;
+  termsTitle: string;
+  terms: string[];
+  primaryColor: string;
+  accentColor: string;
+  showLogo: boolean;
+  showTagline: boolean;
+  showFinanceSection: boolean;
+  itemTitles: {
+    civil: string;
+    ventilation: string;
+    feeding: string;
+    silo: string;
+    electrical: string;
+    biosecurity: string;
+  };
+}
+
+interface QuotationProjectDefaults {
+  birdsCount: number;
+  birdType: 'Broiler' | 'Layer' | 'Country / Desi' | 'Breeder';
+  shedTech: 'EC' | 'Conventional';
+  subsidyCategory: 'General (25%)' | 'SC/ST/Women/NE (33%)' | 'None';
+  includeCivilShed: boolean;
+  includeVentilation: boolean;
+  includeFeedingDrinking: boolean;
+  includeElectricals: boolean;
+  includeSilo: boolean;
+  includeBiosecurity: boolean;
+}
+
+const QUOTATION_DEFAULTS_STORAGE_KEY = 'akbs-soft-quotation-defaults-v1';
+
+const DEFAULT_TEMPLATE_CONFIG: QuotationTemplateConfig = {
+  companyName: 'AKBS Poultry Farming Private Limited',
+  tagline: 'HEALTHY BIRDS | BETTER TOMORROW',
+  officeAddress: '01 Rajaram House, Bamhori, Raisen (M.P.) - 464551',
+  companyEmail: 'akbspoultryfarming@gmail.com',
+  website: 'www.Akbspoultry.com',
+  quotationTitle: 'Send Soft Quotation (कच्चा कोटेशन)',
+  quotationSubtitle: 'Instant Turnkey Poultry Farm Project Feasibility & Cost Estimate',
+  estimateLabel: 'Soft Project Estimate',
+  quotationPrefix: 'AKBS-SQ',
+  validityDays: 30,
+  preparedByTitle: 'Prepared by:',
+  preparedByDepartment: 'Technical Sales Engineering Team',
+  verifierName: 'Balram Singh Ahirwar',
+  verifierDesignation: 'Authorized Signatory',
+  termsTitle: 'Important Notes & Commercial Terms:',
+  terms: [
+    'Nature of Document: This is a preliminary soft quotation / rough budget estimate for project planning, farmer discussions, and initial bank feasibility. Final detailed project report (DPR) will be prepared after detailed site verification.',
+    'Validity: The quoted prices are tentative and valid for the configured validity period from the date of issue.',
+    'Civil Land & Utilities: 3-phase commercial electricity line and clean borewell water connection are to be arranged at the site boundary by the client unless specifically included.',
+    'Subsidy Support: AKBS provides assistance in DPR preparation and bank-loan documentation under applicable NABARD / NLM / AHIDF or other eligible schemes.'
+  ],
+  primaryColor: '#0b2818',
+  accentColor: '#00873E',
+  showLogo: true,
+  showTagline: true,
+  showFinanceSection: true,
+  itemTitles: {
+    civil: 'Shed Civil Construction & Pre-Engineered Steel Structure',
+    ventilation: 'EC Climate Control & Ventilation System',
+    feeding: 'Automated Pan Feeding & Nipple Drinking Lines',
+    silo: 'Outdoor Galvanized Feed Storage Silo & Flex Auger',
+    electrical: 'Electrical Control Panel, Lighting & Internal Plumbing',
+    biosecurity: 'Biosecurity Disinfection System & Farm Staff Room'
+  }
+};
+
+const DEFAULT_PROJECT_DEFAULTS: QuotationProjectDefaults = {
+  birdsCount: 20000,
+  birdType: 'Broiler',
+  shedTech: 'EC',
+  subsidyCategory: 'General (25%)',
+  includeCivilShed: true,
+  includeVentilation: true,
+  includeFeedingDrinking: true,
+  includeElectricals: true,
+  includeSilo: true,
+  includeBiosecurity: true
+};
 
 export const SoftQuotationModal: React.FC<SoftQuotationModalProps> = ({
   isOpen,
@@ -83,15 +185,60 @@ export const SoftQuotationModal: React.FC<SoftQuotationModalProps> = ({
   // Copy toast state
   const [copied, setCopied] = useState(false);
   const [sendSuccess, setSendSuccess] = useState<string | null>(null);
+  const [templateConfig, setTemplateConfig] = useState<QuotationTemplateConfig>(DEFAULT_TEMPLATE_CONFIG);
+  const [defaultSaveStatus, setDefaultSaveStatus] = useState<string | null>(null);
 
   // Initialize or update data when modal opens
   useEffect(() => {
     if (isOpen) {
+      let effectiveTemplate: QuotationTemplateConfig = DEFAULT_TEMPLATE_CONFIG;
+      let effectiveProject: QuotationProjectDefaults = DEFAULT_PROJECT_DEFAULTS;
+
+      try {
+        const saved = window.localStorage.getItem(QUOTATION_DEFAULTS_STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed?.template) {
+            effectiveTemplate = {
+              ...DEFAULT_TEMPLATE_CONFIG,
+              ...parsed.template,
+              itemTitles: {
+                ...DEFAULT_TEMPLATE_CONFIG.itemTitles,
+                ...(parsed.template.itemTitles || {})
+              },
+              terms: Array.isArray(parsed.template.terms) && parsed.template.terms.length
+                ? parsed.template.terms
+                : DEFAULT_TEMPLATE_CONFIG.terms
+            };
+          }
+          if (parsed?.project) {
+            effectiveProject = {
+              ...DEFAULT_PROJECT_DEFAULTS,
+              ...parsed.project
+            };
+          }
+        }
+      } catch (error) {
+        console.warn('Unable to load quotation defaults', error);
+      }
+
+      setTemplateConfig(effectiveTemplate);
+      setBirdsCount(effectiveProject.birdsCount);
+      setBirdType(effectiveProject.birdType);
+      setShedTech(effectiveProject.shedTech);
+      setSubsidyCategory(effectiveProject.subsidyCategory);
+      setIncludeCivilShed(effectiveProject.includeCivilShed);
+      setIncludeVentilation(effectiveProject.includeVentilation);
+      setIncludeFeedingDrinking(effectiveProject.includeFeedingDrinking);
+      setIncludeElectricals(effectiveProject.includeElectricals);
+      setIncludeSilo(effectiveProject.includeSilo);
+      setIncludeBiosecurity(effectiveProject.includeBiosecurity);
+
       const randomNum = Math.floor(1000 + Math.random() * 9000);
-      setQuotationNo(`AKBS-SQ-2026-${randomNum}`);
       const today = new Date();
-      const validDate = new Date();
-      validDate.setDate(today.getDate() + 30);
+      setQuotationNo(`${effectiveTemplate.quotationPrefix}-${today.getFullYear()}-${randomNum}`);
+      const validDate = new Date(today);
+      validDate.setDate(today.getDate() + Number(effectiveTemplate.validityDays || 30));
 
       const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
       setQuotationDate(today.toLocaleDateString('en-GB', options));
@@ -126,6 +273,7 @@ export const SoftQuotationModal: React.FC<SoftQuotationModalProps> = ({
         }
       }
       setSendSuccess(null);
+      setDefaultSaveStatus(null);
     }
   }, [isOpen, initialData]);
 
@@ -285,6 +433,66 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
   // 4. Print / PDF
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleSaveAsDefault = () => {
+    const payload = {
+      template: templateConfig,
+      project: {
+        birdsCount,
+        birdType,
+        shedTech,
+        subsidyCategory,
+        includeCivilShed,
+        includeVentilation,
+        includeFeedingDrinking,
+        includeElectricals,
+        includeSilo,
+        includeBiosecurity
+      }
+    };
+
+    window.localStorage.setItem(QUOTATION_DEFAULTS_STORAGE_KEY, JSON.stringify(payload));
+    setDefaultSaveStatus('Saved as default. New quotations will use these settings.');
+    window.setTimeout(() => setDefaultSaveStatus(null), 3500);
+  };
+
+  const handleResetFactoryDefaults = () => {
+    setTemplateConfig(DEFAULT_TEMPLATE_CONFIG);
+    setBirdsCount(DEFAULT_PROJECT_DEFAULTS.birdsCount);
+    setBirdType(DEFAULT_PROJECT_DEFAULTS.birdType);
+    setShedTech(DEFAULT_PROJECT_DEFAULTS.shedTech);
+    setSubsidyCategory(DEFAULT_PROJECT_DEFAULTS.subsidyCategory);
+    setIncludeCivilShed(DEFAULT_PROJECT_DEFAULTS.includeCivilShed);
+    setIncludeVentilation(DEFAULT_PROJECT_DEFAULTS.includeVentilation);
+    setIncludeFeedingDrinking(DEFAULT_PROJECT_DEFAULTS.includeFeedingDrinking);
+    setIncludeElectricals(DEFAULT_PROJECT_DEFAULTS.includeElectricals);
+    setIncludeSilo(DEFAULT_PROJECT_DEFAULTS.includeSilo);
+    setIncludeBiosecurity(DEFAULT_PROJECT_DEFAULTS.includeBiosecurity);
+    window.localStorage.removeItem(QUOTATION_DEFAULTS_STORAGE_KEY);
+    setDefaultSaveStatus('Factory defaults restored.');
+    window.setTimeout(() => setDefaultSaveStatus(null), 3000);
+  };
+
+  const updateTemplateField = <K extends keyof QuotationTemplateConfig>(key: K, value: QuotationTemplateConfig[K]) => {
+    setTemplateConfig((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const updateItemTitle = (key: keyof QuotationTemplateConfig['itemTitles'], value: string) => {
+    setTemplateConfig((prev) => ({
+      ...prev,
+      itemTitles: {
+        ...prev.itemTitles,
+        [key]: value
+      }
+    }));
+  };
+
+  const updateTerm = (index: number, value: string) => {
+    setTemplateConfig((prev) => ({
+      ...prev,
+      terms: prev.terms.map((term, termIndex) => termIndex === index ? value : term)
+    }));
   };
 
   return (

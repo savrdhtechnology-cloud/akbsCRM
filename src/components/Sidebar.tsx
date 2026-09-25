@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { NavigationSection, PortalRole } from '../types';
 import broilerHeroImg from '../assets/images/broiler_farmer_hero_1790287489096.jpg';
-import akbsLogoImg from '../assets/images/akbs_poultry_logo_1790286883961.jpg';
+import { AkbsLogo } from './AkbsLogo';
 
 interface SidebarProps {
   currentSection: NavigationSection;
@@ -123,28 +123,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 <button
                   onClick={() => navigate('dashboard')}
-                  className="relative z-10 flex h-full w-full items-center px-3.5 pb-3 pt-2.5 text-left"
+                  type="button"
+                  aria-label="AKBS Poultry Farming — open dashboard"
+                  className="relative z-10 flex h-full w-full items-center px-3.5 pb-3 pt-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600"
                 >
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <div className="h-[48px] w-[48px] shrink-0 overflow-hidden rounded-full bg-white ring-1 ring-emerald-900/10 shadow-sm">
-                      <img
-                        src={akbsLogoImg}
-                        alt="AKBS Poultry Farming logo"
-                        className="h-full w-full object-cover scale-[1.48]"
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-['Outfit',sans-serif] text-[19px] font-black leading-none tracking-[-0.035em] text-[#073323]">
-                        AKBS
-                      </div>
-                      <div className="mt-0.5 font-['Outfit',sans-serif] text-[11px] font-bold leading-tight tracking-[-0.02em] text-slate-800">
-                        Poultry Farming
-                      </div>
-                      <div className="mt-1 text-[8.5px] font-semibold tracking-[-0.01em] text-emerald-900/55 whitespace-nowrap">
-                        Healthy Birds | Better Tomorrow
-                      </div>
-                    </div>
-                  </div>
+                  <AkbsLogo theme="light" size="md" showTagline />
                 </button>
 
                 <button

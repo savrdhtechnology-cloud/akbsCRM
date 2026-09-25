@@ -5,7 +5,6 @@ import {
   Plus,
   Bell,
   MessageSquare,
-  Settings,
   ChevronDown,
   UserPlus,
   Building,
@@ -186,34 +185,6 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           )}
         </div>
-        {/* CRM workspace switchers */}
-        <div className="hidden xl:flex items-center gap-1.5 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 text-xs font-semibold">
-          <button
-            onClick={() => onSelectSection('dashboard')}
-            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-              currentSection === 'dashboard'
-                ? 'bg-white text-emerald-800 font-bold shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-            title="CRM Overview & Recent Inquiries"
-          >
-            <span>📊</span>
-            <span>CRM Dashboard</span>
-          </button>
-
-          <button
-            onClick={() => onSelectSection('leads')}
-            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-              currentSection === 'leads'
-                ? 'bg-white text-emerald-800 font-bold shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-            title="3-Column Leads Management Workspace"
-          >
-            <span>👥</span>
-            <span>Leads CRM</span>
-          </button>
-        </div>
       </div>
 
       {/* Right: + Add, Notification, Messages, Settings, User profile */}
@@ -349,15 +320,6 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <MessageSquare className="w-4 h-4" />
           <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500"></span>
-        </button>
-
-        {/* Settings Icon */}
-        <button
-          onClick={() => onSelectSection('settings')}
-          className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors hidden sm:block"
-          title="CRM Settings"
-        >
-          <Settings className="w-4 h-4" />
         </button>
 
         {/* Portal Role Switcher */}

@@ -7,6 +7,14 @@
     {
       "source": "/customer-registration/",
       "destination": "/index.html"
+    },
+    {
+      "source": "/partner-registration",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/partner-registration/",
+      "destination": "/index.html"
     }
   ]
 }

@@ -2,7 +2,7 @@
 
 :root {
   --font-ui: "Plus Jakarta Sans", "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-display: "Outfit", "Plus Jakarta Sans", "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", "Plus Jakarta Sans", "Inter", "Segoe UI", system-ui, sans-serif;
   --font-mono-premium: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
@@ -72,3 +72,42 @@ textarea {
   font-family: var(--font-ui);
   letter-spacing: -0.012em;
 }
+
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+}
+
+/* A shared visual language for every CRM module. */
+.crm-shell { background: #f5f7f6; }
+.crm-shell h1 { font-weight: 700; letter-spacing: -.035em; }
+.crm-shell h2, .crm-shell h3 { font-weight: 650; letter-spacing: -.025em; }
+.crm-shell button { cursor: pointer; }
+.crm-shell button:focus-visible, .crm-shell a:focus-visible { outline: 2px solid #b59554; outline-offset: 3px; }
+.crm-header { gap: 16px; box-shadow: 0 1px 0 #e7ede9; }
+.crm-header > div:first-child { min-width: 0; }
+.crm-sidebar { font-family: var(--font-ui); }
+.premium-sidebar-scroll { scrollbar-width: thin; scrollbar-color: #34664e transparent; }
+.sidebar-brand { position: relative; background: white; border-radius: 14px; border: 1px solid #e7ebe7; box-shadow: 0 6px 18px #001c1620; }
+.sidebar-brand-link { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 96px; padding: 16px; border-radius: 14px; }
+.sidebar-close { position: absolute; right: 3px; top: 3px; padding: 5px; border-radius: 50%; background: #edf3ef; color: #345242; }
+.crm-sidebar nav button[aria-current="page"] { background: #166346; box-shadow: 0 4px 12px #001c161a; }
+.crm-dashboard { width: 100%; }
+.crm-welcome { box-shadow: 0 5px 16px #0b38240d; border-left: 3px solid #c4a360; }
+.crm-welcome > div:first-child { max-width: 560px; }
+.crm-welcome p { line-height: 1.7; color: #b9cfc3; }
+.crm-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+.crm-metric { --metric-color: #277253; --metric-soft: #edf5ef; position: relative; min-width: 0; padding: 18px; text-align: left; border: 1px solid #e1e8e3; border-radius: 14px; background: white; box-shadow: 0 3px 12px #143b2404; transition: border-color .18s, box-shadow .18s; }
+.crm-metric:hover { border-color: #9db9a8; box-shadow: 0 6px 18px #143b2410; }
+.crm-metric--blue { --metric-color: #4b7289; --metric-soft: #edf3f7; }
+.crm-metric--gold { --metric-color: #9a782f; --metric-soft: #faf5e8; }
+.crm-metric--rose { --metric-color: #a06e6e; --metric-soft: #faf0ef; }
+.crm-metric-top { display: flex; justify-content: space-between; align-items: center; color: #a1b0a8; }
+.crm-metric-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--metric-soft); color: var(--metric-color); }
+.crm-metric-value { margin-top: 15px; font-size: 30px; line-height: 1.15; font-weight: 650; letter-spacing: -.04em; color: #15382a; font-variant-numeric: tabular-nums; }
+.crm-metric-label { margin-top: 5px; font-size: 13px; font-weight: 600; color: #455c50; }
+.crm-metric-badge { margin-top: 12px; font-size: 11px; color: var(--metric-color); }
+.crm-dashboard .font-mono { font-family: var(--font-ui) !important; font-variant-numeric: tabular-nums; }
+@media (max-width: 1199px) { .crm-metrics { gap: 10px; } .crm-metric { padding: 14px; } }
+@media (max-width: 767px) { .crm-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .crm-metric:last-child { grid-column: 1 / -1; } .crm-header { gap: 6px; padding-inline: 10px; } }
+@media (prefers-reduced-motion: reduce) { .crm-shell *, .crm-shell *::before, .crm-shell *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }

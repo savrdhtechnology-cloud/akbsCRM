@@ -115,9 +115,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Lead Sources donut data matching Image 2
   const leadSourceSegments = [
     { label: 'Website', percent: 45, color: '#10b981', count: 11, dash: '113 251', offset: '0' },
-    { label: 'WhatsApp', percent: 25, color: '#3b82f6', count: 6, dash: '62.8 251', offset: '-113' },
-    { label: 'Direct Call', percent: 15, color: '#f59e0b', count: 4, dash: '37.7 251', offset: '-175.8' },
-    { label: 'Email', percent: 10, color: '#8b5cf6', count: 2, dash: '25.1 251', offset: '-213.5' },
+    { label: 'WhatsApp', percent: 25, color: '#6b93a5', count: 6, dash: '62.8 251', offset: '-113' },
+    { label: 'Direct Call', percent: 15, color: '#bd9b55', count: 4, dash: '37.7 251', offset: '-175.8' },
+    { label: 'Email', percent: 10, color: '#9ba88b', count: 2, dash: '25.1 251', offset: '-213.5' },
     { label: 'Others', percent: 5, color: '#94a3b8', count: 1, dash: '12.5 251', offset: '-238.6' }
   ];
 
@@ -140,12 +140,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
   });
 
   return (
-    <div className="p-3 sm:p-5 lg:p-6 space-y-5 max-w-[1680px] mx-auto font-sans antialiased text-slate-800">
+    <div className="crm-dashboard p-4 sm:p-5 lg:p-6 space-y-5 max-w-[1680px] mx-auto font-sans antialiased text-slate-800">
       {/* Top Welcome & Subtitle Row matching Image 2 */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
               CRM Dashboard
             </h1>
             <span className="hidden sm:inline-block text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
@@ -160,24 +160,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="flex items-center gap-3">
           <div className="text-right hidden sm:block">
             <div className="text-xs font-bold text-slate-700 italic">
-              "From Inquiry to Impact"
+              AKBS Poultry Farming
             </div>
             <div className="text-[11px] text-emerald-700 font-medium">
-              Modern Poultry Modern Business
+              Business overview
             </div>
           </div>
 
           <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 shadow-2xs">
             <Calendar className="w-3.5 h-3.5 text-slate-500" />
-            <span className="font-mono text-xs">Sat, 13 Sep 2026</span>
+            <span className="text-xs">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
           </div>
         </div>
       </div>
 
       {/* Welcome Banner Banner */}
-      <div className="bg-gradient-to-r from-[#071d12] via-[#0b2818] to-[#123e27] text-white p-4 sm:p-5 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-emerald-900/40">
+      <div className="crm-welcome bg-gradient-to-r from-[#071d12] via-[#0b2818] to-[#123e27] text-white p-4 sm:p-5 rounded-2xl shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-4 border border-emerald-900/40">
         <div>
-          <h2 className="text-lg sm:text-xl font-black tracking-tight text-white flex items-center gap-2">
+          <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-white flex items-center gap-2">
             <span>Welcome Back, Shailendra!</span>
             <span className="text-emerald-400 text-sm font-normal">👋</span>
           </h2>
@@ -186,140 +186,39 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             onClick={() => onSelectSection('customer-portal')}
             className="px-3 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
           >
             <Globe className="w-3.5 h-3.5" />
-            <span>Open Customer Portal Form</span>
+            <span>Customer Portal</span>
           </button>
           <button
             onClick={() => onSelectSection('leads')}
             className="px-3.5 py-2 bg-white hover:bg-emerald-50 text-[#0b2818] rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5"
           >
             <Users className="w-3.5 h-3.5 text-[#0b2818]" />
-            <span>Go to Leads Management</span>
+            <span>Manage Leads</span>
           </button>
         </div>
       </div>
 
-      {/* 5 Top Metric Cards matching Image 2 */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-        {/* Card 1: Total Inquiries (Dark Green #0b2818) */}
-        <div 
-          onClick={() => onSelectSection('leads')}
-          className="bg-[#0b2818] text-white p-4 rounded-2xl shadow-xs hover:bg-[#0e3520] transition-all cursor-pointer border border-emerald-950 flex flex-col justify-between group"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/30 border border-emerald-400/30 flex items-center justify-center text-white">
-              <Mail className="w-5 h-5 text-emerald-300" />
-            </div>
-            <span className="text-[10px] font-bold text-emerald-300 bg-emerald-900/60 px-2 py-0.5 rounded-full">
-              All Time
-            </span>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white">
-              24
-            </div>
-            <div className="text-xs font-medium text-emerald-200/90 mt-0.5">
-              Total Inquiries
-            </div>
-          </div>
-        </div>
-
-        {/* Card 2: New / Unread (Bright Blue) */}
-        <div 
-          onClick={() => onSelectSection('leads')}
-          className="bg-blue-600 text-white p-4 rounded-2xl shadow-xs hover:bg-blue-700 transition-all cursor-pointer border border-blue-700 flex flex-col justify-between group"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-9 h-9 rounded-xl bg-white/20 border border-white/20 flex items-center justify-center text-white">
-              <MessageSquare className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-[10px] font-bold text-blue-100 bg-blue-800/60 px-2 py-0.5 rounded-full">
-              Action Req.
-            </span>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white">
-              7
-            </div>
-            <div className="text-xs font-medium text-blue-100 mt-0.5">
-              New / Unread
-            </div>
-          </div>
-        </div>
-
-        {/* Card 3: Replied (Warm Amber / Orange) */}
-        <div 
-          onClick={() => onSelectSection('leads')}
-          className="bg-amber-600 text-white p-4 rounded-2xl shadow-xs hover:bg-amber-700 transition-all cursor-pointer border border-amber-700 flex flex-col justify-between group"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-9 h-9 rounded-xl bg-white/20 border border-white/20 flex items-center justify-center text-white">
-              <Send className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-[10px] font-bold text-amber-100 bg-amber-800/60 px-2 py-0.5 rounded-full">
-              In Talk
-            </span>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white">
-              12
-            </div>
-            <div className="text-xs font-medium text-amber-100 mt-0.5">
-              Replied
-            </div>
-          </div>
-        </div>
-
-        {/* Card 4: Converted (Rich Purple) */}
-        <div 
-          onClick={() => onSelectSection('leads')}
-          className="bg-purple-700 text-white p-4 rounded-2xl shadow-xs hover:bg-purple-800 transition-all cursor-pointer border border-purple-800 flex flex-col justify-between group"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-9 h-9 rounded-xl bg-white/20 border border-white/20 flex items-center justify-center text-white">
-              <TrendingUp className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-[10px] font-bold text-purple-100 bg-purple-900/60 px-2 py-0.5 rounded-full">
-              Success
-            </span>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white">
-              5
-            </div>
-            <div className="text-xs font-medium text-purple-100 mt-0.5">
-              Converted
-            </div>
-          </div>
-        </div>
-
-        {/* Card 5: Follow Up (Pink / Rose) */}
-        <div 
-          onClick={() => onSelectSection('followups')}
-          className="col-span-2 sm:col-span-1 bg-rose-600 text-white p-4 rounded-2xl shadow-xs hover:bg-rose-700 transition-all cursor-pointer border border-rose-700 flex flex-col justify-between group"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-9 h-9 rounded-xl bg-white/20 border border-white/20 flex items-center justify-center text-white">
-              <CalendarPlus className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-[10px] font-bold text-rose-100 bg-rose-800/60 px-2 py-0.5 rounded-full">
-              Scheduled
-            </span>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white">
-              3
-            </div>
-            <div className="text-xs font-medium text-rose-100 mt-0.5">
-              Follow Up
-            </div>
-          </div>
-        </div>
+      <div className="crm-metrics">
+        {[
+          { label: 'Total Inquiries', value: '24', badge: 'All time', icon: Mail, section: 'leads', tone: 'green' },
+          { label: 'New / Unread', value: '7', badge: 'Needs review', icon: MessageSquare, section: 'leads', tone: 'blue' },
+          { label: 'Replied', value: '12', badge: 'In conversation', icon: Send, section: 'leads', tone: 'gold' },
+          { label: 'Converted', value: '5', badge: 'Successful', icon: TrendingUp, section: 'leads', tone: 'green' },
+          { label: 'Follow Up', value: '3', badge: 'Scheduled', icon: CalendarPlus, section: 'followups', tone: 'rose' }
+        ].map(({ label, value, badge, icon: Icon, section, tone }) => (
+          <button key={label} type="button" className={`crm-metric crm-metric--${tone}`} onClick={() => onSelectSection(section as NavigationSection)}>
+            <div className="crm-metric-top"><span className="crm-metric-icon"><Icon size={19} /></span><ChevronRight size={15} /></div>
+            <div className="crm-metric-value">{value}</div>
+            <div className="crm-metric-label">{label}</div>
+            <div className="crm-metric-badge">{badge}</div>
+          </button>
+        ))}
       </div>
 
       {/* Row 2: Charts Row matching Image 2 */}
@@ -327,7 +226,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Chart 1: Inquiries Trend (7 cols) */}
         <div className="lg:col-span-7 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+            <h2 className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
               <span>Inquiries Trend</span>
             </h2>
             <select className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 font-semibold focus:outline-none">
@@ -414,7 +313,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Chart 2: Lead Source (5 cols) */}
         <div className="lg:col-span-5 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
           <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="text-sm font-extrabold text-slate-900">Lead Source</h2>
+            <h2 className="text-sm font-semibold text-slate-900">Lead Source</h2>
             <span className="text-[11px] text-slate-400">Total: 24</span>
           </div>
 
@@ -443,7 +342,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
               {/* Center text */}
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-                <span className="text-base font-black text-slate-900 font-mono leading-tight">24</span>
+                <span className="text-base font-semibold text-slate-900 font-mono leading-tight">24</span>
                 <span className="text-[10px] text-slate-400 font-semibold leading-none">Inquiries</span>
               </div>
             </div>
@@ -474,7 +373,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Left: Recent Inquiries Table (7 cols) */}
         <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
           <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
               <span>Recent Inquiries</span>
             </h2>
             <button
@@ -549,7 +448,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Right: Quick Actions (4 cols) matching Image 2 */}
         <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5 space-y-3">
           <div className="pb-2 border-b border-slate-100">
-            <h2 className="text-sm font-extrabold text-slate-900">Quick Actions</h2>
+            <h2 className="text-sm font-semibold text-slate-900">Quick Actions</h2>
           </div>
 
           <div className="space-y-2 text-xs font-semibold">
@@ -617,7 +516,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Card 1: Inquiry Details matching Image 2 */}
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5 space-y-3.5">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-            <h2 className="text-sm font-extrabold text-slate-900">Inquiry Details</h2>
+            <h2 className="text-sm font-semibold text-slate-900">Inquiry Details</h2>
             <button
               onClick={() => onSelectSection('leads')}
               className="text-xs text-slate-400 hover:text-slate-700"
@@ -633,7 +532,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-extrabold text-slate-900 text-sm">{selectedInquiry?.name || 'Rakesh Yadav'}</span>
+                <span className="font-semibold text-slate-900 text-sm">{selectedInquiry?.name || 'Rakesh Yadav'}</span>
                 <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
                   • {selectedInquiry?.status || 'New'}
                 </span>
@@ -748,7 +647,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Card 2: Email Templates matching Image 2 */}
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5 space-y-3.5">
           <div className="pb-2 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="text-sm font-extrabold text-slate-900">Email Templates</h2>
+            <h2 className="text-sm font-semibold text-slate-900">Email Templates</h2>
             <span className="text-[11px] text-emerald-700 font-semibold cursor-pointer hover:underline">
               Manage All
             </span>
@@ -845,7 +744,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Card 3: Follow Up Management matching Image 2 */}
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5 space-y-3.5">
           <div className="pb-2 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="text-sm font-extrabold text-slate-900">Follow Up Management</h2>
+            <h2 className="text-sm font-semibold text-slate-900">Follow Up Management</h2>
             <button
               onClick={() => onSelectSection('followups')}
               className="text-xs text-emerald-800 font-bold hover:underline"
@@ -881,7 +780,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {filteredFollowUps.map((item) => (
               <div key={item.id} className="pt-2.5 first:pt-0 flex items-start justify-between gap-2 text-xs">
                 <div className="space-y-0.5">
-                  <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
+                  <div className="font-semibold text-slate-900 flex items-center gap-1.5">
                     <span>{item.name}</span>
                   </div>
                   <div className="text-[11px] text-slate-600">

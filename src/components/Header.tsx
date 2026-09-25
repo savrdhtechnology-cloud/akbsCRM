@@ -96,7 +96,7 @@ export const Header: React.FC<HeaderProps> = ({
     : [];
 
   return (
-    <header className="sticky top-0 z-30 h-16 bg-white border-b border-slate-200/80 px-4 lg:px-6 flex items-center justify-between shadow-xs">
+    <header className="crm-header sticky top-0 z-30 h-16 bg-white border-b border-slate-200/80 px-4 lg:px-6 flex items-center justify-between shadow-xs">
       {/* Left: Mobile Toggle & Global Search */}
       <div className="flex items-center gap-3 flex-1 max-w-xl">
         <button
@@ -115,7 +115,7 @@ export const Header: React.FC<HeaderProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search leads, customers, partners, employees or documents..."
+              placeholder="Search leads or customers..."
               className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all"
             />
             {searchQuery && (
@@ -332,10 +332,10 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="hidden md:inline text-[11px] text-slate-500 font-normal">Portal:</span>
             <span className="text-slate-900 font-bold">
-              {currentRole === 'admin' && '👑 Super Admin'}
-              {currentRole === 'manager' && '👔 Manager'}
-              {currentRole === 'employee' && '👷 Employee'}
-              {currentRole === 'partner' && '🤝 Partner'}
+              {currentRole === 'admin' && 'Super Admin'}
+              {currentRole === 'manager' && 'Manager'}
+              {currentRole === 'employee' && 'Employee'}
+              {currentRole === 'partner' && 'Partner'}
             </span>
             <ChevronDown className="w-3 h-3 text-slate-500" />
           </button>
@@ -365,7 +365,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-emerald-700" />
                     <div>
-                      <div>👑 Super Admin Portal</div>
+                      <div>Super Admin Portal</div>
                       <div className="text-[10px] text-slate-500 font-normal">Full Master Control</div>
                     </div>
                   </div>
@@ -385,7 +385,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="flex items-center gap-2">
                     <Briefcase className="w-4 h-4 text-amber-700" />
                     <div>
-                      <div>👔 Manager Portal</div>
+                      <div>Manager Portal</div>
                       <div className="text-[10px] text-slate-500 font-normal">Approvals & Lead Allocation</div>
                     </div>
                   </div>
@@ -405,7 +405,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="flex items-center gap-2">
                     <HardHat className="w-4 h-4 text-blue-700" />
                     <div>
-                      <div>👷 Employee Portal</div>
+                      <div>Employee Portal</div>
                       <div className="text-[10px] text-slate-500 font-normal">Field Site Visits & Tasks</div>
                     </div>
                   </div>
@@ -425,7 +425,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="flex items-center gap-2">
                     <Truck className="w-4 h-4 text-purple-700" />
                     <div>
-                      <div>🤝 Partner Portal</div>
+                      <div>Partner Portal</div>
                       <div className="text-[10px] text-slate-500 font-normal">DOC / Feed Supply Orders</div>
                     </div>
                   </div>

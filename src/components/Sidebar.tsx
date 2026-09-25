@@ -103,46 +103,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 text-white transition-all duration-300 ease-out
+        className={`crm-sidebar fixed inset-y-0 left-0 z-50 text-white transition-all duration-300 ease-out
           lg:sticky lg:top-0 lg:h-screen lg:shrink-0
           ${isOpen
-            ? 'translate-x-0 w-[258px] xl:w-[264px] 2xl:w-[272px]'
+            ? 'translate-x-0 w-[248px] xl:w-[256px]'
             : '-translate-x-full lg:translate-x-0 lg:w-0 lg:overflow-hidden lg:border-r-0'}`}
       >
-        <div className="w-[258px] xl:w-[264px] 2xl:w-[272px] h-full bg-[#031d14] border-r border-emerald-950/70 shadow-[10px_0_28px_rgba(1,25,17,0.16)] flex flex-col overflow-hidden">
+        <div className="w-[248px] xl:w-[256px] h-full bg-[#031d14] border-r border-emerald-950/70 shadow-[10px_0_28px_rgba(1,25,17,0.16)] flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto premium-sidebar-scroll bg-[radial-gradient(circle_at_45%_12%,rgba(16,185,129,0.10),transparent_22%),linear-gradient(180deg,#073323_0%,#04271b_38%,#031d14_100%)]">
             <div className="p-3 pb-3.5">
-              {/* Compact AKBS brand header */}
-              <div className="relative h-[104px] overflow-hidden rounded-[22px] border border-white/10 bg-white shadow-[0_12px_28px_rgba(0,0,0,0.16)]">
-                <div
-                  className="absolute inset-y-0 right-0 w-[39%] bg-cover bg-center opacity-55"
-                  style={{ backgroundImage: `url(${broilerHeroImg})` }}
-                />
-                <div className="absolute inset-0 bg-[linear-gradient(90deg,#ffffff_0%,#ffffff_62%,rgba(255,255,255,0.82)_78%,rgba(236,253,245,0.18)_100%)]" />
-                <div className="absolute bottom-0 left-0 right-0 h-6 bg-[linear-gradient(164deg,transparent_0%,transparent_32%,#0a5c3e_33%,#063c2a_100%)]" />
-
-                <button
-                  onClick={() => navigate('dashboard')}
-                  type="button"
-                  aria-label="AKBS Poultry Farming — open dashboard"
-                  className="relative z-10 flex h-full w-full items-center px-3.5 pb-3 pt-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600"
-                >
+              <div className="sidebar-brand">
+                <button type="button" onClick={() => navigate('dashboard')} className="sidebar-brand-link" aria-label="AKBS Poultry Farming — open dashboard">
                   <AkbsLogo theme="light" size="md" showTagline />
                 </button>
-
-                <button
-                  onClick={handleClose}
-                  className="absolute right-2 top-2 z-20 lg:hidden rounded-full bg-white/90 p-1.5 text-slate-600 shadow-sm"
-                  aria-label="Close sidebar"
-                >
+                <button type="button" onClick={handleClose} className="sidebar-close lg:hidden" aria-label="Close sidebar">
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <nav className="mt-3.5">
+              <nav aria-label="Main navigation" className="mt-5">
                 {groups.map((group) => (
                   <div key={group.label} className="mb-3 last:mb-0">
-                    <div className="mb-1.5 px-2.5 text-[9.5px] uppercase tracking-[0.25em] text-emerald-100/52 font-bold">
+                    <div className="mb-1.5 px-2.5 text-[10px] uppercase tracking-[0.16em] text-emerald-100/52 font-bold">
                       {group.label}
                     </div>
 
@@ -152,8 +134,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         return (
                           <button
                             key={item.id}
+                            aria-current={active ? 'page' : undefined}
                             onClick={() => navigate(item.id)}
-                            className={`group relative w-full min-h-[39px] px-3 rounded-[15px] flex items-center justify-between transition-all duration-200 text-left overflow-hidden
+                            className={`group relative w-full min-h-[40px] px-3 rounded-xl flex items-center justify-between transition-all duration-200 text-left overflow-hidden
                               ${active
                                 ? 'bg-[linear-gradient(135deg,#0caf72_0%,#08724c_100%)] text-white shadow-[0_9px_20px_rgba(3,104,69,0.25)] ring-1 ring-emerald-300/15'
                                 : 'text-emerald-50/82 hover:bg-white/[0.07] hover:text-white'}`}
@@ -166,7 +149,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               <span className={`${active ? 'text-white' : 'text-emerald-200/88 group-hover:text-emerald-100'} shrink-0`}>
                                 {item.icon}
                               </span>
-                              <span className="truncate text-[12.5px] font-semibold tracking-[-0.018em]">
+                              <span className="truncate text-[13px] font-medium tracking-normal">
                                 {item.label}
                               </span>
                             </div>
@@ -204,10 +187,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
 
                 <div className="absolute inset-x-0 bottom-0 p-3.5">
-                  <div className="font-['Caveat',cursive] text-[23px] leading-[0.88] font-bold tracking-wide text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]">
+                  <div className="font-display text-[18px] leading-[0.88] font-bold tracking-wide text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]">
                     Healthy Farmers
                   </div>
-                  <div className="font-['Caveat',cursive] text-[23px] leading-none font-bold tracking-wide text-amber-300 drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]">
+                  <div className="font-display text-[18px] leading-none font-bold tracking-wide text-amber-300 drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]">
                     Healthy India
                   </div>
                   <div className="mt-2 rounded-xl border border-white/16 bg-[#06291d]/72 px-3 py-2 backdrop-blur-md">

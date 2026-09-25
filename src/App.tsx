@@ -283,7 +283,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f3f6f4] flex font-sans antialiased text-slate-800">
+    <div className="crm-shell min-h-screen bg-[#f3f6f4] flex font-sans antialiased text-slate-800">
       {/* Sidebar Navigation */}
       <Sidebar
         currentSection={currentSection}

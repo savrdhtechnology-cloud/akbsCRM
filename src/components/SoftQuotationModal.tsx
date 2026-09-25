@@ -806,6 +806,7 @@ _Note: This is a preliminary soft quotation for project planning and initial ban
               <span>akbspoultryfarming@gmail.com · www.Akbspoultry.com</span>
             </div>
           </div>
+        </div>
 
         {/* BOTTOM ACTION BAR - DISPATCH CHANNELS */}
         <div className="print:hidden bg-white px-4 sm:px-6 py-3.5 border-t border-slate-200 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3">

@@ -203,13 +203,6 @@ export const Header: React.FC<HeaderProps> = ({
           {isAddMenuOpen && (
             <div className="absolute right-0 top-full mt-1.5 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
               <button
-                onClick={() => { onOpenQuickAction('send-soft-quotation'); setIsAddMenuOpen(false); }}
-                className="w-full px-3.5 py-2 text-left text-amber-950 bg-amber-50 hover:bg-amber-100 flex items-center gap-2.5 font-bold transition-colors border-b border-amber-200/60"
-              >
-                <span className="text-sm">📜</span>
-                <span>Send Soft Quotation</span>
-              </button>
-              <button
                 onClick={() => { onOpenQuickAction('add-lead'); setIsAddMenuOpen(false); }}
                 className="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-emerald-50 hover:text-emerald-900 flex items-center gap-2.5 font-medium transition-colors"
               >

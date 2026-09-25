@@ -8,7 +8,6 @@ import {
   IndianRupee,
   ArrowUp,
   Calendar,
-  Globe,
   Phone,
   MessageSquare,
   ChevronRight,
@@ -184,23 +183,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <p className="text-xs text-emerald-200/90 mt-1">
             Here's what's happening with your poultry business today. 7 new customer inquiries awaiting your review.
           </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <button
-            onClick={() => onSelectSection('customer-portal')}
-            className="px-3 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span>Customer Portal</span>
-          </button>
-          <button
-            onClick={() => onSelectSection('leads')}
-            className="px-3.5 py-2 bg-white hover:bg-emerald-50 text-[#0b2818] rounded-xl text-xs font-bold transition-colors shadow-xs flex items-center gap-1.5"
-          >
-            <Users className="w-3.5 h-3.5 text-[#0b2818]" />
-            <span>Manage Leads</span>
-          </button>
         </div>
       </div>
 

@@ -1,0 +1,899 @@
+import React, { useState, useEffect } from 'react';
+import {
+  X,
+  Send,
+  Printer,
+  Copy,
+  Check,
+  Building,
+  CheckCircle2,
+  Calendar,
+  Sparkles,
+  Layers,
+  ChevronDown,
+  Info,
+  Phone,
+  Mail,
+  MapPin,
+  TrendingUp,
+  Landmark,
+  ShieldCheck,
+  FileCheck,
+  Share2
+} from 'lucide-react';
+import akbsLogoImg from '../assets/images/akbs_poultry_logo_1790286883961.jpg';
+
+export interface SoftQuotationData {
+  name?: string;
+  phone?: string;
+  email?: string;
+  location?: string;
+  state?: string;
+  district?: string;
+  village?: string;
+  birdCapacity?: number;
+  poultryType?: string;
+  shedType?: string;
+  applicationId?: string;
+  leadId?: string;
+  projectCost?: string;
+}
+
+interface SoftQuotationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  initialData?: SoftQuotationData | null;
+  onQuotationSent?: (leadId?: string, summary?: any) => void;
+}
+
+export const SoftQuotationModal: React.FC<SoftQuotationModalProps> = ({
+  isOpen,
+  onClose,
+  initialData,
+  onQuotationSent
+}) => {
+  // Quotation Reference Info
+  const [quotationNo, setQuotationNo] = useState('');
+  const [quotationDate, setQuotationDate] = useState('');
+  const [validUntil, setValidUntil] = useState('');
+
+  // Beneficiary Info
+  const [clientName, setClientName] = useState('Rakesh Yadav');
+  const [mobileNumber, setMobileNumber] = useState('9876543210');
+  const [emailAddress, setEmailAddress] = useState('');
+  const [farmLocation, setFarmLocation] = useState('Kokta, Bhopal, Madhya Pradesh');
+
+  // Technical Specs
+  const [birdsCount, setBirdsCount] = useState<number>(20000);
+  const [birdType, setBirdType] = useState<'Broiler' | 'Layer' | 'Country / Desi' | 'Breeder'>('Broiler');
+  const [shedTech, setShedTech] = useState<'EC' | 'Conventional'>('EC');
+  const [subsidyCategory, setSubsidyCategory] = useState<'General (25%)' | 'SC/ST/Women/NE (33%)' | 'None'>('General (25%)');
+
+  // Included Line Items toggles
+  const [includeCivilShed, setIncludeCivilShed] = useState(true);
+  const [includeVentilation, setIncludeVentilation] = useState(true);
+  const [includeFeedingDrinking, setIncludeFeedingDrinking] = useState(true);
+  const [includeElectricals, setIncludeElectricals] = useState(true);
+  const [includeSilo, setIncludeSilo] = useState(true);
+  const [includeBiosecurity, setIncludeBiosecurity] = useState(true);
+
+  // Active view tab in modal: 'preview' (Official Letterhead) or 'customize' (Inputs & Line items)
+  const [activeTab, setActiveTab] = useState<'preview' | 'customize'>('preview');
+
+  // Copy toast state
+  const [copied, setCopied] = useState(false);
+  const [sendSuccess, setSendSuccess] = useState<string | null>(null);
+
+  // Initialize or update data when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const randomNum = Math.floor(1000 + Math.random() * 9000);
+      setQuotationNo(`AKBS-SQ-2026-${randomNum}`);
+      const today = new Date();
+      const validDate = new Date();
+      validDate.setDate(today.getDate() + 30);
+
+      const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
+      setQuotationDate(today.toLocaleDateString('en-GB', options));
+      setValidUntil(validDate.toLocaleDateString('en-GB', options));
+
+      if (initialData) {
+        if (initialData.name) setClientName(initialData.name);
+        if (initialData.phone) setMobileNumber(initialData.phone.replace(/[^0-9]/g, '').slice(-10));
+        if (initialData.email) setEmailAddress(initialData.email);
+
+        const loc = [initialData.village, initialData.district, initialData.state]
+          .filter(Boolean)
+          .join(', ') || initialData.location || 'Bhopal, Madhya Pradesh';
+        setFarmLocation(loc);
+
+        if (initialData.birdCapacity && !isNaN(Number(initialData.birdCapacity))) {
+          setBirdsCount(Number(initialData.birdCapacity));
+        }
+
+        if (initialData.poultryType) {
+          if (initialData.poultryType.toLowerCase().includes('layer')) setBirdType('Layer');
+          else if (initialData.poultryType.toLowerCase().includes('country') || initialData.poultryType.toLowerCase().includes('desi')) setBirdType('Country / Desi');
+          else setBirdType('Broiler');
+        }
+
+        if (initialData.shedType) {
+          if (initialData.shedType.toLowerCase().includes('ec') || initialData.shedType.toLowerCase().includes('environment')) {
+            setShedTech('EC');
+          } else {
+            setShedTech('Conventional');
+          }
+        }
+      }
+      setSendSuccess(null);
+    }
+  }, [isOpen, initialData]);
+
+  if (!isOpen) return null;
+
+  // Realistic poultry sizing & engineering calculations
+  // EC Shed: 0.75 sq.ft per bird | Conventional Shed: 1.25 sq.ft per bird
+  const sqFtRatio = shedTech === 'EC' ? 0.75 : 1.25;
+  const shedSqFt = Math.round(birdsCount * sqFtRatio);
+  // Standard poultry shed width is 40 to 45 ft
+  const shedWidth = 45;
+  const shedLength = Math.round(shedSqFt / shedWidth);
+
+  // Costs calculation
+  // Civil: Pre-fab steel truss, purlins, foundation, concrete flooring, GI sheeting
+  const civilRatePerSqFt = shedTech === 'EC' ? 320 : 250;
+  const civilCost = includeCivilShed ? shedSqFt * civilRatePerSqFt : 0;
+
+  // Climate Control: 50" exhaust cone fans, 150mm cooling pads, environmental controller, tunnel curtain
+  const fanCount = Math.max(2, Math.round(birdsCount / 2500));
+  const coolingPadSqFt = Math.max(100, Math.round(birdsCount * 0.05));
+  const ventilationCost = includeVentilation
+    ? shedTech === 'EC'
+      ? fanCount * 42000 + coolingPadSqFt * 550 + 120000 // Controller + temp sensors + actuators
+      : 75000 // Simple air circulators for open shed
+    : 0;
+
+  // Automatic Feeding (Pan) & Nipple Drinking system
+  const feedingDrinkingCost = includeFeedingDrinking
+    ? Math.round(birdsCount * (shedTech === 'EC' ? 95 : 65))
+    : 0;
+
+  // Silo & Unloader
+  const siloCost = includeSilo ? (birdsCount >= 10000 ? 320000 : 180000) : 0;
+
+  // Electricals, LED lighting, Generator connection, Water plumbing
+  const electricalCost = includeElectricals ? Math.round(shedSqFt * 25 + 90000) : 0;
+
+  // Biosecurity, disinfectant spray system, boot dip & basic office room
+  const biosecurityCost = includeBiosecurity ? 110000 : 0;
+
+  // Subtotal & Totals
+  const subTotalCost = civilCost + ventilationCost + feedingDrinkingCost + siloCost + electricalCost + biosecurityCost;
+  const contingencyCost = Math.round(subTotalCost * 0.03); // 3% contingency
+  const totalProjectCost = subTotalCost + contingencyCost;
+
+  // Subsidy calculation
+  const subsidyPercent = subsidyCategory === 'General (25%)' ? 0.25 : subsidyCategory === 'SC/ST/Women/NE (33%)' ? 0.33 : 0;
+  const estimatedSubsidy = Math.round(totalProjectCost * subsidyPercent);
+
+  // Bank Loan (75% term loan under SBI/PNB/NABARD Agri infrastructure fund)
+  const bankLoan = Math.round(totalProjectCost * 0.75);
+  // Farmer Margin (25% equity)
+  const farmerEquity = Math.max(0, totalProjectCost - bankLoan);
+
+  // Projected Annual Returns: 6 batches/year @ ₹ 14.50 rearing charges per bird for EC broiler
+  const annualRearingGross = Math.round(birdsCount * 6 * 14.5);
+  const annualOpCosts = Math.round(birdsCount * 6 * 3.8); // electricity, bedding, labour, sanitization
+  const netEstimatedAnnualIncome = annualRearingGross - annualOpCosts;
+  const estPaybackYears = (totalProjectCost / (netEstimatedAnnualIncome || 1)).toFixed(1);
+
+  // Format currency helper
+  const formatINR = (val: number) => {
+    return '₹ ' + val.toLocaleString('en-IN');
+  };
+
+  const formatLakhs = (val: number) => {
+    return `₹ ${(val / 100000).toFixed(2)} Lakhs`;
+  };
+
+  // WhatsApp Message Generator
+  const generateWhatsAppMessage = () => {
+    return (
+`*AKBS POULTRY FARMING PVT. LTD.*
+*PRELIMINARY SOFT QUOTATION / अनुमानित प्राक्कलन*
+Ref No: ${quotationNo} | Date: ${quotationDate}
+
+नमस्ते *${clientName}* जी,
+आपके पोल्ट्री प्रोजेक्ट का Soft Quotation नीचे दिया गया है:
+
+📋 *Project Overview:*
+• Capacity: *${birdsCount.toLocaleString()} Birds (${birdType})*
+• Technology: *${shedTech === 'EC' ? 'Environment Controlled (EC) Shed' : 'Conventional Open Shed'}*
+• Shed Dimensions: *${shedLength} ft × ${shedWidth} ft (${shedSqFt.toLocaleString()} sq.ft)*
+• Location: *${farmLocation}*
+
+💰 *Itemized Cost Estimate:*
+1. Shed Civil & Structural Work: ${formatINR(civilCost)}
+2. Climate Control (Fans, Cooling Pads & Controller): ${formatINR(ventilationCost)}
+3. Auto Pan Feeding & Nipple Drinking Line: ${formatINR(feedingDrinkingCost)}
+4. Bulk Feed Storage Silo & Auger: ${formatINR(siloCost)}
+5. Electrification, LED Lighting & Plumbing: ${formatINR(electricalCost)}
+6. Biosecurity & Disinfection Setup: ${formatINR(biosecurityCost)}
+• *Total Project Outlay:* *${formatLakhs(totalProjectCost)}* (${formatINR(totalProjectCost)})
+
+🏛️ *Bank Loan & Subsidy Eligibility:*
+• NABARD / AHIDF Subsidy: *${formatLakhs(estimatedSubsidy)}*
+• Bank Term Loan (75%): *${formatLakhs(bankLoan)}*
+• Farmer Margin (Equity): *${formatLakhs(farmerEquity)}*
+• Est. Annual Farm Profit: *${formatLakhs(netEstimatedAnnualIncome)}* (Payback: ~${estPaybackYears} Years)
+
+📞 *Contact Our Technical Team:*
+Er. Ankit Mishra (Project Head): +91 98765 43210
+AKBS Poultry Farming Pvt. Ltd., Kokta Transport Nagar, Bhopal (M.P.)
+_Note: This is a preliminary soft quotation for bank feasibility and planning purpose._`
+    );
+  };
+
+  // 1. Send via WhatsApp
+  const handleSendWhatsApp = () => {
+    const cleanPhone = mobileNumber.replace(/[^0-9]/g, '');
+    const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    const text = encodeURIComponent(generateWhatsAppMessage());
+    const waUrl = `https://api.whatsapp.com/send?phone=${phoneWithCountry}&text=${text}`;
+
+    window.open(waUrl, '_blank');
+    setSendSuccess(`Soft Quotation successfully dispatched to WhatsApp (+91 ${cleanPhone})!`);
+
+    if (onQuotationSent) {
+      onQuotationSent(initialData?.leadId, {
+        quotationNo,
+        birdsCount,
+        totalProjectCost,
+        channel: 'WhatsApp'
+      });
+    }
+  };
+
+  // 2. Send via Email
+  const handleSendEmail = () => {
+    const subject = encodeURIComponent(`AKBS Poultry Soft Quotation - ${birdsCount.toLocaleString()} Birds Project [${quotationNo}]`);
+    const body = encodeURIComponent(generateWhatsAppMessage());
+    const mailUrl = `mailto:${emailAddress || ''}?subject=${subject}&body=${body}`;
+
+    window.open(mailUrl, '_blank');
+    setSendSuccess(`Soft Quotation draft opened in email!`);
+
+    if (onQuotationSent) {
+      onQuotationSent(initialData?.leadId, {
+        quotationNo,
+        birdsCount,
+        totalProjectCost,
+        channel: 'Email'
+      });
+    }
+  };
+
+  // 3. Copy Quotation Text to Clipboard
+  const handleCopyQuotation = () => {
+    navigator.clipboard.writeText(generateWhatsAppMessage());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  // 4. Print / PDF
+  const handlePrint = () => {
+    window.print();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150">
+      <div className="bg-white rounded-2xl max-w-4xl w-full shadow-2xl border border-slate-200 flex flex-col my-auto max-h-[96vh] overflow-hidden text-slate-800">
+        
+        {/* Top Header */}
+        <div className="bg-[#071d12] text-white px-4 sm:px-6 py-3.5 flex items-center justify-between shrink-0 border-b border-[#143e27]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/10 p-1 border border-emerald-500/30 flex items-center justify-center overflow-hidden shrink-0">
+              <img src={akbsLogoImg} alt="AKBS Logo" className="w-full h-full object-cover rounded-full" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-white">
+                  Send Soft Quotation (कच्चा कोटेशन)
+                </h2>
+                <span className="text-[10px] bg-emerald-700/80 text-emerald-100 font-mono px-2 py-0.5 rounded-full font-bold border border-emerald-600">
+                  {quotationNo}
+                </span>
+              </div>
+              <p className="text-[11px] text-emerald-300">
+                Instant Turnkey Poultry Farm Project Feasibility & Cost Estimate
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:flex bg-[#0d2a1b] p-0.5 rounded-lg border border-emerald-800 text-xs">
+              <button
+                type="button"
+                onClick={() => setActiveTab('preview')}
+                className={`px-3 py-1 rounded-md font-semibold transition-all ${
+                  activeTab === 'preview' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                Document Preview
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('customize')}
+                className={`px-3 py-1 rounded-md font-semibold transition-all ${
+                  activeTab === 'customize' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                Customize Specs
+              </button>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-emerald-300 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Tab Switcher */}
+        <div className="sm:hidden flex border-b border-slate-200 bg-slate-50 text-xs font-semibold">
+          <button
+            onClick={() => setActiveTab('preview')}
+            className={`flex-1 py-2 text-center border-b-2 ${
+              activeTab === 'preview' ? 'border-[#0b2818] text-[#0b2818] font-bold bg-white' : 'border-transparent text-slate-500'
+            }`}
+          >
+            Quotation Letterhead
+          </button>
+          <button
+            onClick={() => setActiveTab('customize')}
+            className={`flex-1 py-2 text-center border-b-2 ${
+              activeTab === 'customize' ? 'border-[#0b2818] text-[#0b2818] font-bold bg-white' : 'border-transparent text-slate-500'
+            }`}
+          >
+            Edit Specs & Scope
+          </button>
+        </div>
+
+        {/* Success Alert Banner */}
+        {sendSuccess && (
+          <div className="bg-emerald-50 border-b border-emerald-200 px-4 py-2 flex items-center justify-between text-xs text-emerald-900 font-semibold animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{sendSuccess}</span>
+            </div>
+            <button onClick={() => setSendSuccess(null)} className="text-emerald-700 hover:text-emerald-900">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 text-xs bg-slate-50/50">
+          
+          {/* Quick Beneficiary Bar */}
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div>
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">
+                Client / Farmer Name
+              </label>
+              <input
+                type="text"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                className="w-full font-bold text-slate-900 bg-transparent border-b border-dashed border-slate-300 focus:border-emerald-600 focus:outline-none pb-0.5"
+                placeholder="Farmer Name"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">
+                WhatsApp / Mobile
+              </label>
+              <div className="flex items-center gap-1">
+                <span className="text-slate-400 font-mono text-[11px]">+91</span>
+                <input
+                  type="text"
+                  value={mobileNumber}
+                  onChange={(e) => setMobileNumber(e.target.value)}
+                  className="w-full font-mono font-bold text-slate-900 bg-transparent border-b border-dashed border-slate-300 focus:border-emerald-600 focus:outline-none pb-0.5"
+                  placeholder="9876543210"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">
+                Farm Location / District
+              </label>
+              <input
+                type="text"
+                value={farmLocation}
+                onChange={(e) => setFarmLocation(e.target.value)}
+                className="w-full text-slate-900 font-medium bg-transparent border-b border-dashed border-slate-300 focus:border-emerald-600 focus:outline-none pb-0.5"
+                placeholder="Bhopal, MP"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">
+                Target Capacity
+              </label>
+              <select
+                value={birdsCount}
+                onChange={(e) => setBirdsCount(Number(e.target.value))}
+                className="w-full font-mono font-bold text-emerald-800 bg-transparent border-b border-dashed border-slate-300 focus:border-emerald-600 focus:outline-none pb-0.5"
+              >
+                <option value={5000}>5,000 Birds</option>
+                <option value={10000}>10,000 Birds</option>
+                <option value={15000}>15,000 Birds</option>
+                <option value={20000}>20,000 Birds (Standard Commercial)</option>
+                <option value={25000}>25,000 Birds</option>
+                <option value={30000}>30,000 Birds</option>
+                <option value={50000}>50,000+ Birds</option>
+              </select>
+            </div>
+          </div>
+
+          {/* CUSTOMIZE TAB */}
+          {activeTab === 'customize' && (
+            <div className="space-y-4 animate-in fade-in duration-150">
+              {/* Controls card */}
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-4">
+                <h3 className="font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center justify-between">
+                  <span>Project Configuration & Inclusions</span>
+                  <span className="text-[11px] text-slate-400 font-normal">Adjust specifications to recalculate quotation</span>
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Poultry Type */}
+                  <div>
+                    <label className="block text-slate-600 font-semibold mb-1">Poultry Segment</label>
+                    <select
+                      value={birdType}
+                      onChange={(e) => setBirdType(e.target.value as any)}
+                      className="w-full p-2 border border-slate-300 rounded-lg text-slate-800 font-medium"
+                    >
+                      <option value="Broiler">Commercial Broiler (Meat)</option>
+                      <option value="Layer">Commercial Layer (Eggs)</option>
+                      <option value="Country / Desi">Country Chicken / Desi / Kadaknath</option>
+                      <option value="Breeder">Parent Stock / Breeder</option>
+                    </select>
+                  </div>
+
+                  {/* Shed Technology */}
+                  <div>
+                    <label className="block text-slate-600 font-semibold mb-1">Shed Housing Technology</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShedTech('EC')}
+                        className={`p-2 rounded-lg font-bold border text-center transition-all ${
+                          shedTech === 'EC'
+                            ? 'bg-emerald-50 border-emerald-600 text-emerald-900'
+                            : 'bg-white border-slate-200 text-slate-600'
+                        }`}
+                      >
+                        EC Controlled
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShedTech('Conventional')}
+                        className={`p-2 rounded-lg font-bold border text-center transition-all ${
+                          shedTech === 'Conventional'
+                            ? 'bg-emerald-50 border-emerald-600 text-emerald-900'
+                            : 'bg-white border-slate-200 text-slate-600'
+                        }`}
+                      >
+                        Conventional
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Subsidy Scheme */}
+                  <div>
+                    <label className="block text-slate-600 font-semibold mb-1">NABARD / AHIDF Subsidy Category</label>
+                    <select
+                      value={subsidyCategory}
+                      onChange={(e) => setSubsidyCategory(e.target.value as any)}
+                      className="w-full p-2 border border-slate-300 rounded-lg text-slate-800 font-medium"
+                    >
+                      <option value="General (25%)">General Category (25% Capital Subsidy)</option>
+                      <option value="SC/ST/Women/NE (33%)">SC / ST / Women / North-East (33%)</option>
+                      <option value="None">Direct Commercial / No Subsidy</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Scope of Supply Inclusions Checkboxes */}
+                <div>
+                  <label className="block text-slate-700 font-bold mb-2">Scope of Supply & Work</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    <label className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeCivilShed}
+                        onChange={(e) => setIncludeCivilShed(e.target.checked)}
+                        className="w-4 h-4 text-emerald-600 rounded"
+                      />
+                      <span>Civil Shed & PEB Steel Truss</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeVentilation}
+                        onChange={(e) => setIncludeVentilation(e.target.checked)}
+                        className="w-4 h-4 text-emerald-600 rounded"
+                      />
+                      <span>Exhaust Fans & Cooling Pads</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeFeedingDrinking}
+                        onChange={(e) => setIncludeFeedingDrinking(e.target.checked)}
+                        className="w-4 h-4 text-emerald-600 rounded"
+                      />
+                      <span>Auto Pan Feeder & Drinker</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeSilo}
+                        onChange={(e) => setIncludeSilo(e.target.checked)}
+                        className="w-4 h-4 text-emerald-600 rounded"
+                      />
+                      <span>Bulk Feed Silo & Auger System</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeElectricals}
+                        onChange={(e) => setIncludeElectricals(e.target.checked)}
+                        className="w-4 h-4 text-emerald-600 rounded"
+                      />
+                      <span>Poultry LED & Panel Wiring</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeBiosecurity}
+                        onChange={(e) => setIncludeBiosecurity(e.target.checked)}
+                        className="w-4 h-4 text-emerald-600 rounded"
+                      />
+                      <span>Biosecurity, Sprayer & Office</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* OFFICIAL QUOTATION DOCUMENT LETTERHEAD (PRINTABLE & PREVIEW) */}
+          <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200 shadow-sm space-y-6 print:p-0 print:border-none print:shadow-none">
+            {/* Letterhead Header */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b-2 border-[#0b2818] gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-14 h-14 rounded-full bg-white p-0.5 border-[3px] border-[#00C853] flex items-center justify-center shrink-0 shadow-md overflow-hidden">
+                  <img src={akbsLogoImg} alt="AKBS Logo" className="w-full h-full object-cover rounded-full" />
+                </div>
+                <div>
+                  <h1 className="font-['Outfit',sans-serif] text-lg sm:text-xl font-black text-slate-950 tracking-tight leading-none">
+                    AKBS POULTRY FARMING PVT. LTD.
+                  </h1>
+                  <p className="font-['Outfit',sans-serif] text-[10.5px] font-bold text-[#00873E] tracking-[0.08em] uppercase mt-1">
+                    HEALTHY BIRDS | BETTER TOMORROW
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-0.5 font-['Plus_Jakarta_Sans',sans-serif]">
+                    Reg. Office: Kokta Transport Nagar, Raisen Road, Bhopal, M.P. - 462022 | GSTIN: 23AABCA4821P1Z9
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-right sm:text-right w-full sm:w-auto bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-100 sm:border-none sm:p-0 sm:bg-transparent">
+                <span className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider block">
+                  Soft Project Estimate
+                </span>
+                <div className="font-mono font-bold text-slate-900 text-xs mt-0.5">
+                  Ref: {quotationNo}
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5">
+                  Date: <b>{quotationDate}</b> | Valid: <b>{validUntil}</b>
+                </div>
+              </div>
+            </div>
+
+            {/* Client & Technical Specifications Summary */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+              <div className="space-y-1">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quotation Prepared For:</div>
+                <div className="text-sm font-bold text-slate-900">{clientName}</div>
+                <div className="text-slate-600 flex items-center gap-1 font-mono text-[11px]">
+                  <Phone className="w-3 h-3 text-emerald-700" />
+                  +91 {mobileNumber}
+                </div>
+                <div className="text-slate-600 flex items-center gap-1 text-[11px]">
+                  <MapPin className="w-3 h-3 text-slate-400" />
+                  {farmLocation}
+                </div>
+              </div>
+
+              <div className="space-y-1 sm:border-l sm:border-slate-200 sm:pl-4">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Technical Configuration:</div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Flock Capacity:</span>
+                  <span className="font-mono font-bold text-slate-900">{birdsCount.toLocaleString()} Birds</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Poultry Segment:</span>
+                  <span className="font-semibold text-slate-900">{birdType}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Shed Type & Covered Area:</span>
+                  <span className="font-semibold text-emerald-900">
+                    {shedTech === 'EC' ? 'EC Controlled' : 'Conventional'} ({shedLength}' × {shedWidth}' = {shedSqFt.toLocaleString()} sq.ft)
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Itemized Table */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <Building className="w-4 h-4 text-emerald-800" />
+                  <span>Itemized Scope & Cost Breakdown</span>
+                </h3>
+                <span className="text-[10px] text-slate-400 font-mono">*All rates inclusive of fabrication & installation</span>
+              </div>
+
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-[#0b2818] text-white text-[11px]">
+                      <th className="py-2.5 px-3 font-semibold">#</th>
+                      <th className="py-2.5 px-3 font-semibold">Scope of Work & Technical Specification</th>
+                      <th className="py-2.5 px-3 font-semibold text-center">Qty / Dim</th>
+                      <th className="py-2.5 px-3 font-semibold text-right">Estimated Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-[11px]">
+                    {includeCivilShed && (
+                      <tr className="hover:bg-slate-50/60">
+                        <td className="py-2 px-3 font-mono text-slate-400">01</td>
+                        <td className="py-2 px-3">
+                          <span className="font-bold text-slate-900 block">Shed Civil Construction & Pre-Engineered Steel Structure</span>
+                          <span className="text-[10px] text-slate-500">
+                            High tensile steel truss, columns, roof purlins, 0.50mm galvalume roofing sheets with thermal insulation barrier, civil foundation & PCC concrete flooring.
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 text-center font-mono">{shedSqFt.toLocaleString()} sq.ft</td>
+                        <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{formatINR(civilCost)}</td>
+                      </tr>
+                    )}
+
+                    {includeVentilation && (
+                      <tr className="hover:bg-slate-50/60">
+                        <td className="py-2 px-3 font-mono text-slate-400">02</td>
+                        <td className="py-2 px-3">
+                          <span className="font-bold text-slate-900 block">
+                            {shedTech === 'EC' ? 'EC Climate Control & Ventilation System' : 'Natural Ventilation System'}
+                          </span>
+                          <span className="text-[10px] text-slate-500">
+                            {shedTech === 'EC'
+                              ? `${fanCount} Nos 50" Galvanized cone exhaust fans, ${coolingPadSqFt} sq.ft 150mm cellulose cooling pads with stainless gutter, digital temperature/humidity controller, automated tunnel inlet curtains.`
+                              : 'Side mesh with winchable curtain system and air circulation fans.'}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 text-center font-mono">{fanCount} Fans</td>
+                        <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{formatINR(ventilationCost)}</td>
+                      </tr>
+                    )}
+
+                    {includeFeedingDrinking && (
+                      <tr className="hover:bg-slate-50/60">
+                        <td className="py-2 px-3 font-mono text-slate-400">03</td>
+                        <td className="py-2 px-3">
+                          <span className="font-bold text-slate-900 block">Automated Pan Feeding & Nipple Drinking Lines</span>
+                          <span className="text-[10px] text-slate-500">
+                            Automatic pan feeder lines with drive motors & ultrasonic feed level sensors, SS 360° nipple drinking lines with pressure regulators, filter and Dosatron medicator.
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 text-center font-mono">Full Setup</td>
+                        <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{formatINR(feedingDrinkingCost)}</td>
+                      </tr>
+                    )}
+
+                    {includeSilo && (
+                      <tr className="hover:bg-slate-50/60">
+                        <td className="py-2 px-3 font-mono text-slate-400">04</td>
+                        <td className="py-2 px-3">
+                          <span className="font-bold text-slate-900 block">Outdoor Galvanized Feed Storage Silo & Flex Auger</span>
+                          <span className="text-[10px] text-slate-500">
+                            12-Ton corrugated hot-dip galvanized bulk silo with safety ladder, inspection glass, and automated feed transfer auger into shed hoppers.
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 text-center font-mono">1 Unit</td>
+                        <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{formatINR(siloCost)}</td>
+                      </tr>
+                    )}
+
+                    {includeElectricals && (
+                      <tr className="hover:bg-slate-50/60">
+                        <td className="py-2 px-3 font-mono text-slate-400">05</td>
+                        <td className="py-2 px-3">
+                          <span className="font-bold text-slate-900 block">Electrical Control Panel, Lighting & Internal Plumbing</span>
+                          <span className="text-[10px] text-slate-500">
+                            IP65 main control panel with phase failure & overload relays, dimmable LED poultry lighting system, generator switchgear provision, and overhead water tank plumbing.
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 text-center font-mono">Complete</td>
+                        <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{formatINR(electricalCost)}</td>
+                      </tr>
+                    )}
+
+                    {includeBiosecurity && (
+                      <tr className="hover:bg-slate-50/60">
+                        <td className="py-2 px-3 font-mono text-slate-400">06</td>
+                        <td className="py-2 px-3">
+                          <span className="font-bold text-slate-900 block">Biosecurity Disinfection System & Farm Staff Room</span>
+                          <span className="text-[10px] text-slate-500">
+                            Vehicle tire dip bath, high-pressure fogger/sprayer for terminal disinfection, boot dip station, and basic operator supervisor room.
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 text-center font-mono">1 Setup</td>
+                        <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{formatINR(biosecurityCost)}</td>
+                      </tr>
+                    )}
+
+                    <tr className="bg-slate-50 font-semibold">
+                      <td colSpan={3} className="py-2 px-3 text-slate-600 text-right">Contingency, Freight & Site Erection (3%):</td>
+                      <td className="py-2 px-3 text-right font-mono text-slate-900">{formatINR(contingencyCost)}</td>
+                    </tr>
+
+                    <tr className="bg-emerald-50/80 font-bold text-emerald-950 text-xs">
+                      <td colSpan={3} className="py-2.5 px-3 text-right text-emerald-900">
+                        TOTAL ESTIMATED PROJECT OUTLAY (कुल अनुमानित लागत):
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-sm text-[#0b2818] font-black">
+                        {formatINR(totalProjectCost)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Financial & Subsidy Structuring Card */}
+            <div className="bg-gradient-to-br from-emerald-900 to-[#082014] text-white p-4 rounded-xl space-y-3">
+              <div className="flex items-center justify-between border-b border-emerald-800 pb-2">
+                <div className="flex items-center gap-2">
+                  <Landmark className="w-4 h-4 text-emerald-400" />
+                  <span className="font-bold text-xs">NABARD / Bank Loan Structuring & Feasibility</span>
+                </div>
+                <span className="text-[10px] bg-emerald-700/60 px-2 py-0.5 rounded font-mono text-emerald-200">
+                  {subsidyCategory}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center sm:text-left">
+                <div className="bg-black/20 p-2.5 rounded-lg border border-emerald-700/40">
+                  <span className="text-[10px] text-emerald-300 block">Total Project Cost</span>
+                  <span className="font-mono font-bold text-sm text-white">{formatLakhs(totalProjectCost)}</span>
+                </div>
+
+                <div className="bg-black/20 p-2.5 rounded-lg border border-emerald-700/40">
+                  <span className="text-[10px] text-emerald-300 block">Eligible Subsidy</span>
+                  <span className="font-mono font-bold text-sm text-emerald-300">
+                    {estimatedSubsidy > 0 ? formatLakhs(estimatedSubsidy) : 'N/A'}
+                  </span>
+                </div>
+
+                <div className="bg-black/20 p-2.5 rounded-lg border border-emerald-700/40">
+                  <span className="text-[10px] text-emerald-300 block">Bank Loan (75%)</span>
+                  <span className="font-mono font-bold text-sm text-white">{formatLakhs(bankLoan)}</span>
+                </div>
+
+                <div className="bg-black/20 p-2.5 rounded-lg border border-emerald-700/40">
+                  <span className="text-[10px] text-emerald-300 block">Est. Annual Profit</span>
+                  <span className="font-mono font-bold text-sm text-amber-300">{formatLakhs(netEstimatedAnnualIncome)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Terms & Notes Footer */}
+            <div className="pt-2 border-t border-slate-200 text-[10px] text-slate-500 space-y-1 leading-relaxed">
+              <div className="font-bold text-slate-700">Important Notes & Commercial Terms:</div>
+              <div>1. <b>Nature of Document:</b> This is a preliminary soft quotation / rough budget estimate for project planning, farmer discussions, and initial bank feasibility. Final detailed project report (DPR) will be stamped after site soil/water inspection.</div>
+              <div>2. <b>Validity:</b> The quoted prices are tentative and valid for 30 calendar days from the date of issue.</div>
+              <div>3. <b>Civil Land & Utilities:</b> 3-phase commercial electricity line and clean borewell water connection to be arranged at site boundary by client.</div>
+              <div>4. <b>Subsidy Support:</b> AKBS provides complete assistance in DPR preparation and bank loan sanction under NABARD / National Livestock Mission (NLM) / AHIDF schemes.</div>
+            </div>
+
+            {/* Signature row */}
+            <div className="pt-4 flex items-end justify-between text-xs">
+              <div>
+                <div className="font-bold text-slate-800">Prepared by:</div>
+                <div className="text-slate-600">Technical Sales Engineering Team</div>
+                <div className="text-[10px] text-slate-400 font-mono">AKBS Poultry Farming Pvt. Ltd.</div>
+              </div>
+
+              <div className="text-right">
+                <div className="w-24 border-b border-slate-400 pb-1 mx-auto mb-1 text-[10px] font-mono text-slate-400 text-center">
+                  [Verified Stamp]
+                </div>
+                <div className="font-bold text-emerald-950">Er. Ankit Mishra</div>
+                <div className="text-[10px] text-slate-500">Chief Project Consultant</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* BOTTOM ACTION BAR - DISPATCH CHANNELS */}
+        <div className="bg-white px-4 sm:px-6 py-3.5 border-t border-slate-200 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs text-slate-600">
+            <span className="font-bold text-slate-900">Total:</span>
+            <span className="font-mono font-extrabold text-[#0b2818] text-sm">
+              {formatINR(totalProjectCost)}
+            </span>
+            <span className="text-slate-400">({formatLakhs(totalProjectCost)})</span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-end gap-2 w-full sm:w-auto">
+            {/* Copy Button */}
+            <button
+              type="button"
+              onClick={handleCopyQuotation}
+              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copied ? 'Copied!' : 'Copy Summary'}</span>
+            </button>
+
+            {/* Print / PDF Button */}
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="px-3 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print / PDF</span>
+            </button>
+
+            {/* Email Button */}
+            <button
+              type="button"
+              onClick={handleSendEmail}
+              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5"
+            >
+              <Mail className="w-3.5 h-3.5" />
+              <span>Send Email</span>
+            </button>
+
+            {/* WhatsApp Send Button (Primary Highlight) */}
+            <button
+              type="button"
+              onClick={handleSendWhatsApp}
+              className="px-4 py-2 bg-[#25D366] hover:bg-[#1ebd5a] text-white rounded-xl font-extrabold text-xs shadow-md transition-all flex items-center gap-1.5"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Send on WhatsApp</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};

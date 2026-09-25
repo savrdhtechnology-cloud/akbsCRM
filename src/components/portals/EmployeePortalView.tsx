@@ -486,6 +486,29 @@ export const EmployeePortalView: React.FC<EmployeePortalViewProps> = ({
         </div>
       )}
 
+      <SoftQuotationModal
+        isOpen={Boolean(quotationLead)}
+        onClose={() => setQuotationLead(null)}
+        initialData={quotationLead ? {
+          name: quotationLead.name,
+          phone: quotationLead.phone,
+          email: quotationLead.email,
+          location: quotationLead.location,
+          state: quotationLead.state,
+          district: quotationLead.district,
+          village: quotationLead.village,
+          birdCapacity: quotationLead.birdCapacity || 20000,
+          poultryType: quotationLead.projectType || 'Broiler',
+          shedType: quotationLead.shedType || 'EC (Environment Controlled)',
+          leadId: quotationLead.id,
+          projectCost: quotationLead.estimatedCost || quotationLead.budgetEstimate
+        } : null}
+        onQuotationSent={(leadId) => {
+          if (leadId) onUpdateLeadStatus(leadId, 'Proposal Sent');
+          setQuotationLead(null);
+        }}
+      />
+
       {/* Modal: Log Field Site Visit */}
       {isLogModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">

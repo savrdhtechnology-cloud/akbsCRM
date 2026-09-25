@@ -61,7 +61,8 @@ import {
 } from './types';
 
 export default function App() {
-  const [currentSection, setCurrentSection] = useState<NavigationSection>('customer-portal');
+  const isCustomerRegistrationRoute = typeof window !== 'undefined' && /^\/customer-registration\/?$/.test(window.location.pathname);
+  const [currentSection, setCurrentSection] = useState<NavigationSection>('dashboard');
   const [currentRole, setCurrentRole] = useState<PortalRole>('admin');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -256,57 +257,7 @@ export default function App() {
     setLeads(prev => prev.filter(l => l.id !== leadId));
   };
 
-  // Customer Portal registration handler
-  const handleCustomerRegistered = (newLeadData: Partial<Lead>) => {
-    const newId = `lead-${Date.now()}`;
-    const newLead: Lead = {
-      id: newId,
-      name: newLeadData.name || 'New Farmer',
-      phone: newLeadData.phone || '+91 98765 43210',
-      whatsApp: newLeadData.whatsApp || newLeadData.phone || '+91 98765 43210',
-      email: newLeadData.email || 'farmer@example.com',
-      source: 'Website',
-      status: 'New',
-      isHot: true,
-      priority: 'High',
-      date: 'Today',
-      time: 'Just now',
-      relativeTime: 'Just now',
-      location: newLeadData.location || 'Kokta, Bhopal, Madhya Pradesh',
-      state: newLeadData.state || 'Madhya Pradesh',
-      district: newLeadData.district || 'Bhopal',
-      village: newLeadData.village || 'Kokta',
-      birdCapacity: newLeadData.birdCapacity || 20000,
-      projectType: (newLeadData.projectType as any) || 'Broiler',
-      shedType: newLeadData.shedType || 'Conventional / Normal',
-      assignedTo: 'Ankit Sharma',
-      budgetEstimate: newLeadData.budgetEstimate || '₹50 Lakh - ₹1 Crore',
-      estimatedCost: newLeadData.estimatedCost || newLeadData.budgetEstimate || '₹50 Lakh - ₹1 Crore',
-      landAvailable: newLeadData.landAvailable || 'Yes (Own Land)',
-      landOwnership: newLeadData.landOwnership || 'Own Land',
-      landArea: newLeadData.landArea || '2 Acres',
-      loanRequired: newLeadData.loanRequired || 'Yes (₹25 - 50 Lakh)',
-      timeline: newLeadData.timeline || 'Within 3 months',
-      language: newLeadData.language || 'Hindi',
-      experience: newLeadData.experience || 'No, I am new',
-      supportNeeded: newLeadData.supportNeeded || ['Farm Setup / Project Planning', 'Shed Construction', 'Poultry Equipment', 'DPR / Project Report', 'Bank Loan Assistance'],
-      nextFollowUp: 'Today, 4:00 PM',
-      applicationId: newLeadData.applicationId || `AKBS-REG-${Math.floor(1000 + Math.random() * 9000)}`,
-      notes: newLeadData.notes || 'Registered through Customer Registration Portal'
-    };
-    setLeads(prev => [newLead, ...prev]);
-    setSelectedLeadId(newId);
-    setActivities(prev => [
-      {
-        id: `act-${Date.now()}`,
-        title: `Online Registration: ${newLead.name}`,
-        description: `Registered for ${newLead.birdCapacity.toLocaleString()} birds (${newLead.projectType}) in ${newLead.location}`,
-        time: 'Just now',
-        type: 'inquiry'
-      },
-      ...prev
-    ]);
-  };
+  // Customer registration is intentionally standalone and not connected to the CRM yet.
 
   // Toggle Followup status
   const handleToggleFollowupStatus = (id: string) => {
@@ -319,18 +270,9 @@ export default function App() {
     );
   };
 
-  // When viewing Customer Registration Portal, show full-screen immersion
-  if (currentSection === 'customer-portal') {
-    return (
-      <CustomerRegistrationPortal
-        onRegisterCustomer={handleCustomerRegistered}
-        onGoToCRM={() => setCurrentSection('dashboard')}
-        onGoToLeads={(leadId?: string) => {
-          if (leadId) setSelectedLeadId(leadId);
-          setCurrentSection('leads');
-        }}
-      />
-    );
+  // Standalone customer registration route. No website or CRM data connection yet.
+  if (isCustomerRegistrationRoute) {
+    return <CustomerRegistrationPortal />;
   }
 
   return (

@@ -9,7 +9,6 @@ import {
   BadgeIndianRupee,
   CalendarCheck2,
   BarChart3,
-  BookOpen,
   HelpCircle,
   X,
   Sparkles,
@@ -100,12 +99,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Reports',
       icon: <BarChart3 className="w-4 h-4 stroke-[2]" />,
       badge: undefined
-    },
-    {
-      id: 'customer-portal' as NavigationSection,
-      label: 'Knowledge Base',
-      icon: <BookOpen className="w-4 h-4 stroke-[2]" />,
-      badge: 'Portal'
     },
     {
       id: 'communication' as NavigationSection,
@@ -271,7 +264,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <button
                     onClick={() => {
                       if (onSelectRole) onSelectRole('admin');
-                      onSelectSection('customer-portal');
+                      onSelectSection('dashboard');
                     }}
                     className="text-[10px] text-slate-300 hover:text-white font-semibold underline underline-offset-2 transition-colors"
                   >

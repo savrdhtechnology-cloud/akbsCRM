@@ -186,21 +186,8 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           )}
         </div>
-        {/* Mode Switchers: Farmer Portal (Image 1) | CRM Dashboard (Image 2) | Leads Management (Image 3) */}
+        {/* CRM workspace switchers */}
         <div className="hidden xl:flex items-center gap-1.5 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 text-xs font-semibold">
-          <button
-            onClick={() => onSelectSection('customer-portal')}
-            className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-              currentSection === 'customer-portal'
-                ? 'bg-white text-emerald-800 font-bold shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-            title="Open 15-question Farmer Registration Portal"
-          >
-            <span>📝</span>
-            <span>Farmer Form</span>
-          </button>
-
           <button
             onClick={() => onSelectSection('dashboard')}
             className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
@@ -403,23 +390,6 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
 
               <div className="p-1 space-y-0.5">
-                <button
-                  onClick={() => {
-                    onSelectSection('customer-portal');
-                    setIsPortalMenuOpen(false);
-                  }}
-                  className="w-full px-3 py-2 text-left rounded-lg transition-colors flex items-center justify-between bg-emerald-700 text-white font-bold shadow-xs hover:bg-emerald-600"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">📝</span>
-                    <div>
-                      <div>Customer Reg Portal</div>
-                      <div className="text-[10px] text-emerald-100 font-normal">Farmer 6-Step Registration (Live Form)</div>
-                    </div>
-                  </div>
-                  <span className="text-[10px] px-1.5 py-0.5 bg-white/20 text-white rounded">NEW</span>
-                </button>
-
                 <button
                   onClick={() => {
                     if (onSelectRole) onSelectRole('admin');

@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/customer-registration",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/customer-registration/",
+      "destination": "/index.html"
+    }
+  ]
+}

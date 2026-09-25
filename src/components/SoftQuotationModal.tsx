@@ -477,7 +477,7 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
     window.setTimeout(() => setDefaultSaveStatus(null), 3000);
   };
 
-  const updateTemplateField = <K extends keyof QuotationTemplateConfig>(key: K, value: QuotationTemplateConfig[K]) => {
+  const updateTemplateField = <K extends keyof QuotationTemplateConfig,>(key: K, value: QuotationTemplateConfig[K]) => {
     setTemplateConfig((prev) => ({ ...prev, [key]: value }));
   };
 

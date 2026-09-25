@@ -35,7 +35,6 @@ import broilerImg from '../assets/images/broiler_poultry_birds_1790286868486.jpg
 import akbsLogoImg from '../assets/images/akbs_poultry_logo_1790286883961.jpg';
 import aerialLandImg from '../assets/images/aerial_farm_land_1790245878786.jpg';
 import { Lead } from '../types';
-import { SoftQuotationModal } from './SoftQuotationModal';
 
 interface CustomerRegistrationPortalProps {
   onRegisterCustomer?: (newLead: Partial<Lead>) => void;
@@ -110,7 +109,6 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
   // Success state after step 6 submission
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedAppId, setSubmittedAppId] = useState('');
-  const [isSoftQuotationOpen, setIsSoftQuotationOpen] = useState(false);
 
   const stepsList = [
     { num: 1, label: 'Basic Details', subtitle: 'Name, Mobile, WhatsApp, Email, Language' },
@@ -383,72 +381,6 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
               <div className="font-serif italic text-amber-300 text-base leading-tight drop-shadow font-normal text-right">
                 Grow Tomorrow
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* View Switcher & Action Bar */}
-        <div className="bg-[#081d11] border-t border-[#123e27] py-2 px-4 text-xs">
-          <div className="max-w-[1560px] mx-auto flex flex-wrap items-center justify-between gap-3">
-            {/* Left: View Mode Toggle */}
-            <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-emerald-800/60">
-              <button
-                onClick={() => setViewMode('wizard')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                  viewMode === 'wizard'
-                    ? 'bg-emerald-600 text-white shadow-xs font-bold'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Step-by-Step Interactive Form</span>
-              </button>
-
-              <button
-                onClick={() => setViewMode('poster')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                  viewMode === 'poster'
-                    ? 'bg-emerald-600 text-white shadow-xs font-bold'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                <Grid className="w-3.5 h-3.5" />
-                <span>All 6 Screens Poster View</span>
-                <span className="text-[10px] bg-amber-400 text-slate-950 font-bold px-1.5 py-0.2 rounded-sm ml-1">
-                  Same as Image
-                </span>
-              </button>
-            </div>
-
-            {/* Right: CRM Navigation Buttons & Soft Quotation */}
-            <div className="flex flex-wrap items-center gap-2 ml-auto">
-              <button
-                onClick={() => setIsSoftQuotationOpen(true)}
-                className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black rounded-lg shadow-sm flex items-center gap-1.5 transition-all"
-              >
-                <span>📜</span>
-                <span>Send Soft Quotation</span>
-              </button>
-
-              {onGoToCRM && (
-                <button
-                  onClick={onGoToCRM}
-                  className="px-3 py-1.5 bg-emerald-800/90 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs"
-                >
-                  <span>📊</span>
-                  <span>CRM Dashboard</span>
-                </button>
-              )}
-              {onGoToLeads && (
-                <button
-                  onClick={() => onGoToLeads()}
-                  className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 transition-all"
-                >
-                  <span>👥</span>
-                  <span>Leads CRM</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -1188,16 +1120,6 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                     <Phone className="w-3.5 h-3.5" />
                   </div>
                   <span>Contact Us</span>
-                </button>
-
-                <button
-                  onClick={() => setIsSoftQuotationOpen(true)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left bg-amber-50 text-amber-950 hover:bg-amber-100 font-bold border border-amber-300 shadow-2xs mt-1"
-                >
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-amber-400 text-slate-950 font-bold">
-                    📜
-                  </div>
-                  <span>Send Soft Quotation</span>
                 </button>
               </nav>
             </div>
@@ -2093,14 +2015,6 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                         </div>
 
                         <div className="space-y-2">
-                          <button
-                            type="button"
-                            onClick={() => setIsSoftQuotationOpen(true)}
-                            className="w-full py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 text-xs border border-amber-500/40"
-                          >
-                            <span>📜</span>
-                            <span>Preview & Send Soft Quotation (कच्चा कोटेशन)</span>
-                          </button>
 
                           <button
                             type="button"
@@ -2194,13 +2108,6 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                 </div>
 
                 <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 pt-2">
-                  <button
-                    onClick={() => setIsSoftQuotationOpen(true)}
-                    className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 text-xs font-black rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
-                  >
-                    <span>📜</span>
-                    <span>Send Soft Quotation (WhatsApp / PDF)</span>
-                  </button>
 
                   {onGoToLeads && (
                     <button
@@ -2304,28 +2211,6 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
           </div>
         </div>
       </footer>
-
-      {/* Global Soft Quotation Modal for Customer Portal */}
-      <SoftQuotationModal
-        isOpen={isSoftQuotationOpen}
-        onClose={() => setIsSoftQuotationOpen(false)}
-        initialData={{
-          name: formData.fullName,
-          phone: formData.mobileNumber,
-          email: formData.email,
-          location: `${formData.villageOrCity}, ${formData.district}, ${formData.state}`,
-          state: formData.state,
-          district: formData.district,
-          village: formData.villageOrCity,
-          birdCapacity: parseInt(formData.proposedCapacity.replace(/,/g, ''), 10) || 20000,
-          poultryType: formData.poultryType,
-          shedType: formData.shedType,
-          applicationId: submittedAppId || 'AKBS-REG-2026-8942'
-        }}
-        onQuotationSent={(leadId, summary) => {
-          // Quotation dispatched
-        }}
-      />
     </div>
   );
 };

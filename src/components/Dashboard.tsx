@@ -27,9 +27,6 @@ import {
   AlertCircle,
   Edit,
   Sparkles,
-  Shield,
-  Smartphone,
-  Cloud
 } from 'lucide-react';
 import { Lead, Task, Activity, NavigationSection } from '../types';
 
@@ -789,44 +786,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
             ))}
           </div>
-        </div>
-      </div>
-
-      {/* Bottom Feature Strip matching Image 2 */}
-      <div className="bg-slate-900 text-slate-300 p-3 sm:p-4 rounded-2xl text-xs flex flex-wrap items-center justify-between gap-2 shadow-xs border border-slate-800">
-        <div className="flex flex-wrap items-center gap-3 sm:gap-5 text-[11px] font-medium text-slate-300">
-          <span className="flex items-center gap-1.5">
-            <Globe className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Website Integrated</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Mail className="w-3.5 h-3.5 text-blue-400" />
-            <span>Email & WhatsApp</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-amber-400" />
-            <span>Lead Management</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5 text-purple-400" />
-            <span>Reports & Analytics</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Shield className="w-3.5 h-3.5 text-teal-400" />
-            <span>Secure & Scalable</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Smartphone className="w-3.5 h-3.5 text-rose-400" />
-            <span>Mobile Responsive</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Cloud className="w-3.5 h-3.5 text-sky-400" />
-            <span>Cloud Deployment</span>
-          </span>
-        </div>
-
-        <div className="text-[11px] font-bold text-emerald-400 italic">
-          "Healthy Farm, Prosperous Future"
         </div>
       </div>
     </div>

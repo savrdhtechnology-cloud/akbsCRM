@@ -6,6 +6,7 @@ export type NavigationSection =
   | 'leads'
   | 'followups'
   | 'customers'
+  | 'registrations'
   | 'partners'
   | 'employees'
   | 'proposals'

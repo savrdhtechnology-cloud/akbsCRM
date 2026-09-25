@@ -18,6 +18,7 @@ import {
   Building
 } from 'lucide-react';
 import { Lead, Task, SiteVisitLog, LeadStatus } from '../../types';
+import { SoftQuotationModal } from '../SoftQuotationModal';
 
 interface EmployeePortalViewProps {
   leads: Lead[];
@@ -44,6 +45,7 @@ export const EmployeePortalView: React.FC<EmployeePortalViewProps> = ({
   const [checkInTime] = useState('09:15 AM');
   const [activeTab, setActiveTab] = useState<'my-leads' | 'site-visit' | 'tasks' | 'incentives'>('my-leads');
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+  const [quotationLead, setQuotationLead] = useState<Lead | null>(null);
 
   // Form state for Site Visit Logger
   const [farmerName, setFarmerName] = useState('');

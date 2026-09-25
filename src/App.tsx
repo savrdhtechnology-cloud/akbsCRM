@@ -15,6 +15,8 @@ import { ReportsView } from './components/ReportsView';
 import { CommunicationView } from './components/CommunicationView';
 import { SettingsView } from './components/SettingsView';
 import { CustomerRegistrationPortal } from './components/CustomerRegistrationPortal';
+import { PartnerRegistrationPortal } from './components/PartnerRegistrationPortal';
+import { RegistrationHub } from './components/RegistrationHub';
 import { ManagerPortalView } from './components/portals/ManagerPortalView';
 import { EmployeePortalView } from './components/portals/EmployeePortalView';
 import { PartnerPortalView } from './components/portals/PartnerPortalView';
@@ -62,6 +64,7 @@ import {
 
 export default function App() {
   const isCustomerRegistrationRoute = typeof window !== 'undefined' && /^\/customer-registration\/?$/.test(window.location.pathname);
+  const isPartnerRegistrationRoute = typeof window !== 'undefined' && /^\/partner-registration\/?$/.test(window.location.pathname);
   const [currentSection, setCurrentSection] = useState<NavigationSection>('dashboard');
   const [currentRole, setCurrentRole] = useState<PortalRole>('admin');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -178,7 +181,7 @@ export default function App() {
         setIsAddCustomerOpen(true);
         break;
       case 'add-partner':
-        setCurrentSection('partners');
+        window.open('/partner-registration', '_blank', 'noopener,noreferrer');
         break;
       case 'create-proposal':
         setCurrentSection('proposals');
@@ -275,8 +278,12 @@ export default function App() {
     return <CustomerRegistrationPortal />;
   }
 
+  if (isPartnerRegistrationRoute) {
+    return <PartnerRegistrationPortal />;
+  }
+
   return (
-    <div className="min-h-screen bg-[#f8faf9] flex font-sans antialiased text-slate-800">
+    <div className="min-h-screen bg-[#f3f6f4] flex font-sans antialiased text-slate-800">
       {/* Sidebar Navigation */}
       <Sidebar
         currentSection={currentSection}
@@ -312,7 +319,7 @@ export default function App() {
         />
 
         {/* Dynamic Route View */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto bg-[#f3f6f4]">
           {currentSection === 'dashboard' && (
             <Dashboard
               leads={leads}
@@ -352,8 +359,12 @@ export default function App() {
           {currentSection === 'partners' && (
             <PartnersView
               partners={partners}
-              onOpenAddPartner={() => alert('Partner registration wizard')}
+              onOpenAddPartner={() => window.open('/partner-registration', '_blank', 'noopener,noreferrer')}
             />
+          )}
+
+          {currentSection === 'registrations' && (
+            <RegistrationHub />
           )}
 
           {currentSection === 'followups' && (

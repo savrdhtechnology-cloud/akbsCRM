@@ -99,14 +99,14 @@ interface QuotationProjectDefaults {
 const QUOTATION_DEFAULTS_STORAGE_KEY = 'akbs-soft-quotation-defaults-v1';
 
 const DEFAULT_TEMPLATE_CONFIG: QuotationTemplateConfig = {
-  companyName: '{templateConfig.companyName}',
+  companyName: 'AKBS Poultry Farming Private Limited',
   tagline: 'HEALTHY BIRDS | BETTER TOMORROW',
   officeAddress: '01 Rajaram House, Bamhori, Raisen (M.P.) - 464551',
   companyEmail: 'akbspoultryfarming@gmail.com',
   website: 'www.Akbspoultry.com',
-  quotationTitle: '{templateConfig.quotationTitle}',
-  quotationSubtitle: '{templateConfig.quotationSubtitle}',
-  estimateLabel: '{templateConfig.estimateLabel}',
+  quotationTitle: 'Send Soft Quotation (कच्चा कोटेशन)',
+  quotationSubtitle: 'Instant Turnkey Poultry Farm Project Feasibility & Cost Estimate',
+  estimateLabel: 'Soft Project Estimate',
   quotationPrefix: 'AKBS-SQ',
   validityDays: 30,
   preparedByTitle: 'Prepared by:',
@@ -126,12 +126,12 @@ const DEFAULT_TEMPLATE_CONFIG: QuotationTemplateConfig = {
   showTagline: true,
   showFinanceSection: true,
   itemTitles: {
-    civil: '{templateConfig.itemTitles.civil}',
+    civil: 'Shed Civil Construction & Pre-Engineered Steel Structure',
     ventilation: 'EC Climate Control & Ventilation System',
-    feeding: '{templateConfig.itemTitles.feeding}',
-    silo: '{templateConfig.itemTitles.silo}',
-    electrical: '{templateConfig.itemTitles.electrical}',
-    biosecurity: '{templateConfig.itemTitles.biosecurity}'
+    feeding: 'Automated Pan Feeding & Nipple Drinking Lines',
+    silo: 'Outdoor Galvanized Feed Storage Silo & Flex Auger',
+    electrical: 'Electrical Control Panel, Lighting & Internal Plumbing',
+    biosecurity: 'Biosecurity Disinfection System & Farm Staff Room'
   }
 };
 
@@ -347,7 +347,7 @@ export const SoftQuotationModal: React.FC<SoftQuotationModalProps> = ({
   // WhatsApp Message Generator
   const generateWhatsAppMessage = () => {
     return (
-`*AKBS Poultry Farming Private Limited*
+`*${templateConfig.companyName}*
 *PRELIMINARY SOFT QUOTATION / अनुमानित प्राक्कलन*
 Ref No: ${quotationNo} | Date: ${quotationDate}
 
@@ -376,10 +376,10 @@ Ref No: ${quotationNo} | Date: ${quotationDate}
 • Est. Annual Farm Profit: *${formatLakhs(netEstimatedAnnualIncome)}* (Payback: ~${estPaybackYears} Years)
 
 *AKBS Poultry Farming Private Limited*
-Office: 01 Rajaram House, Bamhori, Raisen (M.P.) - 464551
-Mail: akbspoultryfarming@gmail.com
-Website: www.Akbspoultry.com
-Verified by: Balram Singh Ahirwar
+Office: ${templateConfig.officeAddress}
+Mail: ${templateConfig.companyEmail}
+Website: ${templateConfig.website}
+Verified by: ${templateConfig.verifierName}
 _Note: This is a preliminary soft quotation for bank feasibility and planning purpose._`
     );
   };
@@ -727,7 +727,15 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
                         min={1}
                         max={365}
                         value={templateConfig.validityDays}
-                        onChange={(e) => updateTemplateField('validityDays', Math.max(1, Number(e.target.value) || 30))}
+                        onChange={(e) => {
+                          const days = Math.max(1, Number(e.target.value) || 30);
+                          updateTemplateField('validityDays', days);
+                          const baseDate = new Date();
+                          const nextValid = new Date(baseDate);
+                          nextValid.setDate(baseDate.getDate() + days);
+                          const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
+                          setValidUntil(nextValid.toLocaleDateString('en-GB', options));
+                        }}
                         className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-slate-50 text-[11px] font-medium text-slate-800"
                       />
                     </label>
@@ -973,7 +981,7 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
                 )}
                 <div>
                   <h1 className="font-['Outfit',sans-serif] text-lg sm:text-xl font-black text-slate-950 tracking-tight leading-none">
-                    AKBS Poultry Farming Private Limited
+                    {templateConfig.companyName}
                   </h1>
                   {templateConfig.showTagline && (
                     <p
@@ -994,7 +1002,7 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
 
               <div className="text-right sm:text-right w-full sm:w-auto bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-100 sm:border-none sm:p-0 sm:bg-transparent">
                 <span className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider block">
-                  Soft Project Estimate
+                  {templateConfig.estimateLabel}
                 </span>
                 <div className="font-mono font-bold text-slate-900 text-xs mt-0.5">
                   Ref: {quotationNo}
@@ -1168,7 +1176,7 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
 
             {/* Financial & Subsidy Structuring Card */}
             {templateConfig.showFinanceSection && (
-            <div className="bg-gradient-to-br from-emerald-900 to-[#082014] text-white p-4 rounded-xl space-y-3">
+            <div className="text-white p-4 rounded-xl space-y-3" style={{ background: `linear-gradient(135deg, ${templateConfig.primaryColor}, #082014)` }}>
               <div className="flex items-center justify-between border-b border-emerald-800 pb-2">
                 <div className="flex items-center gap-2">
                   <Landmark className="w-4 h-4 text-emerald-400" />
@@ -1218,7 +1226,7 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
               <div>
                 <div className="font-bold text-slate-800">{templateConfig.preparedByTitle}</div>
                 <div className="text-slate-600">{templateConfig.preparedByDepartment}</div>
-                <div className="text-[10px] text-slate-400 font-mono">AKBS Poultry Farming Private Limited</div>
+                <div className="text-[10px] text-slate-400 font-mono">{templateConfig.companyName}</div>
               </div>
 
               <div className="text-right">

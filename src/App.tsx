@@ -1,4 +1,4 @@
-// Vercel production sync trigger
+// Vercel production sync trigger — AI Soft Quotations
 import React, { useEffect, useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';

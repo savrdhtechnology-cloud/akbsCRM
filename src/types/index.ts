@@ -9,6 +9,7 @@ export type NavigationSection =
   | 'registrations'
   | 'partners'
   | 'employees'
+  | 'soft-quotations'
   | 'proposals'
   | 'loans'
   | 'documents'

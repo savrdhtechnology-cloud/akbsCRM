@@ -430,6 +430,9 @@ export default function App() {
                 setSelectedLeadForDrawer(lead);
               }}
               onToggleTask={handleToggleTask}
+              onUpdateLeadStatus={handleUpdateLeadStatus}
+              onAssignLead={handleAssignLead}
+              onEditLead={handleEditLead}
             />
           )}
 

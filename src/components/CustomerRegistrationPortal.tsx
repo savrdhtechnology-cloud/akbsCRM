@@ -47,6 +47,12 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
   onGoToCRM,
   onGoToLeads
 }) => {
+  // Entry flow: customer sees the portal login/welcome screen first.
+  const [portalEntryMode, setPortalEntryMode] = useState<'welcome' | 'form'>('welcome');
+  const [loginApplicationId, setLoginApplicationId] = useState('');
+  const [loginMobile, setLoginMobile] = useState('');
+  const [loginMessage, setLoginMessage] = useState('');
+
   // View mode: 'wizard' (Step-by-step interactive) or 'poster' (All 6 screens matching reference poster)
   const [viewMode, setViewMode] = useState<'wizard' | 'poster'>('wizard');
 
@@ -59,52 +65,47 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
   // Form Data State matching all 6 steps from the reference mockup
   const [formData, setFormData] = useState({
     // Step 1: Basic Details
-    fullName: 'Rakesh Yadav',
-    mobileNumber: '9876543210',
-    whatsAppNumber: '9876543210',
-    email: 'rakesh@gmail.com',
+    fullName: '',
+    mobileNumber: '',
+    whatsAppNumber: '',
+    email: '',
     preferredLanguage: 'Hindi' as 'Hindi' | 'English',
 
     // Step 2: Project Details
     projectObjective: 'New Poultry Farm' as 'New Poultry Farm' | 'Existing Farm Expansion' | 'Farm Renovation' | 'Capacity Expansion',
     poultryType: 'Broiler (Meat)' as 'Broiler (Meat)' | 'Layer (Egg)' | 'EC / Environment Controlled' | 'Other',
     shedType: 'Conventional / Normal' as 'EC (Environment Controlled)' | 'Conventional / Normal',
-    proposedCapacity: '20,000' as string,
+    proposedCapacity: '' as string,
 
     // Step 3: Land Details
     hasLand: 'Yes' as 'Yes' | 'No',
     landOwnership: 'Own Land' as 'Own Land' | 'Leased Land' | 'Family Land' | 'Buying New Land',
-    landAreaAcres: '2',
-    state: 'Madhya Pradesh',
-    district: 'Bhopal',
-    villageOrCity: 'Kokta',
+    landAreaAcres: '',
+    state: '',
+    district: '',
+    villageOrCity: '',
     googleMapsLink: '',
 
     // Step 4: Financial Details
-    approxProjectCost: '₹50 Lakh - ₹1 Crore',
+    approxProjectCost: '',
     needsLoan: 'Yes' as 'Yes' | 'No' | 'Need guidance',
-    ownContribution: '₹10 - 25 Lakh',
-    approxLoanAmount: '₹25 - 50 Lakh',
+    ownContribution: '',
+    approxLoanAmount: '',
     discussedWithBank: 'No' as 'Yes' | 'No',
 
     // Step 5: Experience & Support
     experience: 'No, I am new' as 'No, I am new' | 'Yes, 1-3 years' | 'Yes, 3+ years' | 'Family poultry business',
-    supportNeeded: [
-      'Farm Setup / Project Planning',
-      'Shed Construction',
-      'Poultry Equipment',
-      'DPR / Project Report',
-      'Bank Loan Assistance'
-    ] as string[],
+    supportNeeded: [] as string[],
     startTimeline: 'Within 3 months' as 'Immediately' | 'Within 1 month' | 'Within 3 months' | 'In 3-6 months' | 'Planning stage',
 
     // Step 6: Declaration
-    declarationConfirmed: true
+    declarationConfirmed: false
   });
 
   // Track Application state
-  const [trackSearchId, setTrackSearchId] = useState('AKBS-REG-2026-8942');
+  const [trackSearchId, setTrackSearchId] = useState('');
   const [trackResult, setTrackResult] = useState<any>(null);
+  const [trackMessage, setTrackMessage] = useState('');
 
   // Success state after step 6 submission
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -148,6 +149,22 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     setSubmittedAppId(generatedId);
     setIsSubmitted(true);
 
+    try {
+      const existing = JSON.parse(window.localStorage.getItem('akbs.customer.applications') || '[]');
+      const applicationRecord = {
+        appId: generatedId,
+        mobileNumber: formData.mobileNumber,
+        submittedAt: new Date().toISOString(),
+        formData
+      };
+      window.localStorage.setItem(
+        'akbs.customer.applications',
+        JSON.stringify([applicationRecord, ...existing.filter((item: any) => item.appId !== generatedId)])
+      );
+    } catch {
+      // Local tracking persistence is optional; registration submission should still continue.
+    }
+
     if (onRegisterCustomer) {
       onRegisterCustomer({
         name: formData.fullName,
@@ -162,7 +179,7 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
         state: formData.state,
         district: formData.district,
         village: formData.villageOrCity,
-        birdCapacity: parseInt(formData.proposedCapacity.replace(/,/g, ''), 10) || 20000,
+        birdCapacity: parseInt(formData.proposedCapacity.replace(/,/g, ''), 10) || 0,
         projectType: formData.poultryType.includes('Layer') ? 'Layer' : 'Broiler',
         shedType: formData.shedType,
         budgetEstimate: formData.approxProjectCost,
@@ -176,27 +193,79 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
         experience: formData.experience,
         supportNeeded: formData.supportNeeded,
         applicationId: generatedId,
-        assignedTo: 'Ankit Sharma',
-        nextFollowUp: 'Today, 4:00 PM',
+        assignedTo: 'Unassigned',
+        nextFollowUp: 'Not scheduled',
         notes: `Customer Web Registration [${generatedId}]. Land: ${formData.landAreaAcres} Acres (${formData.landOwnership}). Loan req: ${formData.approxLoanAmount}. Start timeline: ${formData.startTimeline}. Support: ${formData.supportNeeded.join(', ')}`
       });
     }
   };
 
+  const findSavedApplication = (applicationId: string, mobile: string) => {
+    try {
+      const applications = JSON.parse(window.localStorage.getItem('akbs.customer.applications') || '[]');
+      const normalizedMobile = mobile.replace(/\D/g, '').slice(-10);
+      return applications.find((item: any) => {
+        const idMatches = applicationId ? String(item.appId || '').toLowerCase() === applicationId.trim().toLowerCase() : true;
+        const savedMobile = String(item.mobileNumber || item.formData?.mobileNumber || '').replace(/\D/g, '').slice(-10);
+        const mobileMatches = normalizedMobile ? savedMobile === normalizedMobile : true;
+        return idMatches && mobileMatches && (applicationId.trim() || normalizedMobile);
+      }) || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const openSavedApplication = (record: any) => {
+    const data = record?.formData || {};
+    setTrackResult({
+      appId: record.appId,
+      farmerName: data.fullName || 'Customer',
+      location: [data.villageOrCity, data.district, data.state].filter(Boolean).join(', ') || 'Not provided',
+      capacity: data.proposedCapacity ? `${data.proposedCapacity} Birds` : 'Not provided',
+      status: 'Application Submitted',
+      dateSubmitted: record.submittedAt ? new Date(record.submittedAt).toLocaleString('en-IN') : 'Not available',
+      projectType: data.poultryType || 'Not provided',
+      shedType: data.shedType || 'Not provided',
+      loanRequirement: data.needsLoan || 'Not provided'
+    });
+    setTrackMessage('');
+    setPortalEntryMode('form');
+    setActiveSideMenu('track');
+  };
+
+  const handlePortalLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginMessage('');
+    const record = findSavedApplication(loginApplicationId, loginMobile);
+    if (!record) {
+      setLoginMessage('No application found with this Application ID / Mobile Number on this device.');
+      return;
+    }
+    openSavedApplication(record);
+  };
+
   const handleTrackSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setTrackResult({
-      appId: trackSearchId || 'AKBS-REG-2026-8942',
-      farmerName: formData.fullName || 'Rakesh Yadav',
-      location: `${formData.villageOrCity}, ${formData.district}`,
-      capacity: `${formData.proposedCapacity} Birds (${formData.shedType})`,
-      status: 'Site Survey Scheduled',
-      engineerAssigned: 'Er. Ankit Mishra (Civil & HVAC Lead)',
-      dateSubmitted: '22 Sep 2026',
-      expectedCompletion: '28 Sep 2026',
-      dprStatus: 'DPR Draft in Preparation (SBI Agri Scheme)',
-      subsidyScheme: 'NABARD 25% Capital Subsidy Pre-Approved'
-    });
+    setTrackResult(null);
+    setTrackMessage('');
+    const record = findSavedApplication(trackSearchId, trackSearchId);
+    if (!record) {
+      setTrackMessage('No saved application found. Please check the Application ID or registered mobile number.');
+      return;
+    }
+    openSavedApplication(record);
+  };
+
+  const startNewApplication = () => {
+    setPortalEntryMode('form');
+    setViewMode('wizard');
+    setActiveSideMenu('registration');
+    setCurrentStep(1);
+    setIsSubmitted(false);
+    setSubmittedAppId('');
+    setTrackResult(null);
+    setTrackMessage('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Helper to render the step-specific image card on the left
@@ -299,6 +368,140 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     }
   };
 
+  if (portalEntryMode === 'welcome') {
+    return (
+      <div className="min-h-screen bg-[#eef3f1] text-slate-800 font-sans">
+        <header className="bg-[#0b2818] text-white border-b border-emerald-900 shadow-md">
+          <div className="max-w-[1240px] mx-auto px-5 py-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-white border-[3px] border-emerald-500 overflow-hidden p-0.5">
+                <img src={akbsLogoImg} alt="AKBS Poultry Farming" className="w-full h-full rounded-full object-cover" />
+              </div>
+              <div>
+                <div className="font-['Outfit',sans-serif] text-xl font-black tracking-wide">AKBS</div>
+                <div className="text-[10px] font-bold tracking-[0.12em] text-emerald-300 uppercase">Poultry Farming</div>
+              </div>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 text-xs text-emerald-100">
+              <ShieldCheck className="w-4 h-4 text-emerald-300" />
+              Secure Customer Portal
+            </div>
+          </div>
+        </header>
+
+        <main className="max-w-[1180px] mx-auto px-4 sm:px-6 py-8 sm:py-14">
+          <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 items-stretch">
+            <section className="relative overflow-hidden rounded-3xl bg-[#0b2818] text-white min-h-[440px] shadow-xl">
+              <img src={poultryBannerImg} alt="AKBS Poultry Project" className="absolute inset-0 w-full h-full object-cover opacity-30" />
+              <div className="absolute inset-0 bg-gradient-to-br from-[#0b2818]/95 via-[#0b2818]/85 to-emerald-900/70" />
+              <div className="relative p-7 sm:p-10 h-full flex flex-col justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[11px] font-bold text-emerald-200">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    AKBS Customer Portal
+                  </div>
+                  <h1 className="mt-6 text-3xl sm:text-4xl font-['Outfit',sans-serif] font-black tracking-tight leading-tight">
+                    Start your poultry project with AKBS
+                  </h1>
+                  <p className="mt-4 text-sm sm:text-base text-emerald-50/80 leading-7 max-w-xl">
+                    Register your project requirements, land details and funding needs. New customers can start a fresh application and existing applicants can track a submitted application.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-8">
+                  {[
+                    ['6-step application', 'Simple guided process'],
+                    ['Project guidance', 'Technical support'],
+                    ['Loan assistance', 'DPR & funding support'],
+                    ['Secure details', 'Customer information']
+                  ].map(([title, subtitle]) => (
+                    <div key={title} className="rounded-xl bg-white/8 border border-white/10 p-3">
+                      <div className="text-xs font-bold text-white">{title}</div>
+                      <div className="text-[10px] text-emerald-100/70 mt-1">{subtitle}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            <section className="bg-white rounded-3xl border border-slate-200 shadow-xl p-6 sm:p-8">
+              <div>
+                <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
+                  <User className="w-5 h-5" />
+                </div>
+                <h2 className="mt-4 text-2xl font-['Outfit',sans-serif] font-black text-slate-950">Customer Login</h2>
+                <p className="mt-1 text-sm text-slate-500">Track an existing application using your Application ID and registered mobile number.</p>
+              </div>
+
+              <form onSubmit={handlePortalLogin} className="mt-6 space-y-4">
+                <label className="block">
+                  <span className="text-xs font-bold text-slate-700">Application ID</span>
+                  <div className="relative mt-1.5">
+                    <FileText className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                    <input
+                      value={loginApplicationId}
+                      onChange={(e) => setLoginApplicationId(e.target.value)}
+                      placeholder="Enter Application ID"
+                      className="w-full h-11 pl-10 pr-3 border border-slate-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-700"
+                    />
+                  </div>
+                </label>
+
+                <label className="block">
+                  <span className="text-xs font-bold text-slate-700">Registered Mobile Number</span>
+                  <div className="relative mt-1.5">
+                    <Phone className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      value={loginMobile}
+                      onChange={(e) => setLoginMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      placeholder="10-digit mobile number"
+                      className="w-full h-11 pl-10 pr-3 border border-slate-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-700"
+                    />
+                  </div>
+                </label>
+
+                {loginMessage && (
+                  <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs font-semibold text-amber-800">
+                    {loginMessage}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full h-11 rounded-xl bg-[#0b2818] hover:bg-[#123e27] text-white text-sm font-bold flex items-center justify-center gap-2 shadow-md"
+                >
+                  <Search className="w-4 h-4" />
+                  Login / Track Application
+                </button>
+              </form>
+
+              <div className="my-6 flex items-center gap-3">
+                <div className="h-px bg-slate-200 flex-1" />
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">New Customer</span>
+                <div className="h-px bg-slate-200 flex-1" />
+              </div>
+
+              <button
+                type="button"
+                onClick={startNewApplication}
+                className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black flex items-center justify-center gap-2 shadow-md"
+              >
+                Apply Now
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <p className="mt-4 text-center text-[11px] text-slate-400">
+                New application form opens blank. No sample or dummy customer details are prefilled.
+              </p>
+            </section>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#edf2f0] flex flex-col text-slate-800 font-sans">
       {/* Top Banner exactly matching the reference poster top banner */}
@@ -337,7 +540,13 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
           </div>
 
           {/* Right: 4 Badges + Golden cursive script */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setPortalEntryMode('welcome')}
+              className="px-3 py-2 rounded-lg border border-emerald-500/40 bg-white/5 hover:bg-white/10 text-[11px] font-bold text-emerald-100 whitespace-nowrap"
+            >
+              Customer Login
+            </button>
             <div className="hidden xl:grid grid-cols-4 gap-3 text-center">
               <div className="flex flex-col items-center">
                 <div className="w-6 h-6 rounded-full border border-emerald-400 flex items-center justify-center text-emerald-300 mb-0.5">
@@ -1180,6 +1389,12 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                   </button>
                 </form>
 
+                {trackMessage && (
+                  <div className="max-w-md rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs font-semibold text-amber-800">
+                    {trackMessage}
+                  </div>
+                )}
+
                 {trackResult && (
                   <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200">
@@ -1199,7 +1414,7 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                       <div>
                         <span className="text-slate-400">Assigned Engineer:</span>
-                        <div className="font-semibold text-slate-800">{trackResult.engineerAssigned}</div>
+                        <div className="font-semibold text-slate-800">{'Not assigned yet'}</div>
                       </div>
                       <div>
                         <span className="text-slate-400">Project Capacity:</span>
@@ -1207,11 +1422,11 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                       </div>
                       <div>
                         <span className="text-slate-400">DPR Documentation:</span>
-                        <div className="font-semibold text-slate-800">{trackResult.dprStatus}</div>
+                        <div className="font-semibold text-slate-800">{'Not started'}</div>
                       </div>
                       <div>
                         <span className="text-slate-400">Subsidy Scheme:</span>
-                        <div className="font-semibold text-slate-800">{trackResult.subsidyScheme}</div>
+                        <div className="font-semibold text-slate-800">{'Eligibility to be assessed'}</div>
                       </div>
                     </div>
                   </div>
@@ -2102,7 +2317,7 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                     </div>
                     <div className="flex items-start gap-2">
                       <span className="w-4 h-4 rounded-full bg-[#0b2818] text-white text-[10px] flex items-center justify-center font-bold shrink-0 mt-0.5">3</span>
-                      <span>Site inspection visit by Er. Ankit Mishra for soil and water TDS testing.</span>
+                      <span>Site inspection, if required, will be scheduled after AKBS reviews the submitted project details.</span>
                     </div>
                   </div>
                 </div>

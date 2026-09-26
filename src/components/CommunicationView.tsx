@@ -42,16 +42,25 @@ export const CommunicationView: React.FC<CommunicationViewProps> = ({ leads }) =
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageText.trim()) return;
+    const outgoing = messageText.trim();
     setMessageHistory(prev => [
       ...prev,
       {
         id: `m-${Date.now()}`,
         sender: 'AKBS Admin',
-        text: messageText,
+        text: outgoing,
         time: 'Just now',
         isCustomer: false
       }
     ]);
+
+    if (channel === 'whatsapp') {
+      const phone = selectedLead.phone.replace(/[^0-9]/g, '');
+      const withCountry = phone.length === 10 ? `91${phone}` : phone;
+      window.open(`https://wa.me/${withCountry}?text=${encodeURIComponent(outgoing)}`, '_blank', 'noopener,noreferrer');
+    } else if (channel === 'email') {
+      window.location.href = `mailto:${selectedLead.email || ''}?subject=${encodeURIComponent('AKBS Poultry Farming')}&body=${encodeURIComponent(outgoing)}`;
+    }
     setMessageText('');
   };
 

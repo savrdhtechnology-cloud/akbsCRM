@@ -46,6 +46,23 @@ export const ManagerPortalView: React.FC<ManagerPortalViewProps> = ({
   isAdminViewing = true
 }) => {
   const [activeTab, setActiveTab] = useState<'approvals' | 'allocation' | 'visits' | 'performance'>('approvals');
+  const [selectedAudit, setSelectedAudit] = useState<SiteVisitLog | null>(null);
+  const [managerActionMessage, setManagerActionMessage] = useState('');
+
+  const showManagerMessage = (message: string) => {
+    setManagerActionMessage(message);
+    window.setTimeout(() => setManagerActionMessage(''), 3000);
+  };
+
+  const exportRegionalMis = () => {
+    const rows = [
+      ['Lead','Location','Bird Capacity','Status','Assigned To'],
+      ...leads.map(l => [l.name,l.location,String(l.birdCapacity),l.status,l.assignedTo])
+    ];
+    const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+    const a=document.createElement('a'); a.href=url; a.download='akbs-regional-mis.csv'; a.click(); URL.revokeObjectURL(url);
+  };
   const [searchLead, setSearchLead] = useState('');
   const [selectedLeadId, setSelectedLeadId] = useState<string>('');
   const [selectedEmp, setSelectedEmp] = useState<string>('Vikash Kumar (Sales)');
@@ -477,7 +494,7 @@ export const ManagerPortalView: React.FC<ManagerPortalViewProps> = ({
 
                 <div className="pt-1 text-[11px] text-slate-400 flex items-center justify-between">
                   <span>Inspector: <b>{visit.employeeName}</b></span>
-                  <button className="text-emerald-700 font-bold hover:underline">
+                  <button onClick={() => setSelectedAudit(visit)} className="text-emerald-700 font-bold hover:underline">
                     View Full Audit
                   </button>
                 </div>
@@ -542,22 +559,38 @@ export const ManagerPortalView: React.FC<ManagerPortalViewProps> = ({
               Manager Quick Actions
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-              <button className="p-3 rounded-lg border border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-left transition-all">
+              <button onClick={() => { setActiveTab('approvals'); showManagerMessage('AHIDF quota request workflow opened in Approvals.'); }} className="p-3 rounded-lg border border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-left transition-all">
                 <div className="font-bold text-slate-900">Request AHIDF Quota</div>
                 <div className="text-slate-500 text-[11px] mt-0.5">Apply for 3% interest subvention</div>
               </button>
-              <button className="p-3 rounded-lg border border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-left transition-all">
+              <button onClick={() => showManagerMessage('Batch DOC authorization recorded for partner coordination.')} className="p-3 rounded-lg border border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-left transition-all">
                 <div className="font-bold text-slate-900">Authorize Batch DOC</div>
                 <div className="text-slate-500 text-[11px] mt-0.5">Release 40,000 chicks to hatcheries</div>
               </button>
-              <button className="p-3 rounded-lg border border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-left transition-all">
+              <button onClick={() => { setActiveTab('site-visits'); showManagerMessage('Site Visits opened. Select a visit/farmer for audit scheduling.'); }} className="p-3 rounded-lg border border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-left transition-all">
                 <div className="font-bold text-slate-900">Schedule Field Audit</div>
                 <div className="text-slate-500 text-[11px] mt-0.5">Send veterinarian to farm</div>
               </button>
-              <button className="p-3 rounded-lg border border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-left transition-all">
+              <button onClick={exportRegionalMis} className="p-3 rounded-lg border border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-left transition-all">
                 <div className="font-bold text-slate-900">Export Regional MIS</div>
                 <div className="text-slate-500 text-[11px] mt-0.5">Download monthly director report</div>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedAudit && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setSelectedAudit(null)}>
+          <div className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl" onClick={e=>e.stopPropagation()}>
+            <div className="flex justify-between pb-3 border-b"><div><h3 className="font-bold text-slate-900">Site Visit Audit</h3><p className="text-xs text-slate-500">{selectedAudit.farmerName} · {selectedAudit.location}</p></div><button onClick={() => setSelectedAudit(null)} className="text-xl text-slate-400">×</button></div>
+            <div className="grid grid-cols-2 gap-3 mt-4 text-xs">
+              <div className="p-3 bg-slate-50 rounded-xl"><span className="text-slate-400">Inspector</span><div className="font-bold">{selectedAudit.employeeName}</div></div>
+              <div className="p-3 bg-slate-50 rounded-xl"><span className="text-slate-400">Visit Date</span><div className="font-bold">{selectedAudit.visitDate}</div></div>
+              <div className="p-3 bg-slate-50 rounded-xl"><span className="text-slate-400">Capacity</span><div className="font-mono font-bold">{selectedAudit.birdCapacity.toLocaleString()} Birds</div></div>
+              <div className="p-3 bg-slate-50 rounded-xl"><span className="text-slate-400">Shed Area</span><div className="font-mono font-bold">{selectedAudit.shedSizeSqFt.toLocaleString()} sq.ft</div></div>
+              <div className="p-3 bg-slate-50 rounded-xl"><span className="text-slate-400">Water TDS</span><div className="font-mono font-bold">{selectedAudit.waterTds}</div></div>
+              <div className="p-3 bg-slate-50 rounded-xl"><span className="text-slate-400">Power</span><div className="font-bold">{selectedAudit.powerAvailable ? 'Available' : 'Not Available'}</div></div>
+              <div className="p-3 bg-slate-50 rounded-xl col-span-2"><span className="text-slate-400">Notes</span><div className="font-semibold">{selectedAudit.notes}</div></div>
             </div>
           </div>
         </div>

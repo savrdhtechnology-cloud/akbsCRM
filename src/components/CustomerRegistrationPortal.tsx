@@ -18,6 +18,8 @@ import {
   ChevronRight,
   Home,
   FileText,
+  FilePlus2,
+  Plus,
   Landmark,
   Award,
   Sparkles,

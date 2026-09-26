@@ -35,9 +35,12 @@ interface DashboardProps {
   tasks: Task[];
   activities: Activity[];
   onSelectSection: (section: NavigationSection) => void;
-  onOpenQuickAction: (actionKey: string) => void;
+  onOpenQuickAction: (actionKey: string, lead?: Lead) => void;
   onSelectLead: (lead: Lead) => void;
   onToggleTask: (taskId: string) => void;
+  onUpdateLeadStatus?: (leadId: string, status: any) => void;
+  onAssignLead?: (leadId: string, employeeName: string) => void;
+  onEditLead?: (leadId: string, patch: Partial<Lead>) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -47,7 +50,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onSelectSection,
   onOpenQuickAction,
   onSelectLead,
-  onToggleTask
+  onToggleTask,
+  onUpdateLeadStatus,
+  onAssignLead,
+  onEditLead
 }) => {
   // Selected Inquiry for the Inquiry Details card (defaults to first lead or Rakesh Yadav)
   const [selectedInquiry, setSelectedInquiry] = useState<Lead>(() => {
@@ -67,6 +73,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     `Dear ${selectedInquiry?.name || 'Customer'},\n\nThank you for reaching out to AKBS Poultry Farming. We will get back to you shortly with the required project details, DPR estimation, and bank subsidy guidelines.\n\nBest Regards,\nTeam AKBS Poultry Farming\nHelpline: +91 98261 44019`
   );
   const [emailSentAlert, setEmailSentAlert] = useState(false);
+  const [showEmailPreview, setShowEmailPreview] = useState(false);
 
   // Follow-up tab filter
   const [followUpFilter, setFollowUpFilter] = useState<'all' | 'today' | 'week' | 'overdue'>('all');
@@ -83,6 +90,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     setEmailBody(
       `Dear ${lead.name},\n\nThank you for reaching out to AKBS Poultry Farming regarding your ${lead.birdCapacity || 5000} bird poultry project. We will get back to you shortly.\n\nBest Regards,\nTeam AKBS Poultry Farming`
     );
+    onSelectLead(lead);
   };
 
   const handleSaveNote = () => {
@@ -442,7 +450,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             {/* 2. Send Email */}
             <button
-              onClick={() => onOpenQuickAction('send-email')}
+              onClick={() => onOpenQuickAction('send-email', selectedInquiry)}
               className="w-full p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 flex items-center gap-2.5 transition-colors"
             >
               <Mail className="w-4 h-4 text-purple-600" />
@@ -462,7 +470,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             {/* 4. Schedule Follow Up */}
             <button
-              onClick={() => onOpenQuickAction('add-followup')}
+              onClick={() => onOpenQuickAction('add-followup', selectedInquiry)}
               className="w-full p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 flex items-center gap-2.5 transition-colors"
             >
               <CalendarPlus className="w-4 h-4 text-rose-600" />
@@ -540,7 +548,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {/* Action Buttons Row */}
           <div className="grid grid-cols-4 gap-1.5 text-xs font-bold">
             <button
-              onClick={() => onOpenQuickAction('call')}
+              onClick={() => onOpenQuickAction('call', selectedInquiry)}
               className="py-1.5 px-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center gap-1 text-slate-700"
             >
               <Phone className="w-3 h-3 text-emerald-600" />
@@ -556,7 +564,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <span>WhatsApp</span>
             </a>
             <button
-              onClick={() => onOpenQuickAction('send-email')}
+              onClick={() => onOpenQuickAction('send-email', selectedInquiry)}
               className="py-1.5 px-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 flex items-center justify-center gap-1 text-slate-700"
             >
               <Send className="w-3 h-3 text-purple-600" />
@@ -573,7 +581,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <label className="text-[10px] font-bold text-slate-400 block mb-1">Update Status</label>
               <select
                 value={inquiryStatus}
-                onChange={(e) => setInquiryStatus(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setInquiryStatus(value);
+                  if (selectedInquiry && onUpdateLeadStatus) onUpdateLeadStatus(selectedInquiry.id, value as any);
+                  setSelectedInquiry(prev => prev ? { ...prev, status: value as any } : prev);
+                }}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 font-medium text-slate-800 focus:outline-none"
               >
                 <option value="New">New</option>
@@ -587,7 +600,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <label className="text-[10px] font-bold text-slate-400 block mb-1">Assign To</label>
               <select
                 value={assignedStaff}
-                onChange={(e) => setAssignedStaff(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setAssignedStaff(value);
+                  if (selectedInquiry && onAssignLead) onAssignLead(selectedInquiry.id, value);
+                  setSelectedInquiry(prev => prev ? { ...prev, assignedTo: value } : prev);
+                }}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 font-medium text-slate-800 focus:outline-none"
               >
                 <option value="Shailendra">Shailendra</option>
@@ -627,9 +645,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5 space-y-3.5">
           <div className="pb-2 border-b border-slate-100 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-900">Email Templates</h2>
-            <span className="text-[11px] text-emerald-700 font-semibold cursor-pointer hover:underline">
+            <button onClick={() => onSelectSection('communication')} className="text-[11px] text-emerald-700 font-semibold cursor-pointer hover:underline">
               Manage All
-            </span>
+            </button>
           </div>
 
           <div className="grid grid-cols-12 gap-3 items-start">
@@ -695,7 +713,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <div className="flex items-center justify-between gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => alert(`Email Preview:\n\nSubject: ${emailSubject}\n\n${emailBody}`)}
+                  onClick={() => setShowEmailPreview(v => !v)}
                   className="px-2.5 py-1 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 font-medium"
                 >
                   Preview
@@ -709,6 +727,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <span>Send Email</span>
                 </button>
               </div>
+
+              {showEmailPreview && (
+                <div className="p-2 bg-slate-50 border border-slate-200 rounded-lg text-[10px] text-slate-600 whitespace-pre-wrap max-h-28 overflow-y-auto">
+                  <div className="font-bold text-slate-800 mb-1">{emailSubject}</div>
+                  {emailBody}
+                </div>
+              )}
 
               {emailSentAlert && (
                 <div className="p-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-[11px] font-bold flex items-center gap-1">
@@ -773,7 +798,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                 <div className="flex items-center gap-1 shrink-0">
                   <button
-                    onClick={() => alert(`Initiating follow-up call with ${item.name}`)}
+                    onClick={() => { window.location.href = `tel:${item.phone || selectedInquiry?.phone || ''}`; }}
                     className="p-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600"
                     title="Call"
                   >

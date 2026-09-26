@@ -46,6 +46,7 @@ interface LeadsViewProps {
   onUpdateLeadStatus: (leadId: string, status: LeadStatus) => void;
   onDeleteLead: (leadId: string) => void;
   onOpenQuickAction?: (actionKey: string, lead?: Lead) => void;
+  onEditLead?: (leadId: string, patch: Partial<Lead>) => void;
   documents?: DocumentRecord[];
   followUps?: FollowUp[];
   activities?: Activity[];
@@ -59,6 +60,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   onUpdateLeadStatus,
   onDeleteLead,
   onOpenQuickAction,
+  onEditLead,
   documents = [],
   followUps = [],
   activities = []
@@ -82,6 +84,25 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   const [activeDetailTab, setActiveDetailTab] = useState<
     'overview' | 'project' | 'financial' | 'documents' | 'activities' | 'followups'
   >('overview');
+  const [isProjectEditing, setIsProjectEditing] = useState(false);
+  const [isFinancialEditing, setIsFinancialEditing] = useState(false);
+  const [savedMessage, setSavedMessage] = useState('');
+  const [projectDraft, setProjectDraft] = useState({
+    projectType: 'Broiler' as Lead['projectType'],
+    birdCapacity: 10000,
+    shedType: '',
+    landArea: '',
+    landOwnership: '',
+    timeline: '',
+    supportNeeded: ''
+  });
+  const [financialDraft, setFinancialDraft] = useState({
+    estimatedCost: '',
+    budgetEstimate: '',
+    loanRequired: '',
+    priority: 'Medium' as NonNullable<Lead['priority']>,
+    status: 'New' as LeadStatus
+  });
 
   const [newNoteText, setNewNoteText] = useState('');
   const [noteType, setNoteType] = useState('Internal Note');
@@ -135,6 +156,28 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   const pagedLeads = filteredLeads.slice((safePage - 1) * perPage, safePage * perPage);
 
   const currentLead = leads.find(l => l.id === selectedLead.id) || selectedLead || leads[0];
+
+  React.useEffect(() => {
+    if (!currentLead?.id) return;
+    setProjectDraft({
+      projectType: currentLead.projectType || 'Broiler',
+      birdCapacity: currentLead.birdCapacity || 10000,
+      shedType: currentLead.shedType || '',
+      landArea: currentLead.landArea || '',
+      landOwnership: currentLead.landOwnership || currentLead.landAvailable || '',
+      timeline: currentLead.timeline || '',
+      supportNeeded: currentLead.supportNeeded?.join(', ') || ''
+    });
+    setFinancialDraft({
+      estimatedCost: currentLead.estimatedCost || '',
+      budgetEstimate: currentLead.budgetEstimate || '',
+      loanRequired: currentLead.loanRequired || '',
+      priority: currentLead.priority || 'Medium',
+      status: currentLead.status || 'New'
+    });
+    setIsProjectEditing(false);
+    setIsFinancialEditing(false);
+  }, [currentLead?.id]);
   const relatedDocuments = documents.filter(d =>
     d.relatedEntity.toLowerCase().includes(currentLead?.name?.toLowerCase() || '')
   );
@@ -159,19 +202,83 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  const showSaved = (message: string) => {
+    setSavedMessage(message);
+    window.setTimeout(() => setSavedMessage(''), 2200);
+  };
+
+  const saveProjectDetails = () => {
+    if (!currentLead || !onEditLead) return;
+    onEditLead(currentLead.id, {
+      projectType: projectDraft.projectType,
+      birdCapacity: Number(projectDraft.birdCapacity) || 0,
+      shedType: projectDraft.shedType,
+      landArea: projectDraft.landArea,
+      landOwnership: projectDraft.landOwnership,
+      landAvailable: projectDraft.landOwnership,
+      timeline: projectDraft.timeline,
+      supportNeeded: projectDraft.supportNeeded
+        .split(',')
+        .map(v => v.trim())
+        .filter(Boolean)
+    });
+    setSelectedLead(prev => ({ ...prev,
+      projectType: projectDraft.projectType,
+      birdCapacity: Number(projectDraft.birdCapacity) || 0,
+      shedType: projectDraft.shedType,
+      landArea: projectDraft.landArea,
+      landOwnership: projectDraft.landOwnership,
+      landAvailable: projectDraft.landOwnership,
+      timeline: projectDraft.timeline,
+      supportNeeded: projectDraft.supportNeeded.split(',').map(v => v.trim()).filter(Boolean)
+    }));
+    setIsProjectEditing(false);
+    showSaved('Project details saved');
+  };
+
+  const saveFinancialDetails = () => {
+    if (!currentLead || !onEditLead) return;
+    onEditLead(currentLead.id, {
+      estimatedCost: financialDraft.estimatedCost,
+      budgetEstimate: financialDraft.budgetEstimate,
+      loanRequired: financialDraft.loanRequired,
+      priority: financialDraft.priority,
+      status: financialDraft.status
+    });
+    if (financialDraft.status !== currentLead.status) {
+      onUpdateLeadStatus(currentLead.id, financialDraft.status);
+    }
+    setSelectedLead(prev => ({ ...prev,
+      estimatedCost: financialDraft.estimatedCost,
+      budgetEstimate: financialDraft.budgetEstimate,
+      loanRequired: financialDraft.loanRequired,
+      priority: financialDraft.priority,
+      status: financialDraft.status
+    }));
+    setIsFinancialEditing(false);
+    showSaved('Financial details saved');
+  };
+
   const handleSaveNote = () => {
     if (!newNoteText.trim()) return;
+    const note = newNoteText.trim();
     setNotesList(prev => [
       {
         id: `note-${Date.now()}`,
-        text: newNoteText.trim(),
+        text: note,
         author: 'Shailendra Choudhary',
         time: 'Just now',
         type: noteType
       },
       ...prev
     ]);
+    if (currentLead && onEditLead) {
+      const combined = currentLead.notes ? `${currentLead.notes}\n${note}` : note;
+      onEditLead(currentLead.id, { notes: combined });
+      setSelectedLead(prev => ({ ...prev, notes: combined }));
+    }
     setNewNoteText('');
+    showSaved('Note saved to lead');
   };
 
   const getStatusBadgeStyle = (status: string) => {
@@ -587,7 +694,10 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveDetailTab(tab.id as any)}
+                  onClick={() => {
+                    setActiveDetailTab(tab.id as any);
+                    setSavedMessage('');
+                  }}
                   className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-all ${
                     activeDetailTab === tab.id
                       ? 'bg-[#0f2e20] text-white font-bold shadow-2xs'
@@ -598,6 +708,13 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                 </button>
               ))}
             </div>
+
+            {savedMessage && (
+              <div className="px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                {savedMessage}
+              </div>
+            )}
 
             {activeDetailTab === 'overview' && (
               <>
@@ -819,32 +936,116 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             )}
 
             {activeDetailTab === 'project' && (
-              <div className="bg-slate-50/60 rounded-xl p-4 border border-slate-200/80 space-y-3 text-xs">
-                <div className="font-bold text-slate-900 flex items-center gap-2"><Building className="w-4 h-4 text-emerald-700" />Project Details</div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><span className="text-slate-400">Project Type</span><div className="font-bold">{currentLead.projectType}</div></div>
-                  <div><span className="text-slate-400">Bird Capacity</span><div className="font-bold font-mono">{currentLead.birdCapacity.toLocaleString()} Birds</div></div>
-                  <div><span className="text-slate-400">Shed Type</span><div className="font-semibold">{currentLead.shedType || 'Not specified'}</div></div>
-                  <div><span className="text-slate-400">Land Area</span><div className="font-semibold">{currentLead.landArea || 'Not specified'}</div></div>
-                  <div><span className="text-slate-400">Land Ownership</span><div className="font-semibold">{currentLead.landOwnership || currentLead.landAvailable || 'Not specified'}</div></div>
-                  <div><span className="text-slate-400">Timeline</span><div className="font-semibold">{currentLead.timeline || 'Not specified'}</div></div>
-                  <div className="col-span-2"><span className="text-slate-400">Support Needed</span><div className="font-semibold">{currentLead.supportNeeded?.join(', ') || 'Turnkey project guidance'}</div></div>
+              <div key="project-panel" className="bg-slate-50/60 rounded-xl p-4 border border-slate-200/80 space-y-4 text-xs">
+                <div className="flex items-center justify-between border-b border-slate-200/70 pb-2">
+                  <div className="font-bold text-slate-900 flex items-center gap-2">
+                    <Building className="w-4 h-4 text-emerald-700" />
+                    Project Details
+                  </div>
+                  {!isProjectEditing ? (
+                    <button onClick={() => setIsProjectEditing(true)} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 hover:bg-slate-100 flex items-center gap-1">
+                      <Edit className="w-3.5 h-3.5" /> Edit Details
+                    </button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button onClick={() => setIsProjectEditing(false)} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg font-bold text-slate-600">Cancel</button>
+                      <button onClick={saveProjectDetails} className="px-3 py-1.5 bg-[#0b2818] text-white rounded-lg font-bold">Save Changes</button>
+                    </div>
+                  )}
                 </div>
-                <button onClick={() => onOpenQuickAction?.('edit', currentLead)} className="px-3 py-2 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 hover:bg-slate-100">Edit Project Details</button>
+
+                {isProjectEditing ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label className="space-y-1">
+                      <span className="text-slate-500 font-semibold">Poultry Type</span>
+                      <select value={projectDraft.projectType} onChange={e => setProjectDraft(d => ({...d, projectType:e.target.value as Lead['projectType']}))} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg">
+                        <option value="Broiler">Broiler</option><option value="Layer">Layer</option><option value="Breeder">Breeder</option><option value="Country Chicken / Desi">Country Chicken / Desi</option><option value="Other">Other</option>
+                      </select>
+                    </label>
+                    <label className="space-y-1">
+                      <span className="text-slate-500 font-semibold">Proposed Capacity</span>
+                      <input type="number" min="0" value={projectDraft.birdCapacity} onChange={e => setProjectDraft(d => ({...d,birdCapacity:Number(e.target.value)}))} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-mono"/>
+                    </label>
+                    <label className="space-y-1">
+                      <span className="text-slate-500 font-semibold">Shed Type</span>
+                      <input value={projectDraft.shedType} onChange={e => setProjectDraft(d => ({...d,shedType:e.target.value}))} placeholder="EC (Environment Controlled)" className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"/>
+                    </label>
+                    <label className="space-y-1">
+                      <span className="text-slate-500 font-semibold">Land Area</span>
+                      <input value={projectDraft.landArea} onChange={e => setProjectDraft(d => ({...d,landArea:e.target.value}))} placeholder="e.g. 5 Acres" className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"/>
+                    </label>
+                    <label className="space-y-1">
+                      <span className="text-slate-500 font-semibold">Land Ownership / Availability</span>
+                      <input value={projectDraft.landOwnership} onChange={e => setProjectDraft(d => ({...d,landOwnership:e.target.value}))} placeholder="Yes (Own Land)" className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"/>
+                    </label>
+                    <label className="space-y-1">
+                      <span className="text-slate-500 font-semibold">Timeline</span>
+                      <input value={projectDraft.timeline} onChange={e => setProjectDraft(d => ({...d,timeline:e.target.value}))} placeholder="Within 3 months" className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"/>
+                    </label>
+                    <label className="space-y-1 sm:col-span-2">
+                      <span className="text-slate-500 font-semibold">Support Needed</span>
+                      <input value={projectDraft.supportNeeded} onChange={e => setProjectDraft(d => ({...d,supportNeeded:e.target.value}))} placeholder="DPR, Loan, Shed Design, Equipment" className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"/>
+                    </label>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><span className="text-slate-400">Poultry Type</span><div className="font-bold">{currentLead.projectType}</div></div>
+                    <div><span className="text-slate-400">Bird Capacity</span><div className="font-bold font-mono">{currentLead.birdCapacity.toLocaleString()} Birds</div></div>
+                    <div><span className="text-slate-400">Shed Type</span><div className="font-semibold">{currentLead.shedType || 'Not specified'}</div></div>
+                    <div><span className="text-slate-400">Land Area</span><div className="font-semibold">{currentLead.landArea || 'Not specified'}</div></div>
+                    <div><span className="text-slate-400">Land Ownership</span><div className="font-semibold">{currentLead.landOwnership || currentLead.landAvailable || 'Not specified'}</div></div>
+                    <div><span className="text-slate-400">Timeline</span><div className="font-semibold">{currentLead.timeline || 'Not specified'}</div></div>
+                    <div className="col-span-2"><span className="text-slate-400">Support Needed</span><div className="font-semibold">{currentLead.supportNeeded?.join(', ') || 'Turnkey project guidance'}</div></div>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button onClick={() => onOpenQuickAction?.('followup', currentLead)} className="px-3 py-2 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 hover:bg-slate-100">Schedule Follow-up</button>
+                  <button onClick={() => onOpenQuickAction?.('create-proposal', currentLead)} className="px-3 py-2 bg-[#0b2818] text-white rounded-lg font-bold">Create DPR / Proposal</button>
+                </div>
               </div>
             )}
 
             {activeDetailTab === 'financial' && (
-              <div className="bg-slate-50/60 rounded-xl p-4 border border-slate-200/80 space-y-3 text-xs">
-                <div className="font-bold text-slate-900 flex items-center gap-2"><Landmark className="w-4 h-4 text-emerald-700" />Financial & Loan Requirement</div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><span className="text-slate-400">Budget Estimate</span><div className="font-bold text-emerald-800">{currentLead.estimatedCost || currentLead.budgetEstimate}</div></div>
-                  <div><span className="text-slate-400">Loan Required</span><div className="font-bold">{currentLead.loanRequired || 'To be discussed'}</div></div>
-                  <div><span className="text-slate-400">Status</span><div className="font-semibold">{currentLead.status}</div></div>
-                  <div><span className="text-slate-400">Priority</span><div className="font-semibold">{currentLead.priority || 'Medium'}</div></div>
+              <div key="financial-panel" className="bg-slate-50/60 rounded-xl p-4 border border-slate-200/80 space-y-4 text-xs">
+                <div className="flex items-center justify-between border-b border-slate-200/70 pb-2">
+                  <div className="font-bold text-slate-900 flex items-center gap-2">
+                    <Landmark className="w-4 h-4 text-emerald-700" />
+                    Financial & Loan Requirement
+                  </div>
+                  {!isFinancialEditing ? (
+                    <button onClick={() => setIsFinancialEditing(true)} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 hover:bg-slate-100 flex items-center gap-1">
+                      <Edit className="w-3.5 h-3.5" /> Edit Financial
+                    </button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button onClick={() => setIsFinancialEditing(false)} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg font-bold text-slate-600">Cancel</button>
+                      <button onClick={saveFinancialDetails} className="px-3 py-1.5 bg-[#0b2818] text-white rounded-lg font-bold">Save Changes</button>
+                    </div>
+                  )}
                 </div>
-                <div className="flex gap-2">
+
+                {isFinancialEditing ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label className="space-y-1"><span className="text-slate-500 font-semibold">Estimated Cost</span><input value={financialDraft.estimatedCost} onChange={e=>setFinancialDraft(d=>({...d,estimatedCost:e.target.value}))} placeholder="₹ 1.75 Cr" className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"/></label>
+                    <label className="space-y-1"><span className="text-slate-500 font-semibold">Budget Estimate</span><input value={financialDraft.budgetEstimate} onChange={e=>setFinancialDraft(d=>({...d,budgetEstimate:e.target.value}))} placeholder="₹ 1.50 - 1.75 Cr" className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"/></label>
+                    <label className="space-y-1"><span className="text-slate-500 font-semibold">Loan Requirement</span><input value={financialDraft.loanRequired} onChange={e=>setFinancialDraft(d=>({...d,loanRequired:e.target.value}))} placeholder="Yes (₹ 1.20 Cr)" className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"/></label>
+                    <label className="space-y-1"><span className="text-slate-500 font-semibold">Priority</span><select value={financialDraft.priority} onChange={e=>setFinancialDraft(d=>({...d,priority:e.target.value as NonNullable<Lead['priority']>}))} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"><option>High</option><option>Medium</option><option>Low</option></select></label>
+                    <label className="space-y-1 sm:col-span-2"><span className="text-slate-500 font-semibold">Lead / Finance Stage</span><select value={financialDraft.status} onChange={e=>setFinancialDraft(d=>({...d,status:e.target.value as LeadStatus}))} className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg"><option>New</option><option>Contacted</option><option>Qualified</option><option>Site Visit</option><option>Proposal Sent</option><option>DPR</option><option>Loan Processing</option><option>In Discussion</option><option>Follow Up</option><option>Negotiation</option><option>Converted</option><option>Lost</option></select></label>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><span className="text-slate-400">Estimated Cost</span><div className="font-bold text-emerald-800">{currentLead.estimatedCost || currentLead.budgetEstimate || 'Not specified'}</div></div>
+                    <div><span className="text-slate-400">Budget Estimate</span><div className="font-bold">{currentLead.budgetEstimate || 'Not specified'}</div></div>
+                    <div><span className="text-slate-400">Loan Required</span><div className="font-bold">{currentLead.loanRequired || 'To be discussed'}</div></div>
+                    <div><span className="text-slate-400">Priority</span><div className="font-semibold">{currentLead.priority || 'Medium'}</div></div>
+                    <div className="col-span-2"><span className="text-slate-400">Current Stage</span><div className="mt-1"><span className={`px-2 py-1 rounded-md border font-bold ${getStatusBadgeStyle(currentLead.status)}`}>{currentLead.status}</span></div></div>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2 pt-1">
                   <button onClick={() => onOpenQuickAction?.('loan-application', currentLead)} className="px-3 py-2 bg-[#0b2818] text-white rounded-lg font-bold">Create Loan File</button>
+                  <button onClick={() => onOpenQuickAction?.('create-proposal', currentLead)} className="px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-bold">Create DPR</button>
                   <button onClick={() => setIsQuotationModalOpen(true)} className="px-3 py-2 bg-amber-400 text-slate-950 rounded-lg font-bold">Soft Quotation</button>
                 </div>
               </div>
@@ -854,7 +1055,10 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
               <div className="bg-slate-50/60 rounded-xl p-4 border border-slate-200/80 space-y-3 text-xs">
                 <div className="flex items-center justify-between">
                   <div className="font-bold text-slate-900 flex items-center gap-2"><Paperclip className="w-4 h-4 text-emerald-700" />Documents for {currentLead.name}</div>
-                  <button onClick={() => onOpenQuickAction?.('upload-document', currentLead)} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg font-bold text-emerald-800"><UploadCloud className="w-3.5 h-3.5 inline mr-1"/>Upload</button>
+                  <div className="flex gap-2">
+                    <button onClick={() => onOpenQuickAction?.('upload-document', currentLead)} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg font-bold text-emerald-800"><UploadCloud className="w-3.5 h-3.5 inline mr-1"/>Upload</button>
+                    <button onClick={() => onOpenQuickAction?.('upload-document', currentLead)} className="px-3 py-1.5 bg-[#0b2818] text-white rounded-lg font-bold">Add Document</button>
+                  </div>
                 </div>
                 {relatedDocuments.length ? relatedDocuments.map(doc => (
                   <div key={doc.id} className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
@@ -868,6 +1072,11 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             {activeDetailTab === 'activities' && (
               <div className="bg-slate-50/60 rounded-xl p-4 border border-slate-200/80 space-y-3 text-xs">
                 <div className="font-bold text-slate-900 flex items-center gap-2"><Clock className="w-4 h-4 text-emerald-700" />Activity Timeline</div>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => onOpenQuickAction?.('call', currentLead)} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg font-bold">Call</button>
+                  <button onClick={() => onOpenQuickAction?.('email', currentLead)} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg font-bold">Email</button>
+                  <button onClick={() => onOpenQuickAction?.('followup', currentLead)} className="px-3 py-1.5 bg-[#0b2818] text-white rounded-lg font-bold">Schedule Follow-up</button>
+                </div>
                 <div className="space-y-2">
                   <div className="p-3 bg-white border border-slate-200 rounded-xl"><div className="font-bold">Lead created</div><div className="text-slate-500">{currentLead.date}, {currentLead.time} · Source: {currentLead.source}</div></div>
                   <div className="p-3 bg-white border border-slate-200 rounded-xl"><div className="font-bold">Current stage</div><div className="text-slate-500">{currentLead.status} · Assigned to {currentLead.assignedTo || 'Unassigned'}</div></div>

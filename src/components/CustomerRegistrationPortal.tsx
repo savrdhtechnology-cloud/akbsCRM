@@ -42,6 +42,197 @@ interface CustomerRegistrationPortalProps {
   onGoToLeads?: (leadId?: string) => void;
 }
 
+
+type ConsentLanguage = 'English' | 'Hindi';
+
+const CUSTOMER_CONSENT_VERSION = 'AKBS-CONSENT-2026-V1';
+
+const CUSTOMER_CONSENT_CONTENT: Record<ConsentLanguage, {
+  title: string;
+  intro: string;
+  agreeButton: string;
+  cancelButton: string;
+  secureText: string;
+  scrollHint: string;
+  termsConsent: string;
+  contactConsent: string;
+  sections: Array<{ title: string; paragraphs: string[]; bullets?: string[] }>;
+}> = {
+  English: {
+    title: 'Customer Declaration & Consent',
+    intro: 'Before submitting this application, please carefully read the following declaration. By clicking “I Agree & Continue”, you confirm that you have read, understood and accepted the terms mentioned below.',
+    agreeButton: 'I Agree & Continue',
+    cancelButton: 'Cancel',
+    secureText: 'Your information is handled securely',
+    scrollHint: 'Please scroll through the complete declaration to enable consent.',
+    termsConsent: 'I have read and understood the Customer Declaration & Consent and I agree to the above terms.',
+    contactConsent: 'I consent to AKBS contacting me regarding my application and project through phone, WhatsApp, SMS and/or email.',
+    sections: [
+      {
+        title: '1. Accuracy of Information',
+        paragraphs: [
+          'I hereby declare that all information provided by me in this application, including my personal details, contact information, project details, land details, estimated project cost, financial information, business experience and financing requirements, is true, correct and complete to the best of my knowledge.'
+        ]
+      },
+      {
+        title: '2. Documents & Information',
+        paragraphs: [
+          'I confirm that the documents and information submitted by me belong to me or to the concerned business/entity and, to the best of my knowledge, are genuine, valid and accurate. I understand that AKBS may request additional documents or clarification whenever required.'
+        ]
+      },
+      {
+        title: '3. Project Assessment',
+        paragraphs: [
+          'I understand that the information submitted through this application may be reviewed by AKBS Poultry Farming Private Limited for understanding my project requirements, preliminary project assessment, DPR preparation, quotation preparation and related assistance.'
+        ]
+      },
+      {
+        title: '4. Loan / Finance / Subsidy',
+        paragraphs: [
+          'I understand that submission of this application does not mean that any loan, subsidy, grant, government benefit or financial assistance has been approved or guaranteed.',
+          'Any loan, credit facility or subsidy shall be subject to the applicable eligibility criteria, documentation, appraisal, policies and final decision of the concerned bank, financial institution, government department or competent authority.'
+        ]
+      },
+      {
+        title: '5. Project Cost & Estimates',
+        paragraphs: [
+          'I understand that any project cost, quotation, feasibility estimate, subsidy estimate, loan requirement or financial projection provided by AKBS may be based on the information available at the time of assessment and may change depending upon actual site conditions, specifications, market prices, supplier quotations, government guidelines and other applicable factors.'
+        ]
+      },
+      {
+        title: '6. Contact & Communication Consent',
+        paragraphs: [
+          'I authorize AKBS Poultry Farming Private Limited and its authorized representatives to contact me regarding my application and project through my registered:'
+        ],
+        bullets: ['Mobile number', 'Phone call', 'WhatsApp', 'SMS', 'Email']
+      },
+      {
+        title: '7. Verification & Clarification',
+        paragraphs: [
+          'I authorize AKBS to verify the information provided by me to the extent reasonably required for processing and evaluating my application. I agree to provide additional information or clarification if required.'
+        ]
+      },
+      {
+        title: '8. Responsibility for Submitted Information',
+        paragraphs: [
+          'I understand that I am responsible for the correctness and completeness of the information and documents submitted by me. If any information is found to be false, misleading, incomplete or materially incorrect, the application may be put on hold, rejected or otherwise dealt with as applicable.'
+        ]
+      },
+      {
+        title: '9. No Guarantee of Approval',
+        paragraphs: [
+          'I understand that AKBS may assist me with project planning, documentation, DPR preparation, quotation and financing-related processes, but such assistance does not constitute a guarantee of project approval, loan sanction, subsidy approval, disbursement or any particular financial outcome.'
+        ]
+      },
+      {
+        title: '10. Consent to Electronic Record',
+        paragraphs: [
+          'I agree that my application, declarations, submitted information, documents and consent may be stored electronically as part of my application/CRM record for processing, communication, verification and record-keeping purposes.'
+        ]
+      },
+      {
+        title: '11. Privacy & Confidentiality',
+        paragraphs: [
+          'AKBS will handle the information submitted through the application for legitimate purposes related to the customer’s project/application and associated services, subject to applicable law and the organization’s privacy practices.'
+        ]
+      },
+      {
+        title: '12. Final Declaration',
+        paragraphs: [
+          'I confirm that I have read and understood the above declaration. I confirm that the information and documents provided by me are true and correct to the best of my knowledge. I voluntarily provide my consent for AKBS Poultry Farming Private Limited to process my application and contact me regarding my project.'
+        ]
+      }
+    ]
+  },
+  Hindi: {
+    title: 'ग्राहक घोषणा एवं सहमति',
+    intro: 'इस आवेदन को जमा करने से पहले कृपया नीचे दी गई घोषणा को ध्यानपूर्वक पढ़ें। “मैं सहमत हूँ एवं आगे बढ़ें” पर क्लिक करके आप पुष्टि करते हैं कि आपने नीचे दी गई जानकारी को पढ़ लिया है, समझ लिया है और इससे सहमत हैं।',
+    agreeButton: 'मैं सहमत हूँ एवं आगे बढ़ें',
+    cancelButton: 'रद्द करें',
+    secureText: 'आपकी जानकारी सुरक्षित रूप से संभाली जाती है',
+    scrollHint: 'सहमति देने से पहले कृपया पूरी घोषणा नीचे तक पढ़ें।',
+    termsConsent: 'मैंने Customer Declaration & Consent को पढ़ और समझ लिया है तथा मैं ऊपर दी गई शर्तों से सहमत हूँ।',
+    contactConsent: 'मैं AKBS को मेरे application एवं project के संबंध में Phone, WhatsApp, SMS और/या Email के माध्यम से संपर्क करने की सहमति देता/देती हूँ।',
+    sections: [
+      {
+        title: '1. जानकारी की सत्यता',
+        paragraphs: [
+          'मैं घोषणा करता/करती हूँ कि इस आवेदन में मेरे द्वारा दी गई सभी जानकारी, जिसमें मेरी व्यक्तिगत जानकारी, संपर्क विवरण, परियोजना की जानकारी, भूमि का विवरण, अनुमानित परियोजना लागत, वित्तीय जानकारी, व्यवसायिक अनुभव तथा वित्तीय आवश्यकता शामिल है, मेरी जानकारी एवं विश्वास के अनुसार सही, पूर्ण और सत्य है।'
+        ]
+      },
+      {
+        title: '2. दस्तावेज एवं जानकारी',
+        paragraphs: [
+          'मैं पुष्टि करता/करती हूँ कि मेरे द्वारा जमा किए गए दस्तावेज मेरे या संबंधित व्यवसाय/संस्था से संबंधित हैं और मेरी जानकारी के अनुसार वास्तविक, वैध एवं सही हैं। आवश्यकता होने पर मैं अतिरिक्त दस्तावेज या स्पष्टीकरण उपलब्ध कराने के लिए सहमत हूँ।'
+        ]
+      },
+      {
+        title: '3. परियोजना का मूल्यांकन',
+        paragraphs: [
+          'मैं समझता/समझती हूँ कि इस आवेदन के माध्यम से दी गई जानकारी का उपयोग AKBS Poultry Farming Private Limited द्वारा मेरी परियोजना की आवश्यकता समझने, प्रारंभिक परियोजना मूल्यांकन, DPR तैयार करने, quotation तैयार करने तथा संबंधित सहायता प्रदान करने के लिए किया जा सकता है।'
+        ]
+      },
+      {
+        title: '4. ऋण / वित्त / सब्सिडी',
+        paragraphs: [
+          'मैं समझता/समझती हूँ कि यह आवेदन जमा करना किसी भी loan, subsidy, grant, government benefit या financial assistance की स्वीकृति या गारंटी नहीं है।',
+          'किसी भी loan, credit facility या subsidy की स्वीकृति संबंधित eligibility criteria, documents, appraisal, policies तथा संबंधित bank, financial institution, government department अथवा competent authority के अंतिम निर्णय पर निर्भर करेगी।'
+        ]
+      },
+      {
+        title: '5. परियोजना लागत एवं अनुमान',
+        paragraphs: [
+          'मैं समझता/समझती हूँ कि AKBS द्वारा दी गई project cost, quotation, feasibility estimate, subsidy estimate, loan requirement या financial projection उस समय उपलब्ध जानकारी के आधार पर अनुमानित हो सकती है।',
+          'वास्तविक लागत site conditions, specifications, market prices, supplier quotations, government guidelines तथा अन्य लागू परिस्थितियों के अनुसार बदल सकती है।'
+        ]
+      },
+      {
+        title: '6. संपर्क एवं संचार की सहमति',
+        paragraphs: [
+          'मैं AKBS Poultry Farming Private Limited तथा उसके अधिकृत प्रतिनिधियों को मेरे application और project के संबंध में मेरे registered माध्यमों से संपर्क करने की अनुमति देता/देती हूँ। इसमें project discussion, documents की आवश्यकता, quotation, DPR संबंधी communication, follow-up तथा financing-related information शामिल हो सकती है।'
+        ],
+        bullets: ['Mobile Number', 'Phone Call', 'WhatsApp', 'SMS', 'Email']
+      },
+      {
+        title: '7. सत्यापन एवं अतिरिक्त जानकारी',
+        paragraphs: [
+          'मैं AKBS को application processing एवं evaluation के लिए आवश्यक सीमा तक मेरे द्वारा दी गई जानकारी को verify करने की अनुमति देता/देती हूँ। आवश्यक होने पर मैं अतिरिक्त जानकारी या clarification उपलब्ध कराने के लिए सहमत हूँ।'
+        ]
+      },
+      {
+        title: '8. दी गई जानकारी की जिम्मेदारी',
+        paragraphs: [
+          'मैं समझता/समझती हूँ कि मेरे द्वारा जमा की गई जानकारी एवं documents की सत्यता और पूर्णता की जिम्मेदारी मेरी है। यदि कोई जानकारी गलत, भ्रामक, अधूरी या महत्वपूर्ण रूप से गलत पाई जाती है, तो application को hold, reject या लागू प्रक्रिया के अनुसार आगे process किया जा सकता है।'
+        ]
+      },
+      {
+        title: '9. Approval की कोई गारंटी नहीं',
+        paragraphs: [
+          'मैं समझता/समझती हूँ कि AKBS project planning, documentation, DPR preparation, quotation और financing-related process में सहायता प्रदान कर सकता है, लेकिन ऐसी सहायता project approval, loan sanction, subsidy approval, disbursement या किसी निश्चित financial outcome की गारंटी नहीं है।'
+        ]
+      },
+      {
+        title: '10. Electronic Record की सहमति',
+        paragraphs: [
+          'मैं सहमत हूँ कि मेरे application, declaration, submitted information, documents और consent को application/CRM record के रूप में electronic form में processing, communication, verification और record-keeping के उद्देश्य से सुरक्षित रखा जा सकता है।'
+        ]
+      },
+      {
+        title: '11. Privacy एवं Confidentiality',
+        paragraphs: [
+          'Application के माध्यम से दी गई जानकारी को ग्राहक की project/application तथा संबंधित services से जुड़े वैध उद्देश्यों के लिए संभाला जाएगा, लागू कानून और संगठन की privacy practices के अधीन।'
+        ]
+      },
+      {
+        title: '12. अंतिम घोषणा',
+        paragraphs: [
+          'मैं पुष्टि करता/करती हूँ कि मैंने ऊपर दी गई Customer Declaration & Consent को पढ़ और समझ लिया है। मेरे द्वारा दी गई जानकारी एवं documents मेरी जानकारी के अनुसार सही और सत्य हैं। मैं स्वेच्छा से AKBS Poultry Farming Private Limited को मेरा application process करने तथा मेरे project के संबंध में मुझसे संपर्क करने की सहमति देता/देती हूँ।'
+        ]
+      }
+    ]
+  }
+};
+
 export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProps> = ({
   onRegisterCustomer,
   onGoToCRM,
@@ -110,6 +301,11 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
   // Success state after step 6 submission
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedAppId, setSubmittedAppId] = useState('');
+  const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
+  const [consentLanguage, setConsentLanguage] = useState<ConsentLanguage>('Hindi');
+  const [consentTermsAccepted, setConsentTermsAccepted] = useState(false);
+  const [consentContactAccepted, setConsentContactAccepted] = useState(false);
+  const [consentScrolledToEnd, setConsentScrolledToEnd] = useState(false);
 
   const stepsList = [
     { num: 1, label: 'Basic Details', subtitle: 'Name, Mobile, WhatsApp, Email, Language' },
@@ -145,17 +341,37 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
 
   const handleSubmitApplication = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+
+    if (!consentTermsAccepted || !consentContactAccepted) {
+      return;
+    }
+
+    const consentTimestamp = new Date().toISOString();
+    const submittedFormData = {
+      ...formData,
+      declarationConfirmed: true
+    };
+    setFormData(submittedFormData);
+
     const generatedId = `AKBS-REG-${Math.floor(1000 + Math.random() * 9000)}`;
     setSubmittedAppId(generatedId);
     setIsSubmitted(true);
+    setIsConsentModalOpen(false);
 
     try {
       const existing = JSON.parse(window.localStorage.getItem('akbs.customer.applications') || '[]');
       const applicationRecord = {
         appId: generatedId,
         mobileNumber: formData.mobileNumber,
-        submittedAt: new Date().toISOString(),
-        formData
+        submittedAt: consentTimestamp,
+        formData: submittedFormData,
+        consent: {
+          version: CUSTOMER_CONSENT_VERSION,
+          language: consentLanguage,
+          declarationAccepted: true,
+          communicationConsentAccepted: true,
+          acceptedAt: consentTimestamp
+        }
       };
       window.localStorage.setItem(
         'akbs.customer.applications',
@@ -167,36 +383,51 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
 
     if (onRegisterCustomer) {
       onRegisterCustomer({
-        name: formData.fullName,
-        phone: `+91 ${formData.mobileNumber}`,
-        whatsApp: `+91 ${formData.whatsAppNumber || formData.mobileNumber}`,
-        email: formData.email,
+        name: submittedFormData.fullName,
+        phone: `+91 ${submittedFormData.mobileNumber}`,
+        whatsApp: `+91 ${submittedFormData.whatsAppNumber || submittedFormData.mobileNumber}`,
+        email: submittedFormData.email,
         source: 'Website',
         status: 'New',
         isHot: true,
         priority: 'High',
-        location: `${formData.villageOrCity}, ${formData.district}, ${formData.state}`,
-        state: formData.state,
-        district: formData.district,
-        village: formData.villageOrCity,
-        birdCapacity: parseInt(formData.proposedCapacity.replace(/,/g, ''), 10) || 0,
-        projectType: formData.poultryType.includes('Layer') ? 'Layer' : 'Broiler',
-        shedType: formData.shedType,
-        budgetEstimate: formData.approxProjectCost,
-        estimatedCost: formData.approxProjectCost,
-        landAvailable: formData.hasLand === 'Yes' ? `Yes (${formData.landOwnership})` : 'No',
-        landOwnership: formData.landOwnership,
-        landArea: `${formData.landAreaAcres} Acres`,
-        loanRequired: formData.needsLoan === 'Yes' ? `Yes (${formData.approxLoanAmount})` : formData.needsLoan,
-        timeline: formData.startTimeline,
-        language: formData.preferredLanguage,
-        experience: formData.experience,
-        supportNeeded: formData.supportNeeded,
+        location: `${submittedFormData.villageOrCity}, ${submittedFormData.district}, ${submittedFormData.state}`,
+        state: submittedFormData.state,
+        district: submittedFormData.district,
+        village: submittedFormData.villageOrCity,
+        birdCapacity: parseInt(submittedFormData.proposedCapacity.replace(/,/g, ''), 10) || 0,
+        projectType: submittedFormData.poultryType.includes('Layer') ? 'Layer' : 'Broiler',
+        shedType: submittedFormData.shedType,
+        budgetEstimate: submittedFormData.approxProjectCost,
+        estimatedCost: submittedFormData.approxProjectCost,
+        landAvailable: submittedFormData.hasLand === 'Yes' ? `Yes (${submittedFormData.landOwnership})` : 'No',
+        landOwnership: submittedFormData.landOwnership,
+        landArea: `${submittedFormData.landAreaAcres} Acres`,
+        loanRequired: submittedFormData.needsLoan === 'Yes' ? `Yes (${submittedFormData.approxLoanAmount})` : submittedFormData.needsLoan,
+        timeline: submittedFormData.startTimeline,
+        language: submittedFormData.preferredLanguage,
+        experience: submittedFormData.experience,
+        supportNeeded: submittedFormData.supportNeeded,
         applicationId: generatedId,
         assignedTo: 'Unassigned',
         nextFollowUp: 'Not scheduled',
-        notes: `Customer Web Registration [${generatedId}]. Land: ${formData.landAreaAcres} Acres (${formData.landOwnership}). Loan req: ${formData.approxLoanAmount}. Start timeline: ${formData.startTimeline}. Support: ${formData.supportNeeded.join(', ')}`
+        notes: `Customer Web Registration [${generatedId}]. Land: ${submittedFormData.landAreaAcres} Acres (${submittedFormData.landOwnership}). Loan req: ${submittedFormData.approxLoanAmount}. Start timeline: ${submittedFormData.startTimeline}. Support: ${submittedFormData.supportNeeded.join(', ')}. Consent: ${CUSTOMER_CONSENT_VERSION}, ${consentLanguage}, accepted ${consentTimestamp}.`
       });
+    }
+  };
+
+  const requestFinalSubmission = () => {
+    setConsentLanguage(formData.preferredLanguage);
+    setConsentTermsAccepted(false);
+    setConsentContactAccepted(false);
+    setConsentScrolledToEnd(false);
+    setIsConsentModalOpen(true);
+  };
+
+  const handleConsentScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const node = event.currentTarget;
+    if (node.scrollTop + node.clientHeight >= node.scrollHeight - 24) {
+      setConsentScrolledToEnd(true);
     }
   };
 
@@ -1183,8 +1414,8 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                         </div>
                         <button
                           onClick={() => {
-                            handleSubmitApplication();
                             setViewMode('wizard');
+                            requestFinalSubmission();
                           }}
                           className="w-full py-1 bg-[#0b2818] text-white text-[9px] font-bold rounded shadow-xs"
                         >
@@ -2211,37 +2442,26 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
 
                       {/* Right: Declaration & Submit Box */}
                       <div className="md:col-span-5 flex flex-col justify-between space-y-4">
-                        <div className="p-4 bg-emerald-50/80 rounded-2xl border border-emerald-200 text-xs space-y-3">
+                        <div className="p-4 bg-emerald-50/80 rounded-2xl border border-emerald-200 text-xs space-y-2.5">
                           <div className="flex items-center gap-1.5 font-bold text-emerald-950">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-700" />
-                            <span>Declaration</span>
+                            <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                            <span>{formData.preferredLanguage === 'Hindi' ? 'ग्राहक घोषणा एवं सहमति' : 'Customer Declaration & Consent'}</span>
                           </div>
-                          <label className="flex items-start gap-2.5 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={formData.declarationConfirmed}
-                              onChange={(e) => setFormData({ ...formData, declarationConfirmed: e.target.checked })}
-                              className="w-4 h-4 text-[#0b2818] rounded mt-0.5"
-                            />
-                            <span className="text-slate-700 leading-relaxed font-medium text-[11px]">
-                              I confirm that the information provided is true and correct. I agree to be contacted by the AKBS team for further discussions regarding my project.
-                            </span>
-                          </label>
+                          <p className="text-slate-700 leading-relaxed font-medium text-[11px]">
+                            {formData.preferredLanguage === 'Hindi'
+                              ? 'Submit Application पर क्लिक करने के बाद पूरी घोषणा खुलेगी। दोनों अनिवार्य सहमति स्वीकार करने के बाद ही आवेदन जमा होगा।'
+                              : 'The complete declaration will open after you click Submit Application. The application will be submitted only after both mandatory consents are accepted.'}
+                          </p>
                         </div>
 
                         <div className="space-y-2">
 
                           <button
                             type="button"
-                            onClick={() => handleSubmitApplication()}
-                            disabled={!formData.declarationConfirmed}
-                            className={`w-full py-3.5 text-xs font-extrabold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 ${
-                              formData.declarationConfirmed
-                                ? 'bg-[#0b2818] hover:bg-[#123e27] text-white shadow-[#0b2818]/20'
-                                : 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                            }`}
+                            onClick={requestFinalSubmission}
+                            className="w-full py-3.5 text-xs font-extrabold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 bg-[#0b2818] hover:bg-[#123e27] text-white shadow-[#0b2818]/20"
                           >
-                            <span>Submit Application</span>
+                            <span>{formData.preferredLanguage === 'Hindi' ? 'आवेदन जमा करें' : 'Submit Application'}</span>
                             <ArrowRight className="w-4 h-4" />
                           </button>
 
@@ -2368,6 +2588,142 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
               </div>
             )}
           </main>
+        </div>
+      )}
+
+      {isConsentModalOpen && (
+        <div className="fixed inset-0 z-[100] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
+          <div className="w-full max-w-3xl max-h-[94vh] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+            <div className="px-4 sm:px-5 py-3.5 bg-[#0b2818] text-white flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center shrink-0">
+                  <Lock className="w-4.5 h-4.5 text-emerald-300" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="font-['Outfit',sans-serif] text-sm sm:text-base font-black truncate">
+                    {CUSTOMER_CONSENT_CONTENT[consentLanguage].title}
+                  </h2>
+                  <div className="text-[10px] text-emerald-200 font-mono">{CUSTOMER_CONSENT_VERSION}</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsConsentModalOpen(false)}
+                className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center shrink-0"
+                aria-label="Close declaration"
+              >
+                <X className="w-4.5 h-4.5" />
+              </button>
+            </div>
+
+            <div className="px-4 sm:px-5 py-3 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50">
+              <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed max-w-2xl">
+                {CUSTOMER_CONSENT_CONTENT[consentLanguage].intro}
+              </p>
+              <select
+                value={consentLanguage}
+                onChange={(e) => {
+                  setConsentLanguage(e.target.value as ConsentLanguage);
+                  setConsentTermsAccepted(false);
+                  setConsentContactAccepted(false);
+                  setConsentScrolledToEnd(false);
+                }}
+                className="h-9 px-3 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700 shrink-0"
+              >
+                <option value="English">English</option>
+                <option value="Hindi">हिंदी</option>
+              </select>
+            </div>
+
+            <div
+              onScroll={handleConsentScroll}
+              className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5 bg-white"
+            >
+              <div className="max-w-2xl mx-auto space-y-5">
+                {CUSTOMER_CONSENT_CONTENT[consentLanguage].sections.map((section) => (
+                  <section key={section.title}>
+                    <h3 className="text-xs sm:text-sm font-black text-slate-900">{section.title}</h3>
+                    <div className="mt-1.5 space-y-2 text-[11px] sm:text-xs text-slate-600 leading-5 sm:leading-6">
+                      {section.paragraphs.map((paragraph, index) => (
+                        <p key={index} className={section.title.startsWith('12.') ? 'font-semibold text-slate-800' : ''}>
+                          {paragraph}
+                        </p>
+                      ))}
+                      {section.bullets && (
+                        <ul className="pl-5 list-disc space-y-1">
+                          {section.bullets.map((item) => <li key={item}>{item}</li>)}
+                        </ul>
+                      )}
+                    </div>
+                  </section>
+                ))}
+
+                <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-[11px] sm:text-xs text-emerald-900 font-semibold">
+                  {consentLanguage === 'Hindi'
+                    ? 'आपने घोषणा के अंत तक पढ़ लिया है। अब नीचे दोनों अनिवार्य सहमति चुनकर आगे बढ़ें।'
+                    : 'You have reached the end of the declaration. Please accept both mandatory consents below to continue.'}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-4 sm:px-5 py-4 border-t border-slate-200 bg-slate-50 space-y-3">
+              {!consentScrolledToEnd && (
+                <div className="text-[10px] sm:text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  {CUSTOMER_CONSENT_CONTENT[consentLanguage].scrollHint}
+                </div>
+              )}
+
+              <label className={`flex items-start gap-2.5 text-[11px] sm:text-xs ${
+                consentScrolledToEnd ? 'cursor-pointer text-slate-700' : 'cursor-not-allowed text-slate-400'
+              }`}>
+                <input
+                  type="checkbox"
+                  disabled={!consentScrolledToEnd}
+                  checked={consentTermsAccepted}
+                  onChange={(e) => setConsentTermsAccepted(e.target.checked)}
+                  className="w-4 h-4 mt-0.5 rounded text-[#0b2818] focus:ring-emerald-500"
+                />
+                <span className="font-semibold leading-relaxed">{CUSTOMER_CONSENT_CONTENT[consentLanguage].termsConsent}</span>
+              </label>
+
+              <label className={`flex items-start gap-2.5 text-[11px] sm:text-xs ${
+                consentScrolledToEnd ? 'cursor-pointer text-slate-700' : 'cursor-not-allowed text-slate-400'
+              }`}>
+                <input
+                  type="checkbox"
+                  disabled={!consentScrolledToEnd}
+                  checked={consentContactAccepted}
+                  onChange={(e) => setConsentContactAccepted(e.target.checked)}
+                  className="w-4 h-4 mt-0.5 rounded text-[#0b2818] focus:ring-emerald-500"
+                />
+                <span className="font-semibold leading-relaxed">{CUSTOMER_CONSENT_CONTENT[consentLanguage].contactConsent}</span>
+              </label>
+
+              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-slate-500">
+                <Lock className="w-3.5 h-3.5 text-emerald-600" />
+                <span>{CUSTOMER_CONSENT_CONTENT[consentLanguage].secureText}</span>
+              </div>
+
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsConsentModalOpen(false)}
+                  className="h-10 px-5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-xs font-bold text-slate-700"
+                >
+                  {CUSTOMER_CONSENT_CONTENT[consentLanguage].cancelButton}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSubmitApplication()}
+                  disabled={!consentScrolledToEnd || !consentTermsAccepted || !consentContactAccepted}
+                  className="h-10 px-5 rounded-xl bg-[#0b2818] hover:bg-[#123e27] disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white text-xs font-black flex items-center justify-center gap-2"
+                >
+                  <span>{CUSTOMER_CONSENT_CONTENT[consentLanguage].agreeButton}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

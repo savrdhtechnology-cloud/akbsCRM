@@ -31,6 +31,19 @@ export const PartnerPortalView: React.FC<PartnerPortalViewProps> = ({
   isAdminViewing = true
 }) => {
   const [activeTab, setActiveTab] = useState<'orders' | 'invoices' | 'catalog'>('orders');
+  const [showRateCardEditor, setShowRateCardEditor] = useState(false);
+  const [docRate, setDocRate] = useState(36);
+  const [feedRate, setFeedRate] = useState(2125);
+  const [equipmentRate, setEquipmentRate] = useState(145);
+
+  const exportStatement = () => {
+    const rows = [
+      ['Order ID','Item','Farmer','Amount','Challan','Status'],
+      ...orders.map(o => [o.id,o.itemDescription,o.farmerName,String(o.totalAmount),o.dispatchChallanNo || '',o.status])
+    ];
+    const csv=rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const url=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); const a=document.createElement('a'); a.href=url; a.download='partner-statement.csv'; a.click(); URL.revokeObjectURL(url);
+  };
   const [selectedOrder, setSelectedOrder] = useState<PartnerSupplyOrder | null>(null);
   const [challanInput, setChallanInput] = useState('');
   const [dispatchModalOpen, setDispatchModalOpen] = useState(false);
@@ -284,7 +297,7 @@ export const PartnerPortalView: React.FC<PartnerPortalViewProps> = ({
                 Direct bank settlement account: HDFC Bank - A/C No: 502000123984
               </p>
             </div>
-            <button className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1.5">
+            <button onClick={exportStatement} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1.5">
               <Download className="w-3.5 h-3.5" />
               <span>Export Statement (CSV)</span>
             </button>
@@ -343,7 +356,7 @@ export const PartnerPortalView: React.FC<PartnerPortalViewProps> = ({
                 Contractual rates supplied to AKBS Poultry network farmers
               </p>
             </div>
-            <button className="px-3 py-1.5 bg-[#0b2818] text-white text-xs font-bold rounded-lg">
+            <button onClick={() => setShowRateCardEditor(true)} className="px-3 py-1.5 bg-[#0b2818] text-white text-xs font-bold rounded-lg">
               Update Rate Card
             </button>
           </div>
@@ -351,13 +364,13 @@ export const PartnerPortalView: React.FC<PartnerPortalViewProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
               <div className="font-bold text-slate-900">Cobb 500 Broiler DOC</div>
-              <div className="text-2xl font-bold font-mono text-emerald-800 mt-1">₹ 36.00</div>
+              <div className="text-2xl font-bold font-mono text-emerald-800 mt-1">₹ {docRate.toFixed(2)}</div>
               <div className="text-[11px] text-slate-500 mt-1">Per chick (Marek & ND vaccinated)</div>
             </div>
 
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
               <div className="font-bold text-slate-900">Broiler Pre-Starter Feed</div>
-              <div className="text-2xl font-bold font-mono text-emerald-800 mt-1">₹ 2,125.00</div>
+              <div className="text-2xl font-bold font-mono text-emerald-800 mt-1">₹ {feedRate.toLocaleString('en-IN')}</div>
               <div className="text-[11px] text-slate-500 mt-1">Per 50kg bag (CP 23%, ME 3050)</div>
             </div>
 
@@ -434,6 +447,19 @@ export const PartnerPortalView: React.FC<PartnerPortalViewProps> = ({
                   <span>Mark Payment Settled & Cleared</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {showRateCardEditor && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setShowRateCardEditor(false)}>
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl" onClick={e=>e.stopPropagation()}>
+            <div className="flex justify-between pb-3 border-b"><h3 className="font-bold text-slate-900">Update Partner Rate Card</h3><button onClick={() => setShowRateCardEditor(false)} className="text-xl text-slate-400">×</button></div>
+            <div className="mt-4 space-y-3 text-xs">
+              <label className="block"><span className="font-semibold block mb-1">DOC Rate / Chick</span><input type="number" value={docRate} onChange={e=>setDocRate(Number(e.target.value))} className="w-full px-3 py-2 border rounded-lg"/></label>
+              <label className="block"><span className="font-semibold block mb-1">Feed Rate / 50kg Bag</span><input type="number" value={feedRate} onChange={e=>setFeedRate(Number(e.target.value))} className="w-full px-3 py-2 border rounded-lg"/></label>
+              <label className="block"><span className="font-semibold block mb-1">Equipment Base Rate</span><input type="number" value={equipmentRate} onChange={e=>setEquipmentRate(Number(e.target.value))} className="w-full px-3 py-2 border rounded-lg"/></label>
+              <div className="flex justify-end"><button onClick={() => setShowRateCardEditor(false)} className="px-4 py-2 bg-[#0b2818] text-white rounded-lg font-bold">Save Rate Card</button></div>
             </div>
           </div>
         </div>

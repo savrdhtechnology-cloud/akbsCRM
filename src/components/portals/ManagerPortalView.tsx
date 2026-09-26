@@ -567,7 +567,7 @@ export const ManagerPortalView: React.FC<ManagerPortalViewProps> = ({
                 <div className="font-bold text-slate-900">Authorize Batch DOC</div>
                 <div className="text-slate-500 text-[11px] mt-0.5">Release 40,000 chicks to hatcheries</div>
               </button>
-              <button onClick={() => { setActiveTab('site-visits'); showManagerMessage('Site Visits opened. Select a visit/farmer for audit scheduling.'); }} className="p-3 rounded-lg border border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-left transition-all">
+              <button onClick={() => { setActiveTab('visits'); showManagerMessage('Site Visits opened. Select a visit/farmer for audit scheduling.'); }} className="p-3 rounded-lg border border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-left transition-all">
                 <div className="font-bold text-slate-900">Schedule Field Audit</div>
                 <div className="text-slate-500 text-[11px] mt-0.5">Send veterinarian to farm</div>
               </button>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Building2,
   Save,
@@ -19,8 +19,26 @@ export const SettingsView: React.FC = () => {
   const [docRate, setDocRate] = useState(36);
   const [feedRate, setFeedRate] = useState(42.5);
 
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem('akbs.crm.settings');
+      if (!saved) return;
+      const data = JSON.parse(saved);
+      if (data.companyName) setCompanyName(data.companyName);
+      if (data.gstin) setGstin(data.gstin);
+      if (data.regNo) setRegNo(data.regNo);
+      if (data.officeAddress) setOfficeAddress(data.officeAddress);
+      if (typeof data.broilerRate === 'number') setBroilerRate(data.broilerRate);
+      if (typeof data.docRate === 'number') setDocRate(data.docRate);
+      if (typeof data.feedRate === 'number') setFeedRate(data.feedRate);
+    } catch {}
+  }, []);
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    window.localStorage.setItem('akbs.crm.settings', JSON.stringify({
+      companyName, gstin, regNo, officeAddress, broilerRate, docRate, feedRate
+    }));
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };

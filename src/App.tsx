@@ -484,6 +484,7 @@ export default function App() {
               onUpdateLeadStatus={handleUpdateLeadStatus}
               onDeleteLead={handleDeleteLead}
               onOpenQuickAction={handleOpenQuickAction}
+              onEditLead={handleEditLead}
               documents={documents}
               followUps={followUps}
               activities={activities}

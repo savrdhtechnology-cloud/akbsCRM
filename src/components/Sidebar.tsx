@@ -6,6 +6,7 @@ import {
   UserCheck,
   ClipboardCheck,
   FileText,
+  FileSignature,
   BadgeIndianRupee,
   CalendarCheck2,
   BarChart3,
@@ -67,11 +68,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ]
     },
     {
+      label: 'Sales / Projects',
+      items: [
+        { id: 'soft-quotations', label: 'Soft Quotations', icon: <FileSignature className="w-[18px] h-[18px]" /> },
+        { id: 'proposals', label: 'DPR & Proposals', icon: <FileText className="w-[18px] h-[18px]" /> },
+        { id: 'loans', label: 'Loan & Financing', icon: <BadgeIndianRupee className="w-[18px] h-[18px]" /> }
+      ]
+    },
+    {
       label: 'Operations',
       items: [
         { id: 'manager-portal', label: 'Site Visits', icon: <ClipboardCheck className="w-[18px] h-[18px]" /> },
-        { id: 'proposals', label: 'DPR & Proposals', icon: <FileText className="w-[18px] h-[18px]" /> },
-        { id: 'loans', label: 'Loan & Financing', icon: <BadgeIndianRupee className="w-[18px] h-[18px]" /> },
         { id: 'tasks', label: 'Tasks', icon: <CalendarCheck2 className="w-[18px] h-[18px]" /> }
       ]
     },

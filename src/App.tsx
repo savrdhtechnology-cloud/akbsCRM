@@ -1,3 +1,4 @@
+// Vercel production sync trigger
 import React, { useEffect, useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';

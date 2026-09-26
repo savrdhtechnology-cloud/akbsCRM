@@ -426,7 +426,72 @@ export default function App() {
     window.history.pushState({}, '', '/');
   };
 
-    // Customer registration is intentionally standalone and not connected to the CRM yet.
+    const handleCustomerPortalLead = (payload: Partial<Lead>) => {
+    const applicationId = payload.applicationId || `AKBS-LEAD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+    const now = new Date();
+    const normalizedPhone = payload.phone || '';
+    const newLead: Lead = {
+      id: applicationId,
+      name: payload.name || 'Customer',
+      phone: normalizedPhone,
+      email: payload.email || '',
+      source: payload.source || 'Website',
+      status: payload.status || 'New',
+      date: now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      time: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      location: payload.location || [payload.village, payload.district, payload.state].filter(Boolean).join(', ') || 'Not provided',
+      birdCapacity: payload.birdCapacity || 0,
+      projectType: payload.projectType || 'Broiler',
+      budgetEstimate: payload.budgetEstimate || '',
+      notes: payload.notes || `Customer portal registration ${applicationId}`,
+      assignedTo: payload.assignedTo || 'Unassigned',
+      isHot: payload.isHot ?? true,
+      whatsApp: payload.whatsApp,
+      language: payload.language,
+      shedType: payload.shedType,
+      landAvailable: payload.landAvailable,
+      landOwnership: payload.landOwnership,
+      landArea: payload.landArea,
+      loanRequired: payload.loanRequired,
+      timeline: payload.timeline,
+      experience: payload.experience,
+      supportNeeded: payload.supportNeeded,
+      applicationId,
+      relativeTime: 'Just now',
+      estimatedCost: payload.estimatedCost,
+      priority: payload.priority || 'High',
+      nextFollowUp: payload.nextFollowUp || 'Not scheduled',
+      lastContact: 'Customer portal submission',
+      state: payload.state,
+      district: payload.district,
+      village: payload.village,
+      googleMapsLink: payload.googleMapsLink
+    };
+
+    setLeads(prev => {
+      const exists = prev.some(lead => lead.applicationId === applicationId || lead.id === applicationId);
+      return exists ? prev.map(lead => (lead.applicationId === applicationId || lead.id === applicationId) ? { ...lead, ...newLead } : lead) : [newLead, ...prev];
+    });
+    setActivities(prev => [
+      {
+        id: `act-${Date.now()}`,
+        type: 'inquiry',
+        title: `Customer portal lead created: ${newLead.name}`,
+        description: `${applicationId} · ${newLead.birdCapacity.toLocaleString()} birds · ${newLead.location}`,
+        time: 'Just now'
+      },
+      ...prev
+    ]);
+    setSelectedLeadId(applicationId);
+  };
+
+  const openCustomerPortalLeadInCrm = (applicationId?: string) => {
+    if (applicationId) setSelectedLeadId(applicationId);
+    window.history.pushState({}, '', '/');
+    setCurrentSection('leads');
+  };
+
+  // Customer registration is standalone visually, but submitted applications are connected to CRM Leads.
 
   // Toggle Followup status
   const handleToggleFollowupStatus = (id: string) => {
@@ -439,9 +504,18 @@ export default function App() {
     );
   };
 
-  // Standalone customer registration route. No website or CRM data connection yet.
+  // Standalone customer registration route with CRM lead creation.
   if (isCustomerRegistrationRoute) {
-    return <CustomerRegistrationPortal />;
+    return (
+      <CustomerRegistrationPortal
+        onRegisterCustomer={handleCustomerPortalLead}
+        onGoToCRM={() => {
+          window.history.pushState({}, '', '/');
+          setCurrentSection('dashboard');
+        }}
+        onGoToLeads={openCustomerPortalLeadInCrm}
+      />
+    );
   }
 
   if (isPartnerRegistrationRoute) {

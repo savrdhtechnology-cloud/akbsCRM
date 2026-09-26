@@ -34,17 +34,21 @@ export const DprProposalsView: React.FC<DprProposalsViewProps> = ({
   const [calcBirds, setCalcBirds] = useState(10000);
   const [shedType, setShedType] = useState<'EC' | 'Open'>('EC');
 
-  // Realistic poultry economic formulas
-  const sqFtPerBird = shedType === 'EC' ? 0.75 : 1.2;
-  const totalSqFt = Math.round(calcBirds * sqFtPerBird);
-  const civilCost = totalSqFt * 320; // ₹ 320 per sq ft for prefabricated steel truss shed
-  const equipmentCost = calcBirds * (shedType === 'EC' ? 140 : 65); // automatic feeding, drinkers, fans
-  const electrificationWater = 250000;
-  const totalProjectCost = civilCost + equipmentCost + electrificationWater;
-  const subsidyAmount = Math.round(totalProjectCost * 0.25); // NABARD 25% subsidy
-  const bankLoan = Math.round(totalProjectCost * 0.75); // 75% term loan
-  const farmerMargin = Math.round(totalProjectCost * 0.25); // 25% farmer equity
-  const estAnnualIncome = Math.round(calcBirds * 6 * 14.5); // 6 batches/year @ ₹ 14.5 rearing charge per bird
+  // AKBS approved commercial template. Do not auto-invent rates for unapproved configurations.
+  const isApprovedAkbsTemplate = calcBirds === 20000 && shedType === 'EC';
+  const totalSqFt = isApprovedAkbsTemplate ? 12000 : Math.round(calcBirds * (shedType === 'EC' ? 0.6 : 1.2));
+
+  // Approved breakup: 17L + 27L + 8L + 20L + 28L + 20L = ₹1.20 Cr.
+  const totalProjectCost = isApprovedAkbsTemplate ? 12000000 : 0;
+
+  // These are only arithmetic illustrations against the selected project cost.
+  // Actual eligibility / loan / subsidy must be confirmed by the bank/scheme.
+  const subsidyAmount = isApprovedAkbsTemplate ? Math.round(totalProjectCost * 0.25) : 0;
+  const bankLoan = isApprovedAkbsTemplate ? Math.round(totalProjectCost * 0.75) : 0;
+  const farmerMargin = isApprovedAkbsTemplate ? Math.round(totalProjectCost * 0.25) : 0;
+
+  // Market-linked annual returns are intentionally not auto-generated.
+  const estAnnualIncome = 0
 
   return (
     <div className="p-4 lg:p-6 space-y-6 max-w-[1600px] mx-auto">
@@ -77,7 +81,7 @@ export const DprProposalsView: React.FC<DprProposalsViewProps> = ({
             </h2>
           </div>
           <span className="text-[11px] bg-emerald-800/80 text-emerald-300 px-2 py-0.5 rounded-full font-mono">
-            NABARD / AHIDF Guidelines
+            AKBS Approved Template
           </span>
         </div>
 
@@ -135,7 +139,7 @@ export const DprProposalsView: React.FC<DprProposalsViewProps> = ({
             <div className="bg-black/25 p-3 rounded-xl border border-emerald-700/50">
               <span className="text-[11px] text-emerald-300">Total Project Outlay</span>
               <div className="text-base font-bold font-mono text-white mt-1">
-                ₹ {(totalProjectCost / 100000).toFixed(2)} Lakhs
+                {isApprovedAkbsTemplate ? `₹ ${(totalProjectCost / 100000).toFixed(2)} Lakhs` : 'Requires Confirmation'}
               </div>
               <span className="text-[10px] text-emerald-400 font-mono mt-0.5 block">
                 Shed: {totalSqFt.toLocaleString()} sq ft
@@ -145,25 +149,25 @@ export const DprProposalsView: React.FC<DprProposalsViewProps> = ({
             <div className="bg-black/25 p-3 rounded-xl border border-emerald-700/50">
               <span className="text-[11px] text-emerald-300">NABARD Subsidy (25%)</span>
               <div className="text-base font-bold font-mono text-emerald-300 mt-1">
-                ₹ {(subsidyAmount / 100000).toFixed(2)} Lakhs
+                {isApprovedAkbsTemplate ? `₹ ${(subsidyAmount / 100000).toFixed(2)} Lakhs` : 'Requires Confirmation'}
               </div>
-              <span className="text-[10px] text-emerald-400 mt-0.5 block">Direct Credit to Bank</span>
+              <span className="text-[10px] text-emerald-400 mt-0.5 block">Indicative assumption — confirm eligibility</span>
             </div>
 
             <div className="bg-black/25 p-3 rounded-xl border border-emerald-700/50">
               <span className="text-[11px] text-emerald-300">Bank Loan (75%)</span>
               <div className="text-base font-bold font-mono text-white mt-1">
-                ₹ {(bankLoan / 100000).toFixed(2)} Lakhs
+                {isApprovedAkbsTemplate ? `₹ ${(bankLoan / 100000).toFixed(2)} Lakhs` : 'Requires Confirmation'}
               </div>
-              <span className="text-[10px] text-emerald-400 mt-0.5 block">SBI / PNB Agri Term Loan</span>
+              <span className="text-[10px] text-emerald-400 mt-0.5 block">Indicative assumption — confirm with bank</span>
             </div>
 
             <div className="bg-black/25 p-3 rounded-xl border border-emerald-700/50">
               <span className="text-[11px] text-emerald-300">Est. Annual Return</span>
               <div className="text-base font-bold font-mono text-amber-300 mt-1">
-                ₹ {(estAnnualIncome / 100000).toFixed(2)} Lakhs
+                Requires Confirmation
               </div>
-              <span className="text-[10px] text-emerald-400 mt-0.5 block">6 Batches / Year</span>
+              <span className="text-[10px] text-emerald-400 mt-0.5 block">Market / integration inputs required</span>
             </div>
           </div>
         </div>

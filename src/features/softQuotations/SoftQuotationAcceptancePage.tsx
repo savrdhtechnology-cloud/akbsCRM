@@ -3,8 +3,8 @@ import { CheckCircle2, FileSignature, ShieldCheck } from 'lucide-react';
 import { loadSoftQuotations, persistSoftQuotations } from './store';
 import { SoftQuotation } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
-const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://ldffgetuzoeupuhoaubn.supabase.co';
+const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_KzdI4K0qLXgi3MhA5GXPhg_6f5vB8By';
 
 const rpc = async (name: string, body: Record<string, unknown>) => {
   if (!SUPABASE_URL || !SUPABASE_ANON) {

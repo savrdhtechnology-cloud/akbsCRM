@@ -3,10 +3,13 @@ import { CheckCircle2, FileSignature, ShieldCheck } from 'lucide-react';
 import { loadSoftQuotations, persistSoftQuotations } from './store';
 import { SoftQuotation } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://ldffgetuzoeupuhoaubn.supabase.co';
-const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkZmZ2ZXR1em9ldXB1aG9hdWJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwMzA0NTcsImV4cCI6MjEwMjYwNjQ1N30.t3Q25-gj2HvO3Z-OrUrvo4EKtk1Bum6PIjxGBQv-vM4';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 const rpc = async (name: string, body: Record<string, unknown>) => {
+  if (!SUPABASE_URL || !SUPABASE_ANON) {
+    throw new Error('This acceptance link is not available on this device yet.');
+  }
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
     method: 'POST',
     headers: {

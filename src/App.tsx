@@ -122,7 +122,7 @@ export default function App() {
   };
 
   // Follow-ups state
-  const [followUps, setFollowUps] = useState<FollowUp[]>(() => loadLocal('akbs.crm.followups', [followUps, setFollowUps] = useState<FollowUp[]>([
+  const [followUps, setFollowUps] = useState<FollowUp[]>(() => loadLocal('akbs.crm.followups', [
     {
       id: 'fu-1',
       leadId: 'lead-13',
@@ -145,7 +145,7 @@ export default function App() {
       type: 'Site Visit',
       priority: 'Medium',
       status: 'Pending',
-      notes: 'Site visit confirmation with Er. Ankit Mishra for 20,000 birds EC shed.'
+      notes: 'Site visit confirmation with technical team for 20,000 birds EC shed.'
     },
     {
       id: 'fu-3',

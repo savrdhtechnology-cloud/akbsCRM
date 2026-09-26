@@ -452,7 +452,7 @@ AKBS Poultry Farming Private Limited`;
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="p-3 sm:p-5 lg:p-6 space-y-6 min-w-0 max-w-full overflow-x-hidden">
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
         <div>
           <div className="text-xs uppercase tracking-[.16em] font-black text-emerald-700">Sales / Projects</div>
@@ -474,44 +474,65 @@ AKBS Poultry Farming Private Limited`;
         <Metric label="Estimated Value" value={formatMoney(totalValue)} onClick={() => setFilter('ALL')}/>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-4 border-b flex flex-col md:flex-row gap-3 md:items-center justify-between">
-          <div className="flex flex-wrap gap-2">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden min-w-0">
+        <div className="p-3 sm:p-4 border-b flex flex-col xl:flex-row gap-3 xl:items-center justify-between">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {(['ALL','DRAFT','REVIEW','APPROVED','SENT','VIEWED','ACCEPTED','EXPIRED'] as const).map(s => (
-              <button key={s} onClick={() => setFilter(s)} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${filter === s ? 'bg-[#073323] text-white' : 'bg-slate-100 text-slate-600'}`}>{s === 'ALL' ? 'All' : s}</button>
+              <button key={s} onClick={() => setFilter(s)} className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold ${filter === s ? 'bg-[#073323] text-white' : 'bg-slate-100 text-slate-600'}`}>{s === 'ALL' ? 'All' : s}</button>
             ))}
           </div>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search quotation, customer, project..." className="h-10 px-3 rounded-xl border border-slate-200 text-sm w-full md:w-80"/>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search quotation, customer, project..." className="h-10 px-3 rounded-xl border border-slate-200 text-sm w-full xl:w-80 shrink-0"/>
         </div>
+
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1200px] text-sm">
-            <thead className="bg-slate-50 text-slate-500 text-xs">
+          <table className="w-full min-w-[780px] table-fixed text-sm">
+            <colgroup>
+              <col className="w-[18%]"/>
+              <col className="w-[17%]"/>
+              <col className="w-[29%]"/>
+              <col className="w-[15%]"/>
+              <col className="w-[11%]"/>
+              <col className="w-[10%]"/>
+            </colgroup>
+            <thead className="bg-slate-50 text-slate-500 text-[11px] sm:text-xs">
               <tr>
-                {['Quotation No.','Customer','Project','Project Type','Capacity','Estimated Cost','Created By','Date','Valid Until','Status','Actions'].map(h => <th key={h} className="px-4 py-3 text-left font-bold">{h}</th>)}
+                {['Quotation','Customer','Project','Estimated Cost','Status','Actions'].map(h => (
+                  <th key={h} className="px-3 py-3 text-left font-bold">{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y">
               {filteredQuotes.map(q => (
-                <tr key={q.id} className="hover:bg-slate-50/70">
-                  <td className="px-4 py-3"><button onClick={() => navigate(`/soft-quotations/${q.id}`)} className="font-mono font-black text-emerald-800 hover:underline">{q.quotationNo}</button><div className="text-[10px] text-slate-400 mt-1">Version {q.version}</div></td>
-                  <td className="px-4 py-3"><div className="font-bold">{q.customer.customerName || '—'}</div><div className="text-xs text-slate-400">{q.customer.mobile}</div></td>
-                  <td className="px-4 py-3 max-w-[220px]"><div className="font-semibold truncate">{q.projectName}</div></td>
-                  <td className="px-4 py-3">{q.projectType}</td>
-                  <td className="px-4 py-3 font-mono">{q.projectCapacity.toLocaleString('en-IN')} {q.projectUnit}</td>
-                  <td className="px-4 py-3 font-mono font-bold">{formatMoney(q.grandTotal)}</td>
-                  <td className="px-4 py-3">{q.createdBy}</td>
-                  <td className="px-4 py-3">{formatDate(q.createdAt)}</td>
-                  <td className="px-4 py-3">{q.validUntil}</td>
-                  <td className="px-4 py-3"><StatusBadge status={q.status}/></td>
-                  <td className="px-4 py-3 relative">
-                    <div className="flex items-center gap-1">
+                <tr key={q.id} className="hover:bg-slate-50/70 align-top">
+                  <td className="px-3 py-3">
+                    <button onClick={() => navigate(`/soft-quotations/${q.id}`)} className="font-mono font-black text-emerald-800 hover:underline break-words text-xs sm:text-sm">{q.quotationNo}</button>
+                    <div className="text-[10px] text-slate-400 mt-1">Version {q.version} · {formatDate(q.createdAt)}</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5 truncate" title={q.createdBy}>By {q.createdBy}</div>
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="font-bold text-slate-900 break-words">{q.customer.customerName || '—'}</div>
+                    <div className="text-[11px] text-slate-400 mt-1 break-all">{q.customer.mobile || '—'}</div>
+                    <div className="text-[10px] text-slate-400 mt-1">Valid until: {q.validUntil || '—'}</div>
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="font-semibold text-slate-900 line-clamp-2" title={q.projectName}>{q.projectName}</div>
+                    <div className="text-[11px] text-slate-500 mt-1 line-clamp-2">{q.projectType}</div>
+                    <div className="text-[11px] font-mono text-emerald-800 mt-1">{q.projectCapacity.toLocaleString('en-IN')} {q.projectUnit}</div>
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="font-mono font-black text-slate-900 break-words">{formatMoney(q.grandTotal)}</div>
+                    <div className="text-[10px] text-slate-400 mt-1">Preliminary estimate</div>
+                  </td>
+                  <td className="px-3 py-3"><StatusBadge status={q.status}/></td>
+                  <td className="px-2 py-3 relative">
+                    <div className="flex items-center gap-0.5 whitespace-nowrap">
                       <button title="View" onClick={() => navigate(`/soft-quotations/${q.id}`)} className="icon-btn"><Eye className="w-4 h-4"/></button>
                       <button title="Edit" onClick={() => navigate(`/soft-quotations/${q.id}/edit`)} className="icon-btn"><Edit3 className="w-4 h-4"/></button>
-                      <button title="Duplicate" onClick={() => duplicateQuote(q)} className="icon-btn"><Copy className="w-4 h-4"/></button>
-                      <button onClick={() => setActionMenu(actionMenu === q.id ? null : q.id)} className="icon-btn"><MoreHorizontal className="w-4 h-4"/></button>
+                      <button onClick={() => setActionMenu(actionMenu === q.id ? null : q.id)} className="icon-btn" title="More actions"><MoreHorizontal className="w-4 h-4"/></button>
                     </div>
                     {actionMenu === q.id && (
-                      <div className="absolute right-3 top-11 z-20 w-56 bg-white border rounded-xl shadow-xl p-1 text-xs">
+                      <div className="absolute right-2 top-11 z-30 w-56 bg-white border rounded-xl shadow-xl p-1 text-xs">
+                        <Action label="Duplicate quotation" icon={<Copy/>} onClick={() => { duplicateQuote(q); setActionMenu(null); }}/>
                         <Action label="Generate / Print PDF" icon={<Printer/>} onClick={() => { navigate(`/soft-quotations/${q.id}`); setActionMenu(null); }}/>
                         <Action label="Share secure link" icon={<Share2/>} onClick={() => shareQuote(q)}/>
                         <Action label="Send via WhatsApp" icon={<Send/>} onClick={() => sendWhatsApp(q)}/>
@@ -524,7 +545,7 @@ AKBS Poultry Farming Private Limited`;
                   </td>
                 </tr>
               ))}
-              {!filteredQuotes.length && <tr><td colSpan={11} className="px-6 py-16 text-center text-slate-400">No soft quotations found.</td></tr>}
+              {!filteredQuotes.length && <tr><td colSpan={6} className="px-6 py-16 text-center text-slate-400">No soft quotations found.</td></tr>}
             </tbody>
           </table>
         </div>

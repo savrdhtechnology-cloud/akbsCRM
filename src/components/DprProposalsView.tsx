@@ -19,11 +19,13 @@ import { SoftQuotationModal } from './SoftQuotationModal';
 interface DprProposalsViewProps {
   proposals: ProposalDPR[];
   onOpenCreateProposal: () => void;
+  onUpdateProposalStatus?: (proposalId: string, status: ProposalDPR['status']) => void;
 }
 
 export const DprProposalsView: React.FC<DprProposalsViewProps> = ({
   proposals,
-  onOpenCreateProposal
+  onOpenCreateProposal,
+  onUpdateProposalStatus
 }) => {
   const [selectedProposal, setSelectedProposal] = useState<ProposalDPR>(proposals[0]);
   const [isQuotationModalOpen, setIsQuotationModalOpen] = useState(false);
@@ -239,6 +241,22 @@ export const DprProposalsView: React.FC<DprProposalsViewProps> = ({
                 <Send className="w-3.5 h-3.5" />
                 <span>Send Soft Quotation (WhatsApp)</span>
               </button>
+              <select
+                value={selectedProposal.status}
+                onChange={(e) => {
+                  const status = e.target.value as ProposalDPR['status'];
+                  setSelectedProposal(prev => ({ ...prev, status }));
+                  onUpdateProposalStatus?.(selectedProposal.id, status);
+                }}
+                className="px-2 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 bg-white"
+                title="Update proposal status"
+              >
+                <option>Draft</option>
+                <option>Sent</option>
+                <option>Under Review</option>
+                <option>Accepted</option>
+                <option>Rejected</option>
+              </select>
               <button
                 onClick={() => window.print()}
                 className="p-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors"

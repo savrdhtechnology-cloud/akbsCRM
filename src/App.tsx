@@ -382,6 +382,18 @@ export default function App() {
     setCurrentSection('documents');
   };
 
+  const handleUpdateProposalStatus = (proposalId: string, status: ProposalDPR['status']) => {
+    setProposals(prev => prev.map(p => p.id === proposalId ? { ...p, status } : p));
+  };
+
+  const handleUpdateLoanStatus = (loanId: string, status: LoanApplication['status']) => {
+    setLoans(prev => prev.map(l => l.id === loanId ? { ...l, status } : l));
+  };
+
+  const handleUpdateDocumentStatus = (docId: string, status: DocumentRecord['status']) => {
+    setDocuments(prev => prev.map(d => d.id === docId ? { ...d, status } : d));
+  };
+
   // Customer registration is intentionally standalone and not connected to the CRM yet.
 
   // Toggle Followup status
@@ -508,6 +520,7 @@ export default function App() {
             <DprProposalsView
               proposals={proposals}
               onOpenCreateProposal={() => { setActionLead(leads.find(l => l.id === selectedLeadId) || null); setIsProposalOpen(true); }}
+              onUpdateProposalStatus={handleUpdateProposalStatus}
             />
           )}
 
@@ -515,6 +528,7 @@ export default function App() {
             <FinanceLoansView
               loans={loans}
               onOpenNewLoan={() => setIsLoanOpen(true)}
+              onUpdateLoanStatus={handleUpdateLoanStatus}
             />
           )}
 
@@ -522,6 +536,7 @@ export default function App() {
             <DocumentsView
               documents={documents}
               onOpenUpload={() => setIsDocumentUploadOpen(true)}
+              onUpdateStatus={handleUpdateDocumentStatus}
             />
           )}
 

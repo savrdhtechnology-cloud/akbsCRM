@@ -15,6 +15,14 @@
     {
       "source": "/partner-registration/",
       "destination": "/index.html"
+    },
+    {
+      "source": "/soft-quotations",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/soft-quotations/:path*",
+      "destination": "/index.html"
     }
   ]
 }

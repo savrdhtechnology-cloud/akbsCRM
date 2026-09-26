@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { useCrm } from '../lib/crm';
+import React, { useState, useEffect } from 'react';
 import {
   Users,
   Mail,
@@ -55,6 +56,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onAssignLead,
   onEditLead
 }) => {
+  const crm=useCrm();
+  const [actionError,setActionError]=useState('');
   // Selected Inquiry for the Inquiry Details card (defaults to first lead or Rakesh Yadav)
   const [selectedInquiry, setSelectedInquiry] = useState<Lead>(() => {
     const rakesh = leads.find(l => l.name.toLowerCase().includes('rakesh yadav'));
@@ -93,58 +96,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
     onSelectLead(lead);
   };
 
-  const handleSaveNote = () => {
-    if (!noteText.trim()) return;
-    setInquiryNoteSuccess(true);
-    setTimeout(() => setInquiryNoteSuccess(false), 2500);
-    setNoteText('');
+  const handleSaveNote = async () => {
+    if(!noteText.trim()||!selectedInquiry)return;
+    try{await crm.command('note',{lead_id:selectedInquiry.id,note:noteText});setInquiryNoteSuccess(true);setNoteText('');}catch(e:any){setActionError(e.message);}
   };
-
   const handleSendEmail = () => {
-    setEmailSentAlert(true);
-    setTimeout(() => setEmailSentAlert(false), 3000);
+    if(!selectedInquiry?.email){setActionError('This lead has no email address.');return;}
+    window.location.href=`mailto:${selectedInquiry.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
   };
+  useEffect(()=>{setSelectedInquiry(prev=>leads.find(l=>l.id===prev?.id)||leads[0]);},[crm.leads]);
+  useEffect(()=>{setInquiryStatus(selectedInquiry?.status||'New');setAssignedStaff(selectedInquiry?.assignedTo||'Unassigned');},[selectedInquiry]);
 
-  // 7-day inquiries trend data matching Image 2
-  const trendPoints = [
-    { label: '7 Sep', count: 2, x: 25, y: 130 },
-    { label: '8 Sep', count: 3, x: 75, y: 115 },
-    { label: '9 Sep', count: 4, x: 125, y: 95 },
-    { label: '10 Sep', count: 5, x: 175, y: 80 },
-    { label: '11 Sep', count: 4, x: 225, y: 90 },
-    { label: '12 Sep', count: 6, x: 275, y: 55 },
-    { label: '13 Sep', count: 7, x: 325, y: 35 }
-  ];
-
-  // Lead Sources donut data matching Image 2
-  const leadSourceSegments = [
-    { label: 'Website', percent: 45, color: '#10b981', count: 11, dash: '113 251', offset: '0' },
-    { label: 'WhatsApp', percent: 25, color: '#6b93a5', count: 6, dash: '62.8 251', offset: '-113' },
-    { label: 'Direct Call', percent: 15, color: '#bd9b55', count: 4, dash: '37.7 251', offset: '-175.8' },
-    { label: 'Email', percent: 10, color: '#9ba88b', count: 2, dash: '25.1 251', offset: '-213.5' },
-    { label: 'Others', percent: 5, color: '#94a3b8', count: 1, dash: '12.5 251', offset: '-238.6' }
-  ];
-
-  // Inquiries for Table (prioritize Image 2 leads + top new leads)
-  const recentInquiries = leads.slice(0, 6);
-
-  // Follow-up list items matching Image 2
-  const followUpItems = [
-    { id: '1', name: 'Seema Choudhary', task: 'Call for site visit discussion', time: 'Today, 11:00 AM', status: 'today' },
-    { id: '2', name: 'Balram Singh', task: 'Share updated DPR', time: 'Today, 03:00 PM', status: 'today' },
-    { id: '3', name: 'Amit Patel', task: 'Follow up on loan documents', time: '14 Sep, 10:00 AM', status: 'week' },
-    { id: '4', name: 'Farhan Khan', task: 'Send quotation', time: '15 Sep, 12:00 PM', status: 'week' }
-  ];
+  const days=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return d;});
+  const counts=days.map(day=>crm.leads.filter(l=>new Date(l.created_at).toDateString()===day.toDateString()).length);
+  const maximum=Math.max(1,...counts);
+  const trendPoints=days.map((day,i)=>({label:day.toLocaleDateString('en-IN',{day:'numeric',month:'short'}),count:counts[i],x:25+i*50,y:140-counts[i]/maximum*110}));
+  const trendPath=trendPoints.map((p,i)=>`${i?'L':'M'} ${p.x} ${p.y}`).join(' ');
+  let offset=0;
+  const leadSourceSegments=['Website','WhatsApp','Direct Call','Email','Others'].map((label,i)=>{const count=leads.filter(l=>l.source===label||(label==='Others'&&!['Website','WhatsApp','Direct Call','Email'].includes(l.source))).length;const percent=leads.length?count/leads.length*100:0;const segment={label,count,percent:Math.round(percent),color:['#10b981','#6b93a5','#bd9b55','#9ba88b','#94a3b8'][i],dash:`${percent*2.513} 251.3`,offset:String(-offset)};offset+=percent*2.513;return segment;});
+  const recentInquiries=leads.slice(0,6);
+  const followUpItems=crm.workflows.filter(w=>w.kind==='followup'&&w.status!=='COMPLETED'&&w.status!=='CANCELLED').map(w=>({id:w.id,name:leads.find(l=>l.id===w.lead_id)?.name||'',task:w.title,time:w.due_at?new Date(w.due_at).toLocaleString('en-IN'):'',status:w.due_at&&new Date(w.due_at).toDateString()===new Date().toDateString()?'today':w.due_at&&new Date(w.due_at)<new Date()?'overdue':'week'}));
 
   const filteredFollowUps = followUpItems.filter(item => {
     if (followUpFilter === 'today') return item.status === 'today';
     if (followUpFilter === 'week') return item.status === 'week';
-    if (followUpFilter === 'overdue') return false;
+    if (followUpFilter === 'overdue') return item.status==='overdue';
     return true;
   });
 
   return (
     <div className="crm-dashboard p-4 sm:p-5 lg:p-6 space-y-5 max-w-[1680px] mx-auto font-sans antialiased text-slate-800">
+      {actionError&&<p role="alert" className="text-red-700">{actionError}</p>}
       {/* Top Welcome & Subtitle Row matching Image 2 */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
         <div>
@@ -182,22 +164,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <div className="crm-welcome bg-gradient-to-r from-[#071d12] via-[#0b2818] to-[#123e27] text-white p-4 sm:p-5 rounded-2xl shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-4 border border-emerald-900/40">
         <div>
           <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-white flex items-center gap-2">
-            <span>Welcome Back, Shailendra!</span>
+            <span>Welcome Back, {crm.user.name}!</span>
             <span className="text-emerald-400 text-sm font-normal">👋</span>
           </h2>
           <p className="text-xs text-emerald-200/90 mt-1">
-            Here's what's happening with your poultry business today. 7 new customer inquiries awaiting your review.
+            {leads.filter(l=>l.status==='New').length} new inquiries awaiting your review.
           </p>
         </div>
       </div>
 
       <div className="crm-metrics">
         {[
-          { label: 'Total Inquiries', value: '24', badge: 'All time', icon: Mail, section: 'leads', tone: 'green' },
-          { label: 'New / Unread', value: '7', badge: 'Needs review', icon: MessageSquare, section: 'leads', tone: 'blue' },
-          { label: 'Replied', value: '12', badge: 'In conversation', icon: Send, section: 'leads', tone: 'gold' },
-          { label: 'Converted', value: '5', badge: 'Successful', icon: TrendingUp, section: 'leads', tone: 'green' },
-          { label: 'Follow Up', value: '3', badge: 'Scheduled', icon: CalendarPlus, section: 'followups', tone: 'rose' }
+          { label: 'Total Inquiries', value: leads.length, badge: 'All time', icon: Mail, section: 'leads', tone: 'green' },
+          { label: 'New / Unread', value: leads.filter(l=>l.status==='New').length, badge: 'Needs review', icon: MessageSquare, section: 'leads', tone: 'blue' },
+          { label: 'Replied', value: leads.filter(l=>!['New','Lost','Converted'].includes(l.status)).length, badge: 'In conversation', icon: Send, section: 'leads', tone: 'gold' },
+          { label: 'Converted', value: leads.filter(l=>l.status==='Converted').length, badge: 'Successful', icon: TrendingUp, section: 'leads', tone: 'green' },
+          { label: 'Follow Up', value: followUpItems.length, badge: 'Scheduled', icon: CalendarPlus, section: 'followups', tone: 'rose' }
         ].map(({ label, value, badge, icon: Icon, section, tone }) => (
           <button key={label} type="button" className={`crm-metric crm-metric--${tone}`} onClick={() => onSelectSection(section as NavigationSection)}>
             <div className="crm-metric-top"><span className="crm-metric-icon"><Icon size={19} /></span><ChevronRight size={15} /></div>
@@ -242,13 +224,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                 {/* Area Gradient */}
                 <path
-                  d="M 25 130 C 50 125, 60 115, 75 115 C 100 115, 110 95, 125 95 C 150 95, 160 80, 175 80 C 200 80, 210 90, 225 90 C 250 90, 260 55, 275 55 C 300 55, 310 35, 325 35 L 325 140 L 25 140 Z"
+                  d={`${trendPath} L 325 140 L 25 140 Z`}
                   fill="url(#inquiryTrendGradient)"
                 />
 
                 {/* Green Smooth Stroke Line */}
                 <path
-                  d="M 25 130 C 50 125, 60 115, 75 115 C 100 115, 110 95, 125 95 C 150 95, 160 80, 175 80 C 200 80, 210 90, 225 90 C 250 90, 260 55, 275 55 C 300 55, 310 35, 325 35"
+                  d={trendPath}
                   fill="none"
                   stroke="#10b981"
                   strokeWidth="3"
@@ -329,7 +311,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
               {/* Center text */}
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-                <span className="text-base font-semibold text-slate-900 font-mono leading-tight">24</span>
+                <span className="text-base font-semibold text-slate-900 font-mono leading-tight">{leads.length}</span>
                 <span className="text-[10px] text-slate-400 font-semibold leading-none">Inquiries</span>
               </div>
             </div>
@@ -591,7 +573,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               >
                 <option value="New">New</option>
                 <option value="Contacted">Contacted</option>
-                <option value="Follow Up">Follow Up</option>
+                <option value="Qualified">Qualified</option>
                 <option value="Site Visit">Site Visit</option>
                 <option value="Converted">Converted</option>
               </select>
@@ -608,10 +590,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 }}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 font-medium text-slate-800 focus:outline-none"
               >
-                <option value="Shailendra">Shailendra</option>
-                <option value="Ankit Sharma">Ankit Sharma</option>
-                <option value="Vikash Kumar">Vikash Kumar</option>
-                <option value="Pooja Verma">Pooja Verma</option>
+                <option value="Unassigned">Unassigned</option>
+                {crm.users.filter(u=>u.role==='EMPLOYEE'&&u.active).map(u=><option key={u.id} value={u.name}>{u.name}</option>)}
               </select>
             </div>
           </div>
@@ -819,3 +799,4 @@ export const Dashboard: React.FC<DashboardProps> = ({
     </div>
   );
 };
+

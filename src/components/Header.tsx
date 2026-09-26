@@ -1,3 +1,4 @@
+import { useCrm } from '../lib/crm';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Menu,
@@ -47,12 +48,13 @@ export const Header: React.FC<HeaderProps> = ({
   currentRole = 'admin',
   onSelectRole
 }) => {
+  const crm=useCrm();
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isPortalMenuOpen, setIsPortalMenuOpen] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(3);
+  const [notificationCount, setNotificationCount] = useState(0);
 
   const addMenuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -279,30 +281,8 @@ export const Header: React.FC<HeaderProps> = ({
                 <button onClick={() => setNotificationCount(0)} className="text-[11px] text-emerald-700 hover:underline cursor-pointer font-medium">Mark all read</button>
               </div>
               <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
-                <button onClick={() => { onSelectSection('leads'); setIsNotificationsOpen(false); }} className="w-full text-left p-3 hover:bg-slate-50 text-xs transition-colors cursor-pointer">
-                  <div className="flex items-center gap-2 text-emerald-700 font-semibold">
-                    <UserPlus className="w-3.5 h-3.5" />
-                    <span>New Lead: pooj sharm</span>
-                  </div>
-                  <p className="text-slate-600 text-[11px] mt-0.5">Submitted inquiry for 10,000 broiler farm in Raipur.</p>
-                  <span className="text-[10px] text-slate-400 font-mono mt-1 block">2:10 pm today</span>
-                </button>
-                <button onClick={() => { onSelectSection('manager-portal'); setIsNotificationsOpen(false); }} className="w-full text-left p-3 hover:bg-slate-50 text-xs transition-colors cursor-pointer">
-                  <div className="flex items-center gap-2 text-blue-700 font-semibold">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Site Visit: Mohammad Faisal</span>
-                  </div>
-                  <p className="text-slate-600 text-[11px] mt-0.5">Er. Ankit Mishra confirmed site inspection for 20,000 birds.</p>
-                  <span className="text-[10px] text-slate-400 font-mono mt-1 block">1:45 pm today</span>
-                </button>
-                <button onClick={() => { onSelectSection('loans'); setIsNotificationsOpen(false); }} className="w-full text-left p-3 hover:bg-slate-50 text-xs transition-colors cursor-pointer">
-                  <div className="flex items-center gap-2 text-purple-700 font-semibold">
-                    <Landmark className="w-3.5 h-3.5" />
-                    <span>Loan Sanctioned: Kavita Jain</span>
-                  </div>
-                  <p className="text-slate-600 text-[11px] mt-0.5">SBI Agri loan ₹ 28.5L approved with 25% subsidy sanction.</p>
-                  <span className="text-[10px] text-slate-400 font-mono mt-1 block">11:20 am today</span>
-                </button>
+                {crm.activities.slice(0,8).map(a=><button key={a.id} onClick={()=>{const l=leads.find(l=>l.id===a.lead_id);if(l)onSelectLead(l);setIsNotificationsOpen(false);}} className="w-full text-left p-3 text-xs"><strong>{a.action.replaceAll('_',' ')}</strong><p>{a.note}</p></button>)}
+                {!crm.activities.length&&<p className="p-3 text-xs">No recent activity.</p>}
               </div>
             </div>
           )}
@@ -458,7 +438,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
             <div className="hidden md:block">
               <div className="text-xs font-bold text-slate-900 leading-tight">
-                {currentRole === 'admin' && 'Shailendra Choudhary'}
+                {currentRole === 'admin' && crm.user.name}
                 {currentRole === 'manager' && 'Suresh Verma'}
                 {currentRole === 'employee' && 'Vikash Kumar'}
                 {currentRole === 'partner' && 'Venky\'s / Partner'}
@@ -508,3 +488,4 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+

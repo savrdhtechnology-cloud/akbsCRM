@@ -43,22 +43,22 @@ export const AddLeadModal: React.FC<ModalProps & { onAdd: (lead: Lead) => void }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || phone.replace(/\D/g,'').length < 10) return;
     const newLead: Lead = {
       id: `lead-${Date.now()}`,
       name,
-      phone: phone || '+91 98200 00000',
-      email: email || `${name.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
+      phone: phone.trim(),
+      email: email.trim(),
       source,
       status: 'New',
       date: '24 Sep 2026',
       time: 'Just now',
-      location: location || 'Raipur, Chhattisgarh',
+      location: location.trim(),
       birdCapacity: Number(birdCapacity),
       projectType,
       budgetEstimate,
       notes: notes || 'New inquiry logged via CRM quick action.',
-      assignedTo: 'Vikash Kumar (Sales)'
+      assignedTo: 'Unassigned'
     };
     onAdd(newLead);
     onClose();
@@ -602,8 +602,9 @@ export const AddLoanModal: React.FC<ModalProps & { onAdd: (loan: LoanApplication
 };
 
 // 9. Upload Document Modal
-export const UploadDocumentModal: React.FC<ModalProps & { onAdd: (doc: DocumentRecord) => void }> = ({ isOpen,onClose,onAdd }) => {
+export const UploadDocumentModal: React.FC<ModalProps & { onAdd: (doc: DocumentRecord, file?: File) => void }> = ({ isOpen,onClose,onAdd }) => {
   const [name,setName]=useState(''); const [category,setCategory]=useState<DocumentRecord['category']>('DPR Report'); const [entity,setEntity]=useState(''); const [file,setFile]=useState<File|null>(null);
   if(!isOpen)return null;
-  return <div className="fixed inset-0 z-[70] flex items-start sm:items-center justify-center p-4 overflow-y-auto bg-black/60 backdrop-blur-xs"><div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-slate-200 crm-modal-panel"><div className="flex justify-between pb-3 border-b"><h2 className="text-sm font-bold">Upload Document</h2><button onClick={onClose}><X className="w-4 h-4"/></button></div><form className="mt-4 space-y-3 text-xs" onSubmit={e=>{e.preventDefault(); const fileName=file?.name||name||'Uploaded Document.pdf';onAdd({id:`DOC-${Date.now().toString().slice(-6)}`,name:fileName,category,relatedEntity:entity||'General',uploadDate:new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),fileSize:file?`${(file.size/1024/1024).toFixed(2)} MB`:'—',fileType:file?.type||'application/pdf',status:'Pending Verification'});onClose();}}><input value={name} onChange={e=>setName(e.target.value)} placeholder="Document title (optional)" className="w-full px-3 py-2 border rounded-lg"/><select value={category} onChange={e=>setCategory(e.target.value as DocumentRecord['category'])} className="w-full px-3 py-2 border rounded-lg"><option>Land 7/12 Records</option><option>Electricity Sanction</option><option>Pollution NOC</option><option>DPR Report</option><option>Bank Sanction</option><option>Contract Agreement</option><option>Architect Drawing</option></select><input value={entity} onChange={e=>setEntity(e.target.value)} placeholder="Farmer / related entity" className="w-full px-3 py-2 border rounded-lg"/><input type="file" onChange={e=>setFile(e.target.files?.[0]||null)} className="w-full px-3 py-2 border rounded-lg"/><div className="flex justify-end gap-2"><button type="button" onClick={onClose} className="px-3 py-2 bg-slate-100 rounded-lg">Cancel</button><button className="px-4 py-2 bg-[#0b2818] text-white rounded-lg font-bold">Upload</button></div></form></div></div>;
+  return <div className="fixed inset-0 z-[70] flex items-start sm:items-center justify-center p-4 overflow-y-auto bg-black/60 backdrop-blur-xs"><div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-slate-200 crm-modal-panel"><div className="flex justify-between pb-3 border-b"><h2 className="text-sm font-bold">Upload Document</h2><button onClick={onClose}><X className="w-4 h-4"/></button></div><form className="mt-4 space-y-3 text-xs" onSubmit={e=>{e.preventDefault(); const fileName=file?.name||name||'Uploaded Document.pdf';onAdd({id:`DOC-${Date.now().toString().slice(-6)}`,name:fileName,category,relatedEntity:entity||'General',uploadDate:new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),fileSize:file?`${(file.size/1024/1024).toFixed(2)} MB`:'—',fileType:file?.type||'application/pdf',status:'Pending Verification'},file||undefined);onClose();}}><input value={name} onChange={e=>setName(e.target.value)} placeholder="Document title (optional)" className="w-full px-3 py-2 border rounded-lg"/><select value={category} onChange={e=>setCategory(e.target.value as DocumentRecord['category'])} className="w-full px-3 py-2 border rounded-lg"><option>Land 7/12 Records</option><option>Electricity Sanction</option><option>Pollution NOC</option><option>DPR Report</option><option>Bank Sanction</option><option>Contract Agreement</option><option>Architect Drawing</option></select><input value={entity} onChange={e=>setEntity(e.target.value)} placeholder="Farmer / related entity" className="w-full px-3 py-2 border rounded-lg"/><input type="file" onChange={e=>setFile(e.target.files?.[0]||null)} className="w-full px-3 py-2 border rounded-lg"/><div className="flex justify-end gap-2"><button type="button" onClick={onClose} className="px-3 py-2 bg-slate-100 rounded-lg">Cancel</button><button className="px-4 py-2 bg-[#0b2818] text-white rounded-lg font-bold">Upload</button></div></form></div></div>;
 };
+

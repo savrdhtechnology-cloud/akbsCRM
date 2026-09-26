@@ -1,3 +1,4 @@
+import { useCrm } from '../lib/crm';
 import React, { useState } from 'react';
 import {
   Search,
@@ -65,6 +66,8 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   followUps = [],
   activities = []
 }) => {
+  const crm=useCrm();
+  const [noteError,setNoteError]=useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'my' | 'unassigned'>('all');
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('All Stages');
@@ -106,9 +109,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
 
   const [newNoteText, setNewNoteText] = useState('');
   const [noteType, setNoteType] = useState('Internal Note');
-  const [notesList, setNotesList] = useState([
-    { id: '1', text: 'Spoke with customer. Looking for turnkey EC shed setup with automatic pan feeding.', author: 'Ankit Sharma', time: '2 hours ago', type: 'Internal Note' }
-  ]);
+  const notesList=crm.activities.filter(a=>a.lead_id===selectedLead?.id&&['NOTE_ADDED','CALL_LOGGED'].includes(a.action)).map(a=>({id:a.id,text:a.note,author:a.actor_name,time:new Date(a.created_at).toLocaleString('en-IN'),type:a.action==='CALL_LOGGED'?'Call':'Internal Note'}));
 
   // Synchronize when selectedLeadId prop changes
   React.useEffect(() => {
@@ -139,7 +140,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
     const matchesSource = sourceFilter === 'All Sources' || l.source === sourceFilter;
 
     if (activeTab === 'my') {
-      return matchesSearch && matchesStage && matchesState && matchesSource && (l.assignedTo?.includes('Shailendra') || l.assignedTo?.includes('Ankit'));
+      return matchesSearch && matchesStage && matchesState && matchesSource && (crm.leads.find(row=>row.id===l.id)?.assigned_to===crm.user.id);
     }
     if (activeTab === 'unassigned') {
       return matchesSearch && matchesStage && matchesState && matchesSource && (!l.assignedTo || l.assignedTo === 'Unassigned');
@@ -233,7 +234,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
       supportNeeded: projectDraft.supportNeeded.split(',').map(v => v.trim()).filter(Boolean)
     }));
     setIsProjectEditing(false);
-    showSaved('Project details saved');
+    showSaved('Saving project details…');
   };
 
   const saveFinancialDetails = () => {
@@ -245,9 +246,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
       priority: financialDraft.priority,
       status: financialDraft.status
     });
-    if (financialDraft.status !== currentLead.status) {
-      onUpdateLeadStatus(currentLead.id, financialDraft.status);
-    }
+
     setSelectedLead(prev => ({ ...prev,
       estimatedCost: financialDraft.estimatedCost,
       budgetEstimate: financialDraft.budgetEstimate,
@@ -256,29 +255,12 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
       status: financialDraft.status
     }));
     setIsFinancialEditing(false);
-    showSaved('Financial details saved');
+    showSaved('Saving financial details…');
   };
 
-  const handleSaveNote = () => {
-    if (!newNoteText.trim()) return;
-    const note = newNoteText.trim();
-    setNotesList(prev => [
-      {
-        id: `note-${Date.now()}`,
-        text: note,
-        author: 'Shailendra Choudhary',
-        time: 'Just now',
-        type: noteType
-      },
-      ...prev
-    ]);
-    if (currentLead && onEditLead) {
-      const combined = currentLead.notes ? `${currentLead.notes}\n${note}` : note;
-      onEditLead(currentLead.id, { notes: combined });
-      setSelectedLead(prev => ({ ...prev, notes: combined }));
-    }
-    setNewNoteText('');
-    showSaved('Note saved to lead');
+  const handleSaveNote = async () => {
+    if(!newNoteText.trim()||!currentLead)return;
+    try{await crm.command('note',{lead_id:currentLead.id,note:newNoteText.trim(),kind:noteType==='Call'?'CALL':'NOTE'});setNewNoteText('');showSaved('Note saved to lead');setNoteError('');}catch(e:any){setNoteError(e.message);}
   };
 
   const getStatusBadgeStyle = (status: string) => {
@@ -331,6 +313,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
     return name.slice(0, 2).toUpperCase();
   };
 
+  if(!leads.length)return <div className="p-6"><h1 className="text-xl font-bold">Leads</h1><p className="my-4">No leads yet. Website enquiries will appear here after submission.</p><button onClick={onOpenAddLead}>Add Lead</button></div>;
   return (
     <div className="p-3 sm:p-5 lg:p-6 space-y-4 max-w-[1680px] mx-auto font-sans antialiased text-slate-800">
       {/* Top Header Row matching Image 3 */}
@@ -432,7 +415,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                   activeTab === 'my' ? 'bg-white text-slate-900 shadow-2xs font-extrabold' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                My Leads ({leads.filter(l => l.assignedTo?.includes('Shailendra') || l.assignedTo?.includes('Ankit')).length})
+                My Leads ({leads.filter(l => crm.leads.find(row=>row.id===l.id)?.assigned_to===crm.user.id).length})
               </button>
               <button
                 onClick={() => setActiveTab('unassigned')}
@@ -779,25 +762,25 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                 </div>
                 <div>
                   <span className="text-slate-400 text-[11px]">Land Available:</span>
-                  <div className="text-slate-900">{currentLead.landAvailable || 'Yes (Own Land)'}</div>
+                  <div className="text-slate-900">{currentLead.landAvailable || 'Not provided'}</div>
                 </div>
                 <div>
                   <span className="text-slate-400 text-[11px]">Land Area:</span>
-                  <div className="text-slate-900 font-mono">{currentLead.landArea || '2.5 Acres'}</div>
+                  <div className="text-slate-900 font-mono">{currentLead.landArea || 'Not provided'}</div>
                 </div>
                 <div>
                   <span className="text-slate-400 text-[11px]">Estimated Cost:</span>
                   <div className="text-slate-900 font-bold text-emerald-800 font-mono">
-                    {currentLead.estimatedCost || currentLead.budgetEstimate || '₹1.75 Cr'}
+                    {currentLead.estimatedCost || currentLead.budgetEstimate || 'Not provided'}
                   </div>
                 </div>
                 <div>
                   <span className="text-slate-400 text-[11px]">Loan Required:</span>
-                  <div className="text-slate-900 font-mono">{currentLead.loanRequired || 'Yes (₹1.2 Cr)'}</div>
+                  <div className="text-slate-900 font-mono">{currentLead.loanRequired || 'Not provided'}</div>
                 </div>
                 <div className="col-span-2">
                   <span className="text-slate-400 text-[11px]">Timeline:</span>
-                  <div className="text-slate-900 font-medium">{currentLead.timeline || 'Within 3 months'}</div>
+                  <div className="text-slate-900 font-medium">{currentLead.timeline || 'Not provided'}</div>
                 </div>
               </div>
             </div>
@@ -819,7 +802,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                 </div>
                 <div>
                   <span className="text-slate-400 text-[11px]">Assigned To:</span>
-                  <div className="font-semibold text-slate-900">{currentLead.assignedTo || 'Ankit Sharma'}</div>
+                  <div className="font-semibold text-slate-900">{currentLead.assignedTo || 'Unassigned'}</div>
                 </div>
                 <div>
                   <span className="text-slate-400 text-[11px]">Priority:</span>
@@ -827,12 +810,12 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                 </div>
                 <div>
                   <span className="text-slate-400 text-[11px]">Next Follow-up:</span>
-                  <div className="font-mono text-slate-900">{currentLead.nextFollowUp || '23 Sep 2026, 11:00 AM'}</div>
+                  <div className="font-mono text-slate-900">{currentLead.nextFollowUp || 'Not provided'}</div>
                 </div>
                 <div className="col-span-2">
                   <span className="text-slate-400 text-[11px]">Remarks:</span>
                   <div className="text-slate-700 bg-white p-2 rounded-lg border border-slate-200/80 mt-1">
-                    {currentLead.notes || 'New lead from website. Interested in bank loan. Call scheduled tomorrow.'}
+                    {currentLead.notes || 'No notes recorded.'}
                   </div>
                 </div>
               </div>
@@ -995,7 +978,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                     <div><span className="text-slate-400">Land Area</span><div className="font-semibold">{currentLead.landArea || 'Not specified'}</div></div>
                     <div><span className="text-slate-400">Land Ownership</span><div className="font-semibold">{currentLead.landOwnership || currentLead.landAvailable || 'Not specified'}</div></div>
                     <div><span className="text-slate-400">Timeline</span><div className="font-semibold">{currentLead.timeline || 'Not specified'}</div></div>
-                    <div className="col-span-2"><span className="text-slate-400">Support Needed</span><div className="font-semibold">{currentLead.supportNeeded?.join(', ') || 'Turnkey project guidance'}</div></div>
+                    <div className="col-span-2"><span className="text-slate-400">Support Needed</span><div className="font-semibold">{currentLead.supportNeeded?.join(', ') || 'Not provided'}</div></div>
                   </div>
                 )}
 
@@ -1080,7 +1063,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                 <div className="space-y-2">
                   <div className="p-3 bg-white border border-slate-200 rounded-xl"><div className="font-bold">Lead created</div><div className="text-slate-500">{currentLead.date}, {currentLead.time} · Source: {currentLead.source}</div></div>
                   <div className="p-3 bg-white border border-slate-200 rounded-xl"><div className="font-bold">Current stage</div><div className="text-slate-500">{currentLead.status} · Assigned to {currentLead.assignedTo || 'Unassigned'}</div></div>
-                  {activities.slice(0,4).map(a => <div key={a.id} className="p-3 bg-white border border-slate-200 rounded-xl"><div className="font-bold">{a.title}</div><div className="text-slate-500">{a.description} · {a.time}</div></div>)}
+                  {crm.activities.filter(a=>a.lead_id===currentLead.id).slice(0,4).map(row=>({id:row.id,title:row.action.replaceAll('_',' '),description:row.note,time:new Date(row.created_at).toLocaleString('en-IN')})).map(a => <div key={a.id} className="p-3 bg-white border border-slate-200 rounded-xl"><div className="font-bold">{a.title}</div><div className="text-slate-500">{a.description} · {a.time}</div></div>)}
                 </div>
               </div>
             )}
@@ -1114,33 +1097,9 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
               </button>
             </div>
 
-            <div className="space-y-3 text-xs relative pl-4 border-l-2 border-slate-100 ml-2">
-              <div className="relative">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-600 absolute -left-[21px] top-1 ring-4 ring-white" />
-                <div className="font-bold text-slate-900 text-xs flex items-center gap-1">
-                  <span>+ Lead Created</span>
-                </div>
-                <div className="text-[11px] text-slate-500">Lead registered via website</div>
-                <div className="text-[10px] text-slate-400 font-mono">22 Sep 2026, 10:30 AM</div>
-              </div>
-
-              <div className="relative">
-                <div className="w-2.5 h-2.5 rounded-full bg-blue-600 absolute -left-[21px] top-1 ring-4 ring-white" />
-                <div className="font-bold text-slate-900 text-xs">
-                  📅 Follow-up Scheduled
-                </div>
-                <div className="text-[11px] text-slate-500">Call scheduled with {currentLead.name}</div>
-                <div className="text-[10px] text-slate-400 font-mono">22 Sep 2026, 11:00 AM by Ankit Sharma</div>
-              </div>
-
-              <div className="relative">
-                <div className="w-2.5 h-2.5 rounded-full bg-amber-500 absolute -left-[21px] top-1 ring-4 ring-white" />
-                <div className="font-bold text-slate-900 text-xs">
-                  ↻ Status Updated
-                </div>
-                <div className="text-[11px] text-slate-500">Stage changed to New</div>
-                <div className="text-[10px] text-slate-400 font-mono">22 Sep 2026, 10:31 AM by System</div>
-              </div>
+            <div className="space-y-3 text-xs">
+              {crm.activities.filter(a=>a.lead_id===currentLead.id).slice(0,5).map(a=><div key={a.id}><strong>{a.action.replaceAll('_',' ')}</strong><p>{a.note}</p><small>{a.actor_name} · {new Date(a.created_at).toLocaleString('en-IN')}</small></div>)}
+              {!crm.activities.some(a=>a.lead_id===currentLead.id)&&<p>No activity recorded.</p>}
             </div>
           </div>
 
@@ -1149,6 +1108,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5 text-emerald-700" />
               <span>Add Note</span>
+              {noteError&&<span role="alert">{noteError}</span>}
             </h3>
             <textarea
               rows={3}
@@ -1286,3 +1246,4 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
     </div>
   );
 };
+

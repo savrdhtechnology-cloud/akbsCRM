@@ -37,21 +37,8 @@ import { SoftQuotationsModule } from './features/softQuotations/SoftQuotationsMo
 import { SoftQuotationAcceptancePage } from './features/softQuotations/SoftQuotationAcceptancePage';
 import { SoftQuotation } from './features/softQuotations/types';
 
-import {
-  INITIAL_LEADS,
-  INITIAL_CUSTOMERS,
-  INITIAL_PARTNERS,
-  INITIAL_EMPLOYEES,
-  INITIAL_PROPOSALS,
-  INITIAL_LOANS,
-  INITIAL_DOCUMENTS,
-  INITIAL_TASKS,
-  INITIAL_ACTIVITIES,
-  PORTAL_USERS,
-  INITIAL_SITE_VISITS,
-  INITIAL_SUPPLY_ORDERS,
-  INITIAL_MANAGER_APPROVALS
-} from './data/mockData';
+import { useCrm } from './lib/crm';
+import { mapLead, leadPayload, stageValue, dateLabel } from './lib/leadAdapter';
 
 import {
   NavigationSection,
@@ -71,16 +58,6 @@ import {
   ManagerApproval
 } from './types';
 
-const loadLocal = <T,>(key: string, fallback: T): T => {
-  if (typeof window === 'undefined') return fallback;
-  try {
-    const raw = window.localStorage.getItem(key);
-    return raw ? JSON.parse(raw) as T : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
 export default function App() {
   const isCustomerRegistrationRoute = typeof window !== 'undefined' && /^\/customer-registration\/?$/.test(window.location.pathname);
   const isPartnerRegistrationRoute = typeof window !== 'undefined' && /^\/partner-registration\/?$/.test(window.location.pathname);
@@ -90,99 +67,39 @@ export default function App() {
   const [currentRole, setCurrentRole] = useState<PortalRole>('admin');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  // Core Data State
-  const [leads, setLeads] = useState<Lead[]>(() => loadLocal('akbs.crm.leads', INITIAL_LEADS));
-  const [customers, setCustomers] = useState<Customer[]>(() => loadLocal('akbs.crm.customers', INITIAL_CUSTOMERS));
-  const [partners, setPartners] = useState<Partner[]>(() => loadLocal('akbs.crm.partners', INITIAL_PARTNERS));
-  const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
-  const [proposals, setProposals] = useState<ProposalDPR[]>(() => loadLocal('akbs.crm.proposals', INITIAL_PROPOSALS));
-  const [loans, setLoans] = useState<LoanApplication[]>(() => loadLocal('akbs.crm.loans', INITIAL_LOANS));
-  const [documents, setDocuments] = useState<DocumentRecord[]>(() => loadLocal('akbs.crm.documents', INITIAL_DOCUMENTS));
-  const [tasks, setTasks] = useState<Task[]>(() => loadLocal('akbs.crm.tasks', INITIAL_TASKS));
-  const [activities, setActivities] = useState<Activity[]>(() => loadLocal('akbs.crm.activities', INITIAL_ACTIVITIES));
-
-  // Portals state
-  const [siteVisits, setSiteVisits] = useState<SiteVisitLog[]>(INITIAL_SITE_VISITS);
-  const [supplyOrders, setSupplyOrders] = useState<PartnerSupplyOrder[]>(INITIAL_SUPPLY_ORDERS);
-  const [managerApprovals, setManagerApprovals] = useState<ManagerApproval[]>(INITIAL_MANAGER_APPROVALS);
-
-  const handleApproveManagerRequest = (id: string) => {
-    setManagerApprovals(prev => prev.map(a => a.id === id ? { ...a, status: 'Approved' } : a));
-  };
-
-  const handleRejectManagerRequest = (id: string) => {
-    setManagerApprovals(prev => prev.map(a => a.id === id ? { ...a, status: 'Rejected' } : a));
-  };
-
-  const handleAssignLead = (leadId: string, employeeName: string) => {
-    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, assignedTo: employeeName } : l));
-  };
-
-  const handleAddSiteVisit = (visit: SiteVisitLog) => {
-    setSiteVisits(prev => [visit, ...prev]);
-  };
-
-  const handleUpdateSupplyOrderStatus = (orderId: string, status: PartnerSupplyOrder['status'], challan?: string) => {
-    setSupplyOrders(prev => prev.map(o => o.id === orderId ? { ...o, status, dispatchChallanNo: challan || o.dispatchChallanNo } : o));
-  };
-
-  // Follow-ups state
-  const [followUps, setFollowUps] = useState<FollowUp[]>(() => loadLocal('akbs.crm.followups', [
-    {
-      id: 'fu-1',
-      leadId: 'lead-13',
-      leadName: 'viredra singh',
-      phone: '+91 99281 44021',
-      scheduledDate: '24 Sep 2026',
-      scheduledTime: '3:00 pm',
-      type: 'Phone Call',
-      priority: 'High',
-      status: 'Pending',
-      notes: 'Discuss 12,000 birds poultry setup requirements and shed dimension layout.'
-    },
-    {
-      id: 'fu-2',
-      leadId: 'lead-23',
-      leadName: 'Mohammad Faisal',
-      phone: '+91 98930 11982',
-      scheduledDate: '24 Sep 2026',
-      scheduledTime: '4:00 pm',
-      type: 'Site Visit',
-      priority: 'Medium',
-      status: 'Pending',
-      notes: 'Site visit confirmation with technical team for 20,000 birds EC shed.'
-    },
-    {
-      id: 'fu-3',
-      leadId: 'lead-14',
-      leadName: 'Rakesh Patel',
-      phone: '+91 94250 88219',
-      scheduledDate: '24 Sep 2026',
-      scheduledTime: '6:00 pm',
-      type: 'Phone Call',
-      priority: 'Low',
-      status: 'Pending',
-      notes: 'Loan documentation status check for SBI Agri term loan.'
-    },
-    {
-      id: 'fu-4',
-      leadId: 'lead-31',
-      leadName: 'Ajay Sharma',
-      phone: '+91 98271 55670',
-      scheduledDate: '24 Sep 2026',
-      scheduledTime: '5:00 pm',
-      type: 'DPR Discussion',
-      priority: 'Medium',
-      status: 'Completed',
-      notes: 'Sent formal turnkey proposal for 20,000 birds project.'
-    }
-  ]));
+  const crm=useCrm();
+  const [saveError,setSaveError]=useState('');
+  const [saving,setSaving]=useState(false);
+  const run=async(action:string,data:Record<string,any>)=>{setSaving(true);setSaveError('');try{return await crm.command(action,data);}catch(e:any){setSaveError(e.message);await crm.refresh().catch(()=>{});return null;}finally{setSaving(false);}};
+  const leads=crm.leads.map(l=>mapLead(l,crm.users));
+  const nameFor=(id:string)=>leads.find(l=>l.id===id)?.name||'';
+  const records=(kind:string)=>crm.records.filter(r=>r.kind===kind).map(r=>({...r.data,id:r.id}));
+  const customers:Customer[]=[...records('customer'),...leads.filter(l=>l.status==='Converted').map(l=>({id:l.id,name:l.name,farmName:l.name,phone:l.phone,email:l.email,location:l.location,state:l.state||'',capacity:l.birdCapacity,shedType:'Environment Controlled (EC)' as const,status:'Active' as const,batchesCompleted:0,currentBatchBirds:0,joinedDate:l.date,integrationPartner:''}))];
+  const partners:Partner[]=records('partner');
+  const employees=crm.users.filter(u=>['ADMIN','MANAGER','EMPLOYEE','FINANCE'].includes(u.role)).map(u=>({id:u.id,name:u.name,role:(u.role==='ADMIN'?'Super Admin':u.role==='FINANCE'?'Accountant':'Sales Manager') as any,department:'Sales & CRM' as const,phone:u.profile?.phone||'',email:u.login||'',status:'Active' as const,activeLeadsCount:crm.leads.filter(l=>l.assigned_to===u.id).length}));
+  const proposals:ProposalDPR[]=crm.workflows.filter(w=>w.kind==='proposal').map(w=>({id:w.id,leadName:nameFor(w.lead_id),leadPhone:leads.find(l=>l.id===w.lead_id)?.phone||'',projectTitle:w.title,birdCapacity:leads.find(l=>l.id===w.lead_id)?.birdCapacity||0,totalCost:w.amount,subsidyEligible:0,bankLoanAmount:0,farmerContribution:0,shedSizeSqFt:0,roiMonths:0,status:({DRAFT:'Draft',UNDER_REVIEW:'Under Review',APPROVED:'Under Review',SENT:'Sent',ACCEPTED:'Accepted',REJECTED:'Rejected'} as any)[w.status],createdDate:''}));
+  const loans:LoanApplication[]=crm.workflows.filter(w=>w.kind==='financing').map(w=>({id:w.id,applicantName:nameFor(w.lead_id),phone:leads.find(l=>l.id===w.lead_id)?.phone||'',bankName:w.bank,scheme:'AHIDF Scheme',appliedAmount:w.amount,status:({SANCTIONED:'Sanctioned',DISBURSED:'Disbursed'} as any)[w.status]||'Under Process',submissionDate:''}));
+  const documents:DocumentRecord[]=crm.documents.map(d=>({id:d.id,name:d.name,category:d.category as any,relatedEntity:nameFor(d.lead_id),uploadDate:dateLabel(d.created_at),fileSize:`${(d.size/1024).toFixed(1)} KB`,fileType:d.mime,status:'Pending Verification'}));
+  const tasks:Task[]=crm.workflows.filter(w=>w.kind==='task').map(w=>({id:w.id,title:w.title,subtitle:nameFor(w.lead_id),priority:'Medium',time:dateLabel(w.due_at||''),dueDate:dateLabel(w.due_at||''),completed:w.status==='COMPLETED',category:'Call'}));
+  const activities:Activity[]=crm.activities.map(a=>({id:a.id,type:'inquiry',title:a.action.replaceAll('_',' '),description:a.note,time:dateLabel(a.created_at)}));
+  const siteVisits:SiteVisitLog[]=crm.workflows.filter(w=>w.kind==='visit').map(w=>({id:w.id,employeeName:crm.users.find(u=>u.id===w.assignee_id)?.name||'',farmerName:nameFor(w.lead_id),location:w.location,birdCapacity:0,shedSizeSqFt:0,waterTds:0,powerAvailable:false,notes:w.notes,visitDate:dateLabel(w.due_at||''),status:w.status==='COMPLETED'?'Approved':'Pending Review'}));
+  const supplyOrders:PartnerSupplyOrder[]=records('supply_order');
+  const managerApprovals:ManagerApproval[]=crm.workflows.filter(w=>w.kind==='proposal'&&w.status==='UNDER_REVIEW').map(w=>({id:w.id,title:w.title,requestedBy:'',category:'DPR Proposal',amount:w.amount,farmerName:nameFor(w.lead_id),submittedDate:'',status:'Pending',priority:'Medium'}));
+  const followUps:FollowUp[]=crm.workflows.filter(w=>w.kind==='followup').map(w=>({id:w.id,leadId:w.lead_id,leadName:nameFor(w.lead_id),phone:leads.find(l=>l.id===w.lead_id)?.phone||'',scheduledDate:dateLabel(w.due_at||''),scheduledTime:w.due_at?new Date(w.due_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'',type:'Phone Call',priority:'Medium',status:w.status==='COMPLETED'?'Completed':'Pending',notes:w.notes}));
+  const PORTAL_USERS=crm.users.map(u=>({id:u.id,name:u.name,role:u.role.toLowerCase() as PortalRole,roleTitle:u.role,email:u.login||'',phone:u.profile?.phone||'',departmentOrCompany:'AKBS',avatarLetter:u.name.slice(0,1)}));
+  const updateWorkflow=(id:string,status:string)=>{const w=crm.workflows.find(w=>w.id===id);if(w)return run('workflow_update',{...w,status});};
+  const handleApproveManagerRequest=(id:string)=>{void updateWorkflow(id,'APPROVED');};
+  const handleRejectManagerRequest=(id:string)=>{void updateWorkflow(id,'REJECTED');};
+  const handleAssignLead=(id:string,name:string)=>{const l=crm.leads.find(l=>l.id===id);const u=crm.users.find(u=>u.name===name&&u.role==='EMPLOYEE'&&u.active);if(!l||!u){setSaveError('Choose an active employee from your team.');return;}void run('lead_update',{lead_id:id,version:l.version,assigned_to:u.id});};
+  const handleAddSiteVisit=(v:SiteVisitLog)=>{const l=leads.find(l=>l.name===v.farmerName);if(!l){setSaveError('Select an existing lead for this visit.');return;}void run('workflow_create',{lead_id:l.id,kind:'visit',title:'Site visit',status:'SCHEDULED',location:v.location,notes:v.notes,due_at:new Date(v.visitDate).toISOString()});};
+  const handleUpdateSupplyOrderStatus=(id:string,status:PartnerSupplyOrder['status'],challan?:string)=>{const r=crm.records.find(r=>r.id===id);if(r)void run('record_save',{id,version:r.version,kind:'supply_order',data:{...r.data,status,dispatchChallanNo:challan||r.data.dispatchChallanNo}});};
+  useEffect(()=>{setCurrentRole(crm.user.role==='FINANCE'?'employee':crm.user.role.toLowerCase() as PortalRole);},[crm.user.role]);
 
   // Modal State
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
   const [selectedLeadForDrawer, setSelectedLeadForDrawer] = useState<Lead | null>(null);
-  const [selectedLeadId, setSelectedLeadId] = useState<string>('lead-1');
+  const [selectedLeadId, setSelectedLeadId] = useState<string>('');
   const [actionLead, setActionLead] = useState<Lead | null>(null);
   const [isEditLeadOpen, setIsEditLeadOpen] = useState(false);
   const [isAssignLeadOpen, setIsAssignLeadOpen] = useState(false);
@@ -191,16 +108,7 @@ export default function App() {
   const [isLoanOpen, setIsLoanOpen] = useState(false);
   const [isDocumentUploadOpen, setIsDocumentUploadOpen] = useState(false);
 
-  useEffect(() => { window.localStorage.setItem('akbs.crm.leads', JSON.stringify(leads)); }, [leads]);
-  useEffect(() => { window.localStorage.setItem('akbs.crm.customers', JSON.stringify(customers)); }, [customers]);
-  useEffect(() => { window.localStorage.setItem('akbs.crm.partners', JSON.stringify(partners)); }, [partners]);
-  useEffect(() => { window.localStorage.setItem('akbs.crm.proposals', JSON.stringify(proposals)); }, [proposals]);
-  useEffect(() => { window.localStorage.setItem('akbs.crm.loans', JSON.stringify(loans)); }, [loans]);
-  useEffect(() => { window.localStorage.setItem('akbs.crm.documents', JSON.stringify(documents)); }, [documents]);
-  useEffect(() => { window.localStorage.setItem('akbs.crm.tasks', JSON.stringify(tasks)); }, [tasks]);
-  useEffect(() => { window.localStorage.setItem('akbs.crm.activities', JSON.stringify(activities)); }, [activities]);
-  useEffect(() => { window.localStorage.setItem('akbs.crm.followups', JSON.stringify(followUps)); }, [followUps]);
-
+  useEffect(()=>{setSelectedLeadForDrawer(prev=>prev?leads.find(l=>l.id===prev.id)||null:null);},[crm.leads]);
   // Quick Action Handler
   const handleOpenQuickAction = (actionKey: string, lead?: Lead) => {
     const activeLead = lead || selectedLeadForDrawer || leads.find(l => l.id === selectedLeadId) || leads[0] || null;
@@ -277,232 +185,30 @@ export default function App() {
     }
   };
 
-  // Add Lead
-  const handleAddLead = (newLead: Lead) => {
-    setLeads(prev => [newLead, ...prev]);
-    setActivities(prev => [
-      {
-        id: `act-${Date.now()}`,
-        type: 'inquiry',
-        title: `New lead added: ${newLead.name}`,
-        description: `${newLead.birdCapacity.toLocaleString()} birds project in ${newLead.location}`,
-        time: 'Just now'
-      },
-      ...prev
-    ]);
+  const handleAddLead=(lead:Lead)=>{void run('lead_create',leadPayload(lead));};
+  const handleAddCustomer=(customer:Customer)=>{void run('record_save',{kind:'customer',data:customer});};
+  const handleToggleTask=(id:string)=>{const w=crm.workflows.find(w=>w.id===id);if(w)void updateWorkflow(id,w.status==='COMPLETED'?'OPEN':'COMPLETED');};
+  const handleAddTask=(task:Partial<Task>)=>{const l=actionLead||selectedLeadForDrawer||leads.find(l=>l.id===selectedLeadId);if(!l){setSaveError('Select a lead before adding a task.');return;}const due=new Date();due.setDate(due.getDate()+1);void run('workflow_create',{lead_id:l.id,kind:'task',title:task.title||'Follow up',status:'OPEN',notes:task.subtitle||'',due_at:due.toISOString()});};
+  const handleUpdateLeadStatus=(id:string,status:LeadStatus)=>{const l=crm.leads.find(l=>l.id===id);const stage=stageValue(status);if(!l)return;if(!stage){setSaveError('Use a follow-up task for this activity; choose a supported lead stage.');return;}let reason='';if(stage==='LOST'){reason=window.prompt('Reason for closing this lead')||'';if(!reason)return;}void run('lead_update',{lead_id:id,version:l.version,stage,reason});};
+  const handleDeleteLead=()=>setSaveError('Leads are retained for tracking. Mark a lead Lost with a reason to close it.');
+  const handleEditLead=(id:string,patch:Partial<Lead>)=>{const l=crm.leads.find(l=>l.id===id);if(l)void run('lead_update',{lead_id:id,version:l.version,...leadPayload(patch),...(patch.status&&stageValue(patch.status)?{stage:stageValue(patch.status)}:{})});};
+  const handleAddFollowUp=(f:FollowUp)=>{const due=new Date(`${f.scheduledDate} ${f.scheduledTime}`);if(!Number.isFinite(due.getTime())){setSaveError('Please choose a valid follow-up date and time.');return;}void run('workflow_create',{lead_id:f.leadId,kind:'followup',title:f.type,status:'SCHEDULED',notes:f.notes,due_at:due.toISOString()});};
+  const handleAddProposal=(p:ProposalDPR)=>{const l=leads.find(l=>l.name===p.leadName&&l.phone===p.leadPhone);if(!l){setSaveError('Select an existing lead.');return;}void run('workflow_create',{lead_id:l.id,kind:'proposal',title:p.projectTitle,status:'DRAFT',amount:p.totalCost});};
+  const handleAddLoan=(loan:LoanApplication)=>{const l=leads.find(l=>l.name===loan.applicantName&&l.phone===loan.phone);if(!l){setSaveError('Applicant name and phone must match an existing lead.');return;}void run('workflow_create',{lead_id:l.id,kind:'financing',title:loan.scheme,bank:loan.bankName,amount:loan.appliedAmount,status:'DOCUMENTS_PENDING'});};
+  const handleAddDocument=async(doc:DocumentRecord,file?:File)=>{
+    const lead=leads.find(l=>l.name===doc.relatedEntity||l.applicationId===doc.relatedEntity);
+    if(!lead||!file){setSaveError('Choose a file and enter the exact lead name or application ID.');return;}
+    if(!['application/pdf','image/jpeg','image/png'].includes(file.type)||file.size>2097152){setSaveError('Choose a PDF, JPG or PNG up to 2 MB.');return;}
+    const bytes=new Uint8Array(await file.arrayBuffer());let binary='';for(const b of bytes)binary+=String.fromCharCode(b);
+    await run('document_upload',{lead_id:lead.id,name:file.name,category:doc.category,mime:file.type,size:file.size,content:btoa(binary),shared:false});
   };
-
-  // Add Customer
-  const handleAddCustomer = (newCustomer: Customer) => {
-    setCustomers(prev => [newCustomer, ...prev]);
-  };
-
-  // Toggle Task Completion
-  const handleToggleTask = (taskId: string) => {
-    setTasks(prev =>
-      prev.map(t => (t.id === taskId ? { ...t, completed: !t.completed } : t))
-    );
-  };
-
-  // Add Task
-  const handleAddTask = (taskData: Partial<Task>) => {
-    const newTask: Task = {
-      id: `task-${Date.now()}`,
-      title: taskData.title || 'New Task',
-      subtitle: taskData.subtitle || '',
-      priority: taskData.priority || 'Medium',
-      time: taskData.time || 'Today',
-      dueDate: taskData.dueDate || 'Today',
-      completed: false,
-      category: taskData.category || 'Call'
-    };
-    setTasks(prev => [newTask, ...prev]);
-  };
-
-  // Update Lead Status
-  const handleUpdateLeadStatus = (leadId: string, status: LeadStatus) => {
-    const lead = leads.find(l => l.id === leadId);
-    setLeads(prev =>
-      prev.map(l => (l.id === leadId ? { ...l, status } : l))
-    );
-    if (selectedLeadForDrawer?.id === leadId) {
-      setSelectedLeadForDrawer(prev => (prev ? { ...prev, status } : null));
-    }
-    if (status === 'Converted' && lead) {
-      setCustomers(prev => {
-        const exists = prev.some(c => c.phone.replace(/\D/g,'') === lead.phone.replace(/\D/g,''));
-        if (exists) return prev;
-        const newCustomer: Customer = {
-          id: `cust-${Date.now()}`,
-          name: lead.name,
-          farmName: `${lead.name} Poultry Farm`,
-          phone: lead.phone,
-          email: lead.email || '',
-          location: lead.location || lead.district || 'Madhya Pradesh',
-          state: lead.state || 'Madhya Pradesh',
-          capacity: lead.birdCapacity || 0,
-          shedType: lead.shedType?.toLowerCase().includes('open') ? 'Open Sided / Deep Litter' : 'Environment Controlled (EC)',
-          status: 'Active',
-          batchesCompleted: 0,
-          currentBatchBirds: 0,
-          joinedDate: new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),
-          integrationPartner: 'AKBS Direct Farming'
-        };
-        return [newCustomer, ...prev];
-      });
-    }
-  };
-
-  // Delete Lead
-  const handleDeleteLead = (leadId: string) => {
-    setLeads(prev => prev.filter(l => l.id !== leadId));
-  };
-
-  const handleEditLead = (leadId: string, patch: Partial<Lead>) => {
-    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...patch } : l));
-    setActionLead(prev => prev?.id === leadId ? { ...prev, ...patch } : prev);
-    setSelectedLeadForDrawer(prev => prev?.id === leadId ? { ...prev, ...patch } : prev);
-  };
-
-  const handleAddFollowUp = (followUp: FollowUp) => {
-    setFollowUps(prev => [followUp, ...prev]);
-    handleUpdateLeadStatus(followUp.leadId, 'Follow Up');
-  };
-
-  const handleAddProposal = (proposal: ProposalDPR) => {
-    setProposals(prev => [proposal, ...prev]);
-    const lead = leads.find(l => l.name === proposal.leadName && l.phone === proposal.leadPhone);
-    if (lead) handleUpdateLeadStatus(lead.id, 'DPR');
-    setCurrentSection('proposals');
-  };
-
-  const handleAddLoan = (loan: LoanApplication) => {
-    setLoans(prev => [loan, ...prev]);
-    setCurrentSection('loans');
-  };
-
-  const handleAddDocument = (doc: DocumentRecord) => {
-    setDocuments(prev => [doc, ...prev]);
-    setCurrentSection('documents');
-  };
-
-  const handleUpdateProposalStatus = (proposalId: string, status: ProposalDPR['status']) => {
-    setProposals(prev => prev.map(p => p.id === proposalId ? { ...p, status } : p));
-  };
-
-  const handleUpdateLoanStatus = (loanId: string, status: LoanApplication['status']) => {
-    setLoans(prev => prev.map(l => l.id === loanId ? { ...l, status } : l));
-  };
-
-  const handleUpdateDocumentStatus = (docId: string, status: DocumentRecord['status']) => {
-    setDocuments(prev => prev.map(d => d.id === docId ? { ...d, status } : d));
-  };
-
-  const handleConvertAcceptedQuotation = (quotation: SoftQuotation) => {
-    if (quotation.status !== 'ACCEPTED') return;
-
-    const proposal: ProposalDPR = {
-      id: `DPR-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
-      leadName: quotation.customer.customerName || 'Customer',
-      leadPhone: quotation.customer.mobile || '',
-      projectTitle: quotation.projectName,
-      birdCapacity: quotation.projectCapacity,
-      totalCost: quotation.grandTotal,
-      subsidyEligible: 0,
-      bankLoanAmount: 0,
-      farmerContribution: quotation.grandTotal,
-      shedSizeSqFt: Number(String(quotation.coveredArea).replace(/[^0-9.]/g, '')) || 0,
-      roiMonths: 0,
-      status: 'Accepted',
-      createdDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-    };
-    setProposals(prev => [proposal, ...prev]);
-
-    if (quotation.customer.leadId) {
-      handleUpdateLeadStatus(quotation.customer.leadId, 'Converted');
-    }
-
-    setCurrentSection('proposals');
-    window.history.pushState({}, '', '/');
-  };
-
-    const handleCustomerPortalLead = (payload: Partial<Lead>) => {
-    const applicationId = payload.applicationId || `AKBS-LEAD-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
-    const now = new Date();
-    const normalizedPhone = payload.phone || '';
-    const newLead: Lead = {
-      id: applicationId,
-      name: payload.name || 'Customer',
-      phone: normalizedPhone,
-      email: payload.email || '',
-      source: payload.source || 'Website',
-      status: payload.status || 'New',
-      date: now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      time: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
-      location: payload.location || [payload.village, payload.district, payload.state].filter(Boolean).join(', ') || 'Not provided',
-      birdCapacity: payload.birdCapacity || 0,
-      projectType: payload.projectType || 'Broiler',
-      budgetEstimate: payload.budgetEstimate || '',
-      notes: payload.notes || `Customer portal registration ${applicationId}`,
-      assignedTo: payload.assignedTo || 'Unassigned',
-      isHot: payload.isHot ?? true,
-      whatsApp: payload.whatsApp,
-      language: payload.language,
-      shedType: payload.shedType,
-      landAvailable: payload.landAvailable,
-      landOwnership: payload.landOwnership,
-      landArea: payload.landArea,
-      loanRequired: payload.loanRequired,
-      timeline: payload.timeline,
-      experience: payload.experience,
-      supportNeeded: payload.supportNeeded,
-      applicationId,
-      relativeTime: 'Just now',
-      estimatedCost: payload.estimatedCost,
-      priority: payload.priority || 'High',
-      nextFollowUp: payload.nextFollowUp || 'Not scheduled',
-      lastContact: 'Customer portal submission',
-      state: payload.state,
-      district: payload.district,
-      village: payload.village,
-      googleMapsLink: payload.googleMapsLink
-    };
-
-    setLeads(prev => {
-      const exists = prev.some(lead => lead.applicationId === applicationId || lead.id === applicationId);
-      return exists ? prev.map(lead => (lead.applicationId === applicationId || lead.id === applicationId) ? { ...lead, ...newLead } : lead) : [newLead, ...prev];
-    });
-    setActivities(prev => [
-      {
-        id: `act-${Date.now()}`,
-        type: 'inquiry',
-        title: `Customer portal lead created: ${newLead.name}`,
-        description: `${applicationId} · ${newLead.birdCapacity.toLocaleString()} birds · ${newLead.location}`,
-        time: 'Just now'
-      },
-      ...prev
-    ]);
-    setSelectedLeadId(applicationId);
-  };
-
-  const openCustomerPortalLeadInCrm = (applicationId?: string) => {
-    if (applicationId) setSelectedLeadId(applicationId);
-    window.history.pushState({}, '', '/');
-    setCurrentSection('leads');
-  };
-
-  // Customer registration is standalone visually, but submitted applications are connected to CRM Leads.
-
-  // Toggle Followup status
-  const handleToggleFollowupStatus = (id: string) => {
-    setFollowUps(prev =>
-      prev.map(f =>
-        f.id === id
-          ? { ...f, status: f.status === 'Completed' ? 'Pending' : 'Completed' }
-          : f
-      )
-    );
-  };
+  const handleUpdateProposalStatus=(id:string,status:ProposalDPR['status'])=>{void updateWorkflow(id,status.toUpperCase().replaceAll(' ','_'));};
+  const handleUpdateLoanStatus=(id:string,status:LoanApplication['status'])=>{const value=({Sanctioned:'SANCTIONED',Disbursed:'DISBURSED','Under Process':'UNDER_REVIEW','Documents Verified':'SUBMITTED','Inspection Completed':'UNDER_REVIEW'} as const)[status];void updateWorkflow(id,value);};
+  const handleUpdateDocumentStatus=()=>setSaveError('Document verification is managed in the website staff portal.');
+  const handleConvertAcceptedQuotation=(q:SoftQuotation)=>{if(q.status!=='ACCEPTED')return;setSaveError('Create a DPR from the linked lead to record this accepted quotation in the shared database.');};
+  const handleCustomerPortalLead=()=>{window.location.assign('https://www.akbspoultry.com/customer/register');};
+  const openCustomerPortalLeadInCrm=()=>setCurrentSection('leads');
+  const handleToggleFollowupStatus=(id:string)=>{const w=crm.workflows.find(w=>w.id===id);if(w)void updateWorkflow(id,w.status==='COMPLETED'?'SCHEDULED':'COMPLETED');};
 
   // Standalone customer registration route with CRM lead creation.
   if (isCustomerRegistrationRoute) {
@@ -532,7 +238,7 @@ export default function App() {
       <Sidebar
         currentSection={currentSection}
         currentRole={currentRole}
-        onSelectRole={setCurrentRole}
+        onSelectRole={()=>setSaveError('Your access role is set by your staff account.')}
         onSelectSection={(sec) => {
           setCurrentSection(sec);
           if (sec === 'soft-quotations') {
@@ -570,11 +276,13 @@ export default function App() {
             setSelectedLeadForDrawer(lead);
           }}
           currentRole={currentRole}
-          onSelectRole={setCurrentRole}
+          onSelectRole={()=>setSaveError('Your access role is set by your staff account.')}
         />
 
         {/* Dynamic Route View */}
         <main className="flex-1 overflow-y-auto bg-[#f3f6f4]">
+          <div className="connection-bar"><span>{saving?'Saving…':'Connected to website database'} · {crm.user.name} · {leads.length} leads</span><button onClick={()=>void crm.refresh().catch(()=>{})}>Refresh</button><button onClick={crm.logout}>Sign out</button></div>
+          {(saveError||crm.error)&&<div role="alert" className="connection-error">{saveError||crm.error}</div>}
           {currentSection === 'dashboard' && (
             <Dashboard
               leads={leads}
@@ -832,3 +540,4 @@ export default function App() {
     </div>
   );
 }
+

@@ -1,3 +1,4 @@
+import { useCrm } from '../lib/crm';
 import React, { useState } from 'react';
 import {
   FolderLock,
@@ -27,24 +28,10 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [selectedDocument, setSelectedDocument] = useState<DocumentRecord | null>(null);
 
-  const downloadDocumentRecord = (doc: DocumentRecord) => {
-    const content = [
-      `Document: ${doc.name}`,
-      `Category: ${doc.category}`,
-      `Related Entity: ${doc.relatedEntity}`,
-      `Uploaded: ${doc.uploadDate}`,
-      `File Size: ${doc.fileSize}`,
-      `Status: ${doc.status}`,
-      '',
-      'This CRM currently stores the document record metadata. Attach the original file to the production storage provider for binary download.'
-    ].join('\n');
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${doc.name.replace(/[^a-z0-9._-]+/gi,'_')}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const crm=useCrm();
+  const [downloadError,setDownloadError]=useState('');
+  const downloadDocumentRecord = async (doc:DocumentRecord) => {
+    try {const file=await crm.read('document_download',{id:doc.id});const bytes=Uint8Array.from(atob(file.content),c=>c.charCodeAt(0));const url=URL.createObjectURL(new Blob([bytes],{type:file.mime}));const a=document.createElement('a');a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(e:any){setDownloadError(e.message);}
   };
 
   const filtered = documents.filter(d => {
@@ -75,6 +62,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
         </button>
       </div>
 
+      {downloadError&&<p role="alert">{downloadError}</p>}
       {/* Filter and Search */}
       <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="relative w-full sm:max-w-xs">
@@ -190,3 +178,4 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
     </div>
   );
 };
+

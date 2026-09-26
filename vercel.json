@@ -1,28 +1,24 @@
 {
   "rewrites": [
     {
-      "source": "/customer-registration",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/customer-registration/",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/partner-registration",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/partner-registration/",
-      "destination": "/index.html"
-    },
-    {
       "source": "/soft-quotations",
       "destination": "/index.html"
     },
     {
       "source": "/soft-quotations/:path*",
       "destination": "/index.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/customer-registration",
+      "destination": "https://www.akbspoultry.com/customer/register",
+      "permanent": false
+    },
+    {
+      "source": "/partner-registration",
+      "destination": "https://www.akbspoultry.com/partner/register",
+      "permanent": false
     }
   ]
 }

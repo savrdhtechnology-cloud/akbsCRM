@@ -18,6 +18,8 @@ import {
   ChevronRight,
   Home,
   FileText,
+  FilePlus2,
+  Plus,
   Landmark,
   Award,
   Sparkles,
@@ -271,6 +273,9 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
   const [loginApplicationId, setLoginApplicationId] = useState('');
   const [loginMobile, setLoginMobile] = useState('');
   const [loginMessage, setLoginMessage] = useState('');
+  const [loggedInCustomerMobile, setLoggedInCustomerMobile] = useState('');
+  const [registrationMode, setRegistrationMode] = useState<'gate' | 'form'>('form');
+  const [duplicateApplication, setDuplicateApplication] = useState<any>(null);
 
   // View mode: 'wizard' (Step-by-step interactive) or 'poster' (All 6 screens matching reference poster)
   const [viewMode, setViewMode] = useState<'wizard' | 'poster'>('wizard');
@@ -349,6 +354,50 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     }
   };
 
+  const normalizeText = (value: unknown) => String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const normalizeMobile = (value: unknown) => String(value ?? '').replace(/\D/g, '').slice(-10);
+  const normalizeCapacity = (value: unknown) => String(value ?? '').replace(/[^0-9]/g, '');
+
+  const findDuplicateApplication = (candidate: ReturnType<typeof createBlankCustomerApplication>) => {
+    const mobile = normalizeMobile(candidate.mobileNumber);
+    if (!mobile) return null;
+
+    return getSavedApplications().find((item: any) => {
+      const saved = item?.formData || {};
+      return (
+        normalizeMobile(saved.mobileNumber || item.mobileNumber) === mobile &&
+        normalizeText(saved.fullName) === normalizeText(candidate.fullName) &&
+        normalizeText(saved.projectObjective) === normalizeText(candidate.projectObjective) &&
+        normalizeText(saved.poultryType) === normalizeText(candidate.poultryType) &&
+        normalizeText(saved.shedType) === normalizeText(candidate.shedType) &&
+        normalizeCapacity(saved.proposedCapacity) === normalizeCapacity(candidate.proposedCapacity) &&
+        normalizeText(saved.landOwnership) === normalizeText(candidate.landOwnership) &&
+        normalizeText(saved.landAreaAcres) === normalizeText(candidate.landAreaAcres) &&
+        normalizeText(saved.state) === normalizeText(candidate.state) &&
+        normalizeText(saved.district) === normalizeText(candidate.district) &&
+        normalizeText(saved.villageOrCity) === normalizeText(candidate.villageOrCity)
+      );
+    }) || null;
+  };
+
+  const getLoggedInApplications = () => {
+    if (!loggedInCustomerMobile) return [];
+    return searchSavedApplications(loggedInCustomerMobile);
+  };
+
+  const openRegistrationArea = () => {
+    setActiveSideMenu('registration');
+    setIsSubmitted(false);
+    setDuplicateApplication(null);
+
+    if (loggedInCustomerMobile && searchSavedApplications(loggedInCustomerMobile).length > 0) {
+      setRegistrationMode('gate');
+      return;
+    }
+
+    setRegistrationMode('form');
+  };
+
   const generateLeadId = () => {
     const year = new Date().getFullYear();
     const sequenceKey = `akbs.customer.lead.sequence.${year}`;
@@ -372,6 +421,17 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
       return;
     }
 
+    const duplicate = findDuplicateApplication(formData);
+    if (duplicate) {
+      setDuplicateApplication(duplicate);
+      setIsConsentModalOpen(false);
+      setIsSubmitted(false);
+      setActiveSideMenu('registration');
+      setRegistrationMode('form');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     const consentTimestamp = new Date().toISOString();
     const submittedFormData = {
       ...formData,
@@ -381,6 +441,9 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
 
     const generatedId = generateLeadId();
     setSubmittedAppId(generatedId);
+    setLoggedInCustomerMobile(normalizeMobile(submittedFormData.mobileNumber));
+    setRegistrationMode('gate');
+    setDuplicateApplication(null);
     setIsSubmitted(true);
     setIsConsentModalOpen(false);
 
@@ -443,6 +506,14 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
   };
 
   const requestFinalSubmission = () => {
+    const duplicate = findDuplicateApplication(formData);
+    if (duplicate) {
+      setDuplicateApplication(duplicate);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    setDuplicateApplication(null);
     setConsentLanguage(formData.preferredLanguage);
     setConsentTermsAccepted(false);
     setConsentContactAccepted(false);
@@ -518,6 +589,9 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     setTrackResults(results);
     setTrackSearchId(record.appId || '');
     setTrackMessage('');
+    setLoggedInCustomerMobile(normalizeMobile(record.mobileNumber || record.formData?.mobileNumber || ''));
+    setRegistrationMode('gate');
+    setDuplicateApplication(null);
     setPortalEntryMode('form');
     setIsSubmitted(false);
     setActiveSideMenu('track');
@@ -552,6 +626,8 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
 
   const resetForNewApplication = () => {
     setFormData(createBlankCustomerApplication());
+    setRegistrationMode('form');
+    setDuplicateApplication(null);
     setPortalEntryMode('form');
     setViewMode('wizard');
     setActiveSideMenu('registration');
@@ -1557,7 +1633,7 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
 
               <nav className="p-2 space-y-1 text-xs font-medium">
                 <button
-                  onClick={() => setActiveSideMenu('registration')}
+                  onClick={openRegistrationArea}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
                     activeSideMenu === 'registration'
                       ? 'bg-[#0b2818] text-white font-bold shadow-xs'
@@ -1789,8 +1865,69 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
               </div>
             )}
 
+            {/* Existing customer: do not reopen the form automatically. */}
+            {activeSideMenu === 'registration' && !isSubmitted && registrationMode === 'gate' && (
+              <div className="py-6 sm:py-10">
+                <div className="max-w-2xl mx-auto rounded-3xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50/50 p-6 sm:p-8 text-center shadow-sm">
+                  <div className="w-16 h-16 mx-auto rounded-2xl bg-[#0b2818] text-white flex items-center justify-center shadow-lg">
+                    <FilePlus2 className="w-8 h-8" />
+                  </div>
+                  <div className="mt-5 text-[11px] uppercase tracking-[.14em] font-black text-emerald-700">Customer Account</div>
+                  <h2 className="mt-2 text-2xl font-black text-slate-950">Start a New Application</h2>
+                  <p className="mt-2 text-sm text-slate-500 leading-6">
+                    You already have {getLoggedInApplications().length} submitted {getLoggedInApplications().length === 1 ? 'lead' : 'leads'} linked to this mobile number.
+                    Your existing applications remain available under Track Application.
+                  </p>
+
+                  <div className="mt-6 grid sm:grid-cols-2 gap-3 text-left">
+                    {getLoggedInApplications().slice(0, 4).map((record: any) => {
+                      const item = mapSavedApplicationToTrackResult(record);
+                      return (
+                        <button
+                          key={item.appId}
+                          type="button"
+                          onClick={() => openSavedApplication(record, getLoggedInApplications())}
+                          className="rounded-xl border border-slate-200 bg-white p-3 hover:border-emerald-400 transition-all"
+                        >
+                          <div className="font-mono text-[10px] font-black text-emerald-800">{item.appId}</div>
+                          <div className="mt-1 text-xs font-bold text-slate-900">{item.projectType} · {item.capacity}</div>
+                          <div className="mt-1 text-[10px] text-slate-500">{item.status}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-7 flex flex-col sm:flex-row justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const records = getLoggedInApplications();
+                        if (records.length) openSavedApplication(records[0], records);
+                        else setActiveSideMenu('track');
+                      }}
+                      className="h-11 px-5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700"
+                    >
+                      Track Existing Leads
+                    </button>
+                    <button
+                      type="button"
+                      onClick={startNewApplication}
+                      className="h-11 px-6 rounded-xl bg-[#0b2818] hover:bg-[#123e27] text-white text-xs font-black flex items-center justify-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Apply Now
+                    </button>
+                  </div>
+
+                  <p className="mt-4 text-[10px] text-slate-400">
+                    A new Lead ID will be created only for a genuinely new project/application.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* If Main View: Registration Form */}
-            {activeSideMenu === 'registration' && !isSubmitted && (
+            {activeSideMenu === 'registration' && !isSubmitted && registrationMode === 'form' && (
               <div className="space-y-6">
                 {/* Form Top Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
@@ -1807,6 +1944,28 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                     <span>Your information is safe with us</span>
                   </div>
                 </div>
+
+                {duplicateApplication && (
+                  <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-black text-amber-900">Duplicate application not created</div>
+                      <div className="mt-1 text-[11px] text-amber-800 leading-5">
+                        The same mobile number and matching project details already exist as
+                        <span className="font-mono font-black ml-1">{duplicateApplication.appId}</span>.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const records = searchSavedApplications(duplicateApplication.mobileNumber || duplicateApplication.formData?.mobileNumber || '');
+                        openSavedApplication(duplicateApplication, records.length ? records : [duplicateApplication]);
+                      }}
+                      className="shrink-0 px-4 py-2 rounded-lg bg-amber-900 text-white text-[11px] font-bold"
+                    >
+                      Track Existing Lead
+                    </button>
+                  </div>
+                )}
 
                 {/* Step Navigation Progress Indicator (1 to 6) */}
                 <div className="py-2">

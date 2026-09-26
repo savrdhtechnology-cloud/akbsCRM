@@ -15,14 +15,37 @@ import { DocumentRecord } from '../types';
 interface DocumentsViewProps {
   documents: DocumentRecord[];
   onOpenUpload: () => void;
+  onUpdateStatus?: (docId: string, status: DocumentRecord['status']) => void;
 }
 
 export const DocumentsView: React.FC<DocumentsViewProps> = ({
   documents,
-  onOpenUpload
+  onOpenUpload,
+  onUpdateStatus
 }) => {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
+  const [selectedDocument, setSelectedDocument] = useState<DocumentRecord | null>(null);
+
+  const downloadDocumentRecord = (doc: DocumentRecord) => {
+    const content = [
+      `Document: ${doc.name}`,
+      `Category: ${doc.category}`,
+      `Related Entity: ${doc.relatedEntity}`,
+      `Uploaded: ${doc.uploadDate}`,
+      `File Size: ${doc.fileSize}`,
+      `Status: ${doc.status}`,
+      '',
+      'This CRM currently stores the document record metadata. Attach the original file to the production storage provider for binary download.'
+    ].join('\n');
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${doc.name.replace(/[^a-z0-9._-]+/gi,'_')}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const filtered = documents.filter(d => {
     const matchesSearch = d.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -97,7 +120,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filtered.map((doc) => (
-                <tr key={doc.id} className="hover:bg-slate-50/70 transition-colors">
+                <tr key={doc.id} onClick={() => setSelectedDocument(doc)} className="hover:bg-slate-50/70 transition-colors cursor-pointer">
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
                       <FileText className="w-4 h-4 text-emerald-700 shrink-0" />
@@ -117,7 +140,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   </td>
                   <td className="py-3 px-4 text-right">
                     <button
-                      onClick={() => alert(`Downloading ${doc.name}`)}
+                      onClick={(e) => { e.stopPropagation(); downloadDocumentRecord(doc); }}
                       className="p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition-colors"
                       title="Download file"
                     >
@@ -130,6 +153,40 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
           </table>
         </div>
       </div>
+
+      {selectedDocument && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setSelectedDocument(null)}>
+          <div className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-slate-200" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between pb-3 border-b">
+              <div><div className="text-[10px] text-slate-400 font-mono">{selectedDocument.id}</div><h2 className="font-bold text-slate-900">{selectedDocument.name}</h2></div>
+              <button onClick={() => setSelectedDocument(null)} className="text-slate-400 text-xl">×</button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mt-4 text-xs">
+              <div className="p-3 bg-slate-50 rounded-xl"><span className="text-slate-400">Category</span><div className="font-bold">{selectedDocument.category}</div></div>
+              <div className="p-3 bg-slate-50 rounded-xl"><span className="text-slate-400">Related To</span><div className="font-bold">{selectedDocument.relatedEntity}</div></div>
+              <div className="p-3 bg-slate-50 rounded-xl"><span className="text-slate-400">Uploaded</span><div className="font-mono font-bold">{selectedDocument.uploadDate}</div></div>
+              <div className="p-3 bg-slate-50 rounded-xl"><span className="text-slate-400">Size / Type</span><div className="font-mono font-bold">{selectedDocument.fileSize} · {selectedDocument.fileType}</div></div>
+            </div>
+            <label className="block mt-4 text-xs"><span className="font-bold text-slate-600 block mb-1">Verification Status</span>
+              <select
+                value={selectedDocument.status}
+                onChange={(e) => {
+                  const status=e.target.value as DocumentRecord['status'];
+                  setSelectedDocument(prev => prev ? {...prev,status} : prev);
+                  onUpdateStatus?.(selectedDocument.id,status);
+                }}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+              >
+                <option>Verified</option><option>Pending Verification</option><option>Rejected</option>
+              </select>
+            </label>
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => downloadDocumentRecord(selectedDocument)} className="px-3 py-2 bg-slate-100 text-slate-700 rounded-lg font-bold text-xs">Download Record</button>
+              <button onClick={() => setSelectedDocument(null)} className="px-3 py-2 bg-[#0b2818] text-white rounded-lg font-bold text-xs">Done</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

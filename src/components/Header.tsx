@@ -52,6 +52,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isPortalMenuOpen, setIsPortalMenuOpen] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(3);
 
   const addMenuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -264,42 +265,44 @@ export const Header: React.FC<HeaderProps> = ({
             title="Notifications"
           >
             <Bell className="w-4 h-4" />
-            <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center tabular-nums">
-              3
-            </span>
+            {notificationCount > 0 && (
+              <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center tabular-nums">
+                {notificationCount}
+              </span>
+            )}
           </button>
 
           {isNotificationsOpen && (
             <div className="absolute right-0 top-full mt-1.5 w-80 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
               <div className="px-3.5 py-2 border-b border-slate-100 flex items-center justify-between">
-                <span className="font-bold text-xs text-slate-900">Notifications (3)</span>
-                <span className="text-[11px] text-emerald-700 hover:underline cursor-pointer font-medium">Mark all read</span>
+                <span className="font-bold text-xs text-slate-900">Notifications ({notificationCount})</span>
+                <button onClick={() => setNotificationCount(0)} className="text-[11px] text-emerald-700 hover:underline cursor-pointer font-medium">Mark all read</button>
               </div>
               <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
-                <div className="p-3 hover:bg-slate-50 text-xs transition-colors cursor-pointer">
+                <button onClick={() => { onSelectSection('leads'); setIsNotificationsOpen(false); }} className="w-full text-left p-3 hover:bg-slate-50 text-xs transition-colors cursor-pointer">
                   <div className="flex items-center gap-2 text-emerald-700 font-semibold">
                     <UserPlus className="w-3.5 h-3.5" />
                     <span>New Lead: pooj sharm</span>
                   </div>
                   <p className="text-slate-600 text-[11px] mt-0.5">Submitted inquiry for 10,000 broiler farm in Raipur.</p>
                   <span className="text-[10px] text-slate-400 font-mono mt-1 block">2:10 pm today</span>
-                </div>
-                <div className="p-3 hover:bg-slate-50 text-xs transition-colors cursor-pointer">
+                </button>
+                <button onClick={() => { onSelectSection('manager-portal'); setIsNotificationsOpen(false); }} className="w-full text-left p-3 hover:bg-slate-50 text-xs transition-colors cursor-pointer">
                   <div className="flex items-center gap-2 text-blue-700 font-semibold">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>Site Visit: Mohammad Faisal</span>
                   </div>
                   <p className="text-slate-600 text-[11px] mt-0.5">Er. Ankit Mishra confirmed site inspection for 20,000 birds.</p>
                   <span className="text-[10px] text-slate-400 font-mono mt-1 block">1:45 pm today</span>
-                </div>
-                <div className="p-3 hover:bg-slate-50 text-xs transition-colors cursor-pointer">
+                </button>
+                <button onClick={() => { onSelectSection('loans'); setIsNotificationsOpen(false); }} className="w-full text-left p-3 hover:bg-slate-50 text-xs transition-colors cursor-pointer">
                   <div className="flex items-center gap-2 text-purple-700 font-semibold">
                     <Landmark className="w-3.5 h-3.5" />
                     <span>Loan Sanctioned: Kavita Jain</span>
                   </div>
                   <p className="text-slate-600 text-[11px] mt-0.5">SBI Agri loan ₹ 28.5L approved with 25% subsidy sanction.</p>
                   <span className="text-[10px] text-slate-400 font-mono mt-1 block">11:20 am today</span>
-                </div>
+                </button>
               </div>
             </div>
           )}

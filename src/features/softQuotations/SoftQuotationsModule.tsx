@@ -103,15 +103,35 @@ export const SoftQuotationsModule: React.FC<SoftQuotationModuleProps> = ({
       const existing = quotes.find(q => q.id === route.id);
       setDraft(existing ? JSON.parse(JSON.stringify(existing)) : null);
     } else {
-      setDraft(createBlankQuotation(
+      let fresh = createBlankQuotation(
         crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2),
         nextQuotationNumber(),
         currentRole,
         currentUserName
-      ));
+      );
+      const leadId = new URLSearchParams(window.location.search).get('lead');
+      const lead = leadId ? leads.find(l => l.id === leadId) : null;
+      if (lead) {
+        fresh = {
+          ...fresh,
+          customer: {
+            ...fresh.customer,
+            leadId: lead.id,
+            customerName: lead.name,
+            mobile: lead.phone,
+            email: lead.email,
+            city: lead.district || lead.location,
+            state: lead.state || ''
+          },
+          projectLocation: lead.location,
+          projectCapacity: lead.birdCapacity || fresh.projectCapacity,
+          projectName: `${(lead.birdCapacity || fresh.projectCapacity).toLocaleString('en-IN')} Birds Environment Controlled Broiler Farm`
+        };
+      }
+      setDraft(fresh);
     }
     setBuilderStep(1);
-  }, [route.mode, route.id]);
+  }, [route.mode, route.id, currentRole, currentUserName, leads]);
 
   const navigate = (path: string) => {
     window.history.pushState({}, '', path);

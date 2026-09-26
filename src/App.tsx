@@ -33,7 +33,9 @@ import {
   AddLoanModal,
   UploadDocumentModal
 } from './components/Modals';
-import { SoftQuotationModal } from './components/SoftQuotationModal';
+import { SoftQuotationsModule } from './features/softQuotations/SoftQuotationsModule';
+import { SoftQuotationAcceptancePage } from './features/softQuotations/SoftQuotationAcceptancePage';
+import { SoftQuotation } from './features/softQuotations/types';
 
 import {
   INITIAL_LEADS,
@@ -82,7 +84,9 @@ const loadLocal = <T,>(key: string, fallback: T): T => {
 export default function App() {
   const isCustomerRegistrationRoute = typeof window !== 'undefined' && /^\/customer-registration\/?$/.test(window.location.pathname);
   const isPartnerRegistrationRoute = typeof window !== 'undefined' && /^\/partner-registration\/?$/.test(window.location.pathname);
-  const [currentSection, setCurrentSection] = useState<NavigationSection>('dashboard');
+  const isSoftQuotationAcceptanceRoute = typeof window !== 'undefined' && /^\/soft-quotations\/accept\/[^/]+\/?$/.test(window.location.pathname);
+  const isSoftQuotationRoute = typeof window !== 'undefined' && /^\/soft-quotations(?:\/|$)/.test(window.location.pathname) && !isSoftQuotationAcceptanceRoute;
+  const [currentSection, setCurrentSection] = useState<NavigationSection>(isSoftQuotationRoute ? 'soft-quotations' : 'dashboard');
   const [currentRole, setCurrentRole] = useState<PortalRole>('admin');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -179,8 +183,6 @@ export default function App() {
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
   const [selectedLeadForDrawer, setSelectedLeadForDrawer] = useState<Lead | null>(null);
   const [selectedLeadId, setSelectedLeadId] = useState<string>('lead-1');
-  const [isSoftQuotationOpen, setIsSoftQuotationOpen] = useState(false);
-  const [softQuotationLead, setSoftQuotationLead] = useState<Lead | null>(null);
   const [actionLead, setActionLead] = useState<Lead | null>(null);
   const [isEditLeadOpen, setIsEditLeadOpen] = useState(false);
   const [isAssignLeadOpen, setIsAssignLeadOpen] = useState(false);
@@ -209,8 +211,9 @@ export default function App() {
 
     switch (actionKey) {
       case 'send-soft-quotation':
-        setSoftQuotationLead(activeLead);
-        setIsSoftQuotationOpen(true);
+        setCurrentSection('soft-quotations');
+        window.history.pushState({}, '', activeLead ? `/soft-quotations/new?lead=${activeLead.id}` : '/soft-quotations/new');
+        window.dispatchEvent(new Event('soft-quotation-route'));
         break;
       case 'add-lead':
         setIsAddLeadOpen(true);
@@ -395,7 +398,35 @@ export default function App() {
     setDocuments(prev => prev.map(d => d.id === docId ? { ...d, status } : d));
   };
 
-  // Customer registration is intentionally standalone and not connected to the CRM yet.
+  const handleConvertAcceptedQuotation = (quotation: SoftQuotation) => {
+    if (quotation.status !== 'ACCEPTED') return;
+
+    const proposal: ProposalDPR = {
+      id: `DPR-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
+      leadName: quotation.customer.customerName || 'Customer',
+      leadPhone: quotation.customer.mobile || '',
+      projectTitle: quotation.projectName,
+      birdCapacity: quotation.projectCapacity,
+      totalCost: quotation.grandTotal,
+      subsidyEligible: 0,
+      bankLoanAmount: 0,
+      farmerContribution: quotation.grandTotal,
+      shedSizeSqFt: Number(String(quotation.coveredArea).replace(/[^0-9.]/g, '')) || 0,
+      roiMonths: 0,
+      status: 'Accepted',
+      createdDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    };
+    setProposals(prev => [proposal, ...prev]);
+
+    if (quotation.customer.leadId) {
+      handleUpdateLeadStatus(quotation.customer.leadId, 'Converted');
+    }
+
+    setCurrentSection('proposals');
+    window.history.pushState({}, '', '/');
+  };
+
+    // Customer registration is intentionally standalone and not connected to the CRM yet.
 
   // Toggle Followup status
   const handleToggleFollowupStatus = (id: string) => {
@@ -417,6 +448,10 @@ export default function App() {
     return <PartnerRegistrationPortal />;
   }
 
+  if (isSoftQuotationAcceptanceRoute) {
+    return <SoftQuotationAcceptancePage />;
+  }
+
   return (
     <div className="crm-shell min-h-screen bg-[#f3f6f4] flex font-sans antialiased text-slate-800">
       {/* Sidebar Navigation */}
@@ -426,7 +461,12 @@ export default function App() {
         onSelectRole={setCurrentRole}
         onSelectSection={(sec) => {
           setCurrentSection(sec);
-          // On mobile, auto close sidebar when item is clicked
+          if (sec === 'soft-quotations') {
+            window.history.pushState({}, '', '/soft-quotations');
+            window.dispatchEvent(new Event('soft-quotation-route'));
+          } else if (window.location.pathname.startsWith('/soft-quotations')) {
+            window.history.pushState({}, '', '/');
+          }
           if (window.innerWidth < 1024) {
             setIsSidebarOpen(false);
           }
@@ -441,7 +481,13 @@ export default function App() {
         <Header
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           onOpenQuickAction={handleOpenQuickAction}
-          onSelectSection={setCurrentSection}
+          onSelectSection={(sec) => {
+            setCurrentSection(sec);
+            if (sec === 'soft-quotations') {
+              window.history.pushState({}, '', '/soft-quotations');
+              window.dispatchEvent(new Event('soft-quotation-route'));
+            }
+          }}
           currentSection={currentSection}
           leads={leads}
           customers={customers}
@@ -518,7 +564,18 @@ export default function App() {
             />
           )}
 
-          {currentSection === 'proposals' && (
+          {currentSection === 'soft-quotations' && (
+            <SoftQuotationsModule
+              currentRole={currentRole}
+              currentUserName={PORTAL_USERS.find(u => u.role === currentRole)?.name || 'AKBS CRM User'}
+              customers={customers}
+              leads={leads}
+              onCreateCustomer={() => setIsAddCustomerOpen(true)}
+              onConvertToProject={handleConvertAcceptedQuotation}
+            />
+          )}
+
+                    {currentSection === 'proposals' && (
             <DprProposalsView
               proposals={proposals}
               onOpenCreateProposal={() => { setActionLead(leads.find(l => l.id === selectedLeadId) || null); setIsProposalOpen(true); }}
@@ -648,8 +705,10 @@ export default function App() {
         onUpdateStatus={handleUpdateLeadStatus}
         onOpenCreateProposal={() => setCurrentSection('proposals')}
         onOpenSoftQuotation={() => {
-          setSoftQuotationLead(selectedLeadForDrawer);
-          setIsSoftQuotationOpen(true);
+          if (!selectedLeadForDrawer) return;
+          setCurrentSection('soft-quotations');
+          window.history.pushState({}, '', `/soft-quotations/new?lead=${selectedLeadForDrawer.id}`);
+          window.dispatchEvent(new Event('soft-quotation-route'));
         }}
       />
 
@@ -696,30 +755,6 @@ export default function App() {
         onAdd={handleAddDocument}
       />
 
-      {/* Global Soft Quotation Modal */}
-      <SoftQuotationModal
-        isOpen={isSoftQuotationOpen}
-        onClose={() => setIsSoftQuotationOpen(false)}
-        initialData={softQuotationLead ? {
-          name: softQuotationLead.name,
-          phone: softQuotationLead.phone,
-          email: softQuotationLead.email,
-          location: softQuotationLead.location,
-          state: softQuotationLead.state,
-          district: softQuotationLead.district,
-          village: softQuotationLead.village,
-          birdCapacity: softQuotationLead.birdCapacity,
-          poultryType: softQuotationLead.projectType,
-          shedType: softQuotationLead.shedType,
-          leadId: softQuotationLead.id,
-          projectCost: softQuotationLead.estimatedCost || softQuotationLead.budgetEstimate
-        } : null}
-        onQuotationSent={(leadId) => {
-          if (leadId) {
-            handleUpdateLeadStatus(leadId, 'Proposal Sent');
-          }
-        }}
-      />
     </div>
   );
 }

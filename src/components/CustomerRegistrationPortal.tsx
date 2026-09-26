@@ -233,6 +233,34 @@ const CUSTOMER_CONSENT_CONTENT: Record<ConsentLanguage, {
   }
 };
 
+const createBlankCustomerApplication = () => ({
+  fullName: '',
+  mobileNumber: '',
+  whatsAppNumber: '',
+  email: '',
+  preferredLanguage: 'Hindi' as 'Hindi' | 'English',
+  projectObjective: 'New Poultry Farm' as 'New Poultry Farm' | 'Existing Farm Expansion' | 'Farm Renovation' | 'Capacity Expansion',
+  poultryType: 'Broiler (Meat)' as 'Broiler (Meat)' | 'Layer (Egg)' | 'EC / Environment Controlled' | 'Other',
+  shedType: 'Conventional / Normal' as 'EC (Environment Controlled)' | 'Conventional / Normal',
+  proposedCapacity: '',
+  hasLand: 'Yes' as 'Yes' | 'No',
+  landOwnership: 'Own Land' as 'Own Land' | 'Leased Land' | 'Family Land' | 'Buying New Land',
+  landAreaAcres: '',
+  state: '',
+  district: '',
+  villageOrCity: '',
+  googleMapsLink: '',
+  approxProjectCost: '',
+  needsLoan: 'Yes' as 'Yes' | 'No' | 'Need guidance',
+  ownContribution: '',
+  approxLoanAmount: '',
+  discussedWithBank: 'No' as 'Yes' | 'No',
+  experience: 'No, I am new' as 'No, I am new' | 'Yes, 1-3 years' | 'Yes, 3+ years' | 'Family poultry business',
+  supportNeeded: [] as string[],
+  startTimeline: 'Within 3 months' as 'Immediately' | 'Within 1 month' | 'Within 3 months' | 'In 3-6 months' | 'Planning stage',
+  declarationConfirmed: false
+});
+
 export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProps> = ({
   onRegisterCustomer,
   onGoToCRM,
@@ -254,48 +282,12 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
   >('registration');
 
   // Form Data State matching all 6 steps from the reference mockup
-  const [formData, setFormData] = useState({
-    // Step 1: Basic Details
-    fullName: '',
-    mobileNumber: '',
-    whatsAppNumber: '',
-    email: '',
-    preferredLanguage: 'Hindi' as 'Hindi' | 'English',
-
-    // Step 2: Project Details
-    projectObjective: 'New Poultry Farm' as 'New Poultry Farm' | 'Existing Farm Expansion' | 'Farm Renovation' | 'Capacity Expansion',
-    poultryType: 'Broiler (Meat)' as 'Broiler (Meat)' | 'Layer (Egg)' | 'EC / Environment Controlled' | 'Other',
-    shedType: 'Conventional / Normal' as 'EC (Environment Controlled)' | 'Conventional / Normal',
-    proposedCapacity: '' as string,
-
-    // Step 3: Land Details
-    hasLand: 'Yes' as 'Yes' | 'No',
-    landOwnership: 'Own Land' as 'Own Land' | 'Leased Land' | 'Family Land' | 'Buying New Land',
-    landAreaAcres: '',
-    state: '',
-    district: '',
-    villageOrCity: '',
-    googleMapsLink: '',
-
-    // Step 4: Financial Details
-    approxProjectCost: '',
-    needsLoan: 'Yes' as 'Yes' | 'No' | 'Need guidance',
-    ownContribution: '',
-    approxLoanAmount: '',
-    discussedWithBank: 'No' as 'Yes' | 'No',
-
-    // Step 5: Experience & Support
-    experience: 'No, I am new' as 'No, I am new' | 'Yes, 1-3 years' | 'Yes, 3+ years' | 'Family poultry business',
-    supportNeeded: [] as string[],
-    startTimeline: 'Within 3 months' as 'Immediately' | 'Within 1 month' | 'Within 3 months' | 'In 3-6 months' | 'Planning stage',
-
-    // Step 6: Declaration
-    declarationConfirmed: false
-  });
+  const [formData, setFormData] = useState(() => createBlankCustomerApplication());
 
   // Track Application state
   const [trackSearchId, setTrackSearchId] = useState('');
   const [trackResult, setTrackResult] = useState<any>(null);
+  const [trackResults, setTrackResults] = useState<any[]>([]);
   const [trackMessage, setTrackMessage] = useState('');
 
   // Success state after step 6 submission
@@ -339,6 +331,40 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     }
   };
 
+  const getSavedApplications = () => {
+    try {
+      const applications = JSON.parse(window.localStorage.getItem('akbs.customer.applications') || '[]');
+      return Array.isArray(applications) ? applications : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const getCrmLeads = () => {
+    try {
+      const crmLeads = JSON.parse(window.localStorage.getItem('akbs.crm.leads') || '[]');
+      return Array.isArray(crmLeads) ? crmLeads : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const generateLeadId = () => {
+    const year = new Date().getFullYear();
+    const sequenceKey = `akbs.customer.lead.sequence.${year}`;
+    const existing = getSavedApplications();
+    let sequence = Number(window.localStorage.getItem(sequenceKey) || '0') + 1;
+    let candidate = `AKBS-LEAD-${year}-${String(sequence).padStart(4, '0')}`;
+
+    while (existing.some((item: any) => String(item.appId || '').toUpperCase() === candidate)) {
+      sequence += 1;
+      candidate = `AKBS-LEAD-${year}-${String(sequence).padStart(4, '0')}`;
+    }
+
+    window.localStorage.setItem(sequenceKey, String(sequence));
+    return candidate;
+  };
+
   const handleSubmitApplication = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
@@ -353,7 +379,7 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     };
     setFormData(submittedFormData);
 
-    const generatedId = `AKBS-REG-${Math.floor(1000 + Math.random() * 9000)}`;
+    const generatedId = generateLeadId();
     setSubmittedAppId(generatedId);
     setIsSubmitted(true);
     setIsConsentModalOpen(false);
@@ -362,7 +388,7 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
       const existing = JSON.parse(window.localStorage.getItem('akbs.customer.applications') || '[]');
       const applicationRecord = {
         appId: generatedId,
-        mobileNumber: formData.mobileNumber,
+        mobileNumber: submittedFormData.mobileNumber,
         submittedAt: consentTimestamp,
         formData: submittedFormData,
         consent: {
@@ -432,35 +458,68 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
   };
 
   const findSavedApplication = (applicationId: string, mobile: string) => {
-    try {
-      const applications = JSON.parse(window.localStorage.getItem('akbs.customer.applications') || '[]');
-      const normalizedMobile = mobile.replace(/\D/g, '').slice(-10);
-      return applications.find((item: any) => {
-        const idMatches = applicationId ? String(item.appId || '').toLowerCase() === applicationId.trim().toLowerCase() : true;
-        const savedMobile = String(item.mobileNumber || item.formData?.mobileNumber || '').replace(/\D/g, '').slice(-10);
-        const mobileMatches = normalizedMobile ? savedMobile === normalizedMobile : true;
-        return idMatches && mobileMatches && (applicationId.trim() || normalizedMobile);
-      }) || null;
-    } catch {
-      return null;
-    }
+    const applications = getSavedApplications();
+    const normalizedId = applicationId.trim().toUpperCase();
+    const normalizedMobile = mobile.replace(/\D/g, '').slice(-10);
+
+    return applications.find((item: any) => {
+      const savedId = String(item.appId || '').trim().toUpperCase();
+      const savedMobile = String(item.mobileNumber || item.formData?.mobileNumber || '').replace(/\D/g, '').slice(-10);
+      const idMatches = normalizedId ? savedId === normalizedId : true;
+      const mobileMatches = normalizedMobile ? savedMobile === normalizedMobile : true;
+      return idMatches && mobileMatches && Boolean(normalizedId || normalizedMobile);
+    }) || null;
   };
 
-  const openSavedApplication = (record: any) => {
+  const searchSavedApplications = (query: string) => {
+    const applications = getSavedApplications();
+    const trimmed = query.trim();
+    const upper = trimmed.toUpperCase();
+    const digits = trimmed.replace(/\D/g, '');
+    const isLeadId = upper.startsWith('AKBS-');
+
+    return applications
+      .filter((item: any) => {
+        const savedId = String(item.appId || '').trim().toUpperCase();
+        const savedMobile = String(item.mobileNumber || item.formData?.mobileNumber || '').replace(/\D/g, '').slice(-10);
+        if (isLeadId) return savedId === upper;
+        if (digits.length >= 10) return savedMobile === digits.slice(-10);
+        return savedId === upper;
+      })
+      .sort((a: any, b: any) => String(b.submittedAt || '').localeCompare(String(a.submittedAt || '')));
+  };
+
+  const mapSavedApplicationToTrackResult = (record: any) => {
     const data = record?.formData || {};
-    setTrackResult({
+    const crmLead = getCrmLeads().find((lead: any) =>
+      String(lead.applicationId || '').toUpperCase() === String(record.appId || '').toUpperCase()
+      || String(lead.id || '').toUpperCase() === String(record.appId || '').toUpperCase()
+    );
+
+    return {
       appId: record.appId,
-      farmerName: data.fullName || 'Customer',
-      location: [data.villageOrCity, data.district, data.state].filter(Boolean).join(', ') || 'Not provided',
-      capacity: data.proposedCapacity ? `${data.proposedCapacity} Birds` : 'Not provided',
-      status: 'Application Submitted',
+      farmerName: data.fullName || crmLead?.name || 'Customer',
+      mobileNumber: data.mobileNumber || record.mobileNumber || crmLead?.phone || '',
+      location: [data.villageOrCity, data.district, data.state].filter(Boolean).join(', ') || crmLead?.location || 'Not provided',
+      capacity: data.proposedCapacity ? `${data.proposedCapacity} Birds` : crmLead?.birdCapacity ? `${Number(crmLead.birdCapacity).toLocaleString('en-IN')} Birds` : 'Not provided',
+      status: crmLead?.status || record.status || 'Application Submitted',
       dateSubmitted: record.submittedAt ? new Date(record.submittedAt).toLocaleString('en-IN') : 'Not available',
-      projectType: data.poultryType || 'Not provided',
-      shedType: data.shedType || 'Not provided',
-      loanRequirement: data.needsLoan || 'Not provided'
-    });
+      projectType: data.poultryType || crmLead?.projectType || 'Not provided',
+      shedType: data.shedType || crmLead?.shedType || 'Not provided',
+      loanRequirement: data.needsLoan || crmLead?.loanRequired || 'Not provided',
+      assignedTo: crmLead?.assignedTo && crmLead.assignedTo !== 'Unassigned' ? crmLead.assignedTo : 'Not assigned yet',
+      nextFollowUp: crmLead?.nextFollowUp || 'Not scheduled'
+    };
+  };
+
+  const openSavedApplication = (record: any, relatedRecords?: any[]) => {
+    const results = (relatedRecords || [record]).map(mapSavedApplicationToTrackResult);
+    setTrackResult(mapSavedApplicationToTrackResult(record));
+    setTrackResults(results);
+    setTrackSearchId(record.appId || '');
     setTrackMessage('');
     setPortalEntryMode('form');
+    setIsSubmitted(false);
     setActiveSideMenu('track');
   };
 
@@ -469,34 +528,65 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     setLoginMessage('');
     const record = findSavedApplication(loginApplicationId, loginMobile);
     if (!record) {
-      setLoginMessage('No application found with this Application ID / Mobile Number on this device.');
+      setLoginMessage('No application found with this Lead ID / Mobile Number on this device.');
       return;
     }
-    openSavedApplication(record);
+    const sameMobile = searchSavedApplications(record.mobileNumber || record.formData?.mobileNumber || '');
+    openSavedApplication(record, sameMobile.length ? sameMobile : [record]);
   };
 
   const handleTrackSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setTrackResult(null);
+    setTrackResults([]);
     setTrackMessage('');
-    const record = findSavedApplication(trackSearchId, trackSearchId);
-    if (!record) {
-      setTrackMessage('No saved application found. Please check the Application ID or registered mobile number.');
+
+    const matches = searchSavedApplications(trackSearchId);
+    if (!matches.length) {
+      setTrackMessage('No saved application found. Please check the Lead ID / Application ID or registered mobile number.');
       return;
     }
-    openSavedApplication(record);
+
+    openSavedApplication(matches[0], matches);
   };
 
-  const startNewApplication = () => {
+  const resetForNewApplication = () => {
+    setFormData(createBlankCustomerApplication());
     setPortalEntryMode('form');
     setViewMode('wizard');
     setActiveSideMenu('registration');
     setCurrentStep(1);
     setIsSubmitted(false);
     setSubmittedAppId('');
+    setTrackSearchId('');
     setTrackResult(null);
+    setTrackResults([]);
     setTrackMessage('');
+    setLoginApplicationId('');
+    setLoginMobile('');
+    setLoginMessage('');
+    setIsConsentModalOpen(false);
+    setConsentTermsAccepted(false);
+    setConsentContactAccepted(false);
+    setConsentScrolledToEnd(false);
+    setConsentLanguage('Hindi');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const startNewApplication = () => {
+    resetForNewApplication();
+  };
+
+  const trackSubmittedApplication = () => {
+    const record = getSavedApplications().find((item: any) => item.appId === submittedAppId);
+    if (!record) {
+      setIsSubmitted(false);
+      setActiveSideMenu('track');
+      setTrackSearchId(submittedAppId);
+      return;
+    }
+    const sameMobile = searchSavedApplications(record.mobileNumber || record.formData?.mobileNumber || '');
+    openSavedApplication(record, sameMobile.length ? sameMobile : [record]);
   };
 
   // Helper to render the step-specific image card on the left
@@ -661,18 +751,18 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                   <User className="w-5 h-5" />
                 </div>
                 <h2 className="mt-4 text-2xl font-['Outfit',sans-serif] font-black text-slate-950">Customer Login</h2>
-                <p className="mt-1 text-sm text-slate-500">Track an existing application using your Application ID and registered mobile number.</p>
+                <p className="mt-1 text-sm text-slate-500">Track an existing application using your Lead ID and registered mobile number.</p>
               </div>
 
               <form onSubmit={handlePortalLogin} className="mt-6 space-y-4">
                 <label className="block">
-                  <span className="text-xs font-bold text-slate-700">Application ID</span>
+                  <span className="text-xs font-bold text-slate-700">Lead ID</span>
                   <div className="relative mt-1.5">
                     <FileText className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                     <input
                       value={loginApplicationId}
                       onChange={(e) => setLoginApplicationId(e.target.value)}
-                      placeholder="Enter Application ID"
+                      placeholder="Enter Lead ID"
                       className="w-full h-11 pl-10 pr-3 border border-slate-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-700"
                     />
                   </div>
@@ -1593,14 +1683,14 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                       Track Your Poultry Farm Application
                     </h2>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Enter Application ID or registered Mobile Number
+                      Enter Lead ID or registered Mobile Number
                     </p>
                   </div>
                   <button
-                    onClick={() => setActiveSideMenu('registration')}
+                    onClick={startNewApplication}
                     className="text-xs font-bold text-emerald-800 hover:underline"
                   >
-                    ← Back to Registration
+                    + New Apply
                   </button>
                 </div>
 
@@ -1609,7 +1699,7 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                     type="text"
                     value={trackSearchId}
                     onChange={(e) => setTrackSearchId(e.target.value)}
-                    placeholder="e.g. AKBS-REG-2026-8942 or 9876543210"
+                    placeholder="e.g. AKBS-LEAD-2026-0001 or 9876543210"
                     className="flex-1 px-3.5 py-2 border border-slate-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-1 focus:ring-emerald-600"
                   />
                   <button
@@ -1623,6 +1713,40 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                 {trackMessage && (
                   <div className="max-w-md rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs font-semibold text-amber-800">
                     {trackMessage}
+                  </div>
+                )}
+
+                {trackResults.length > 1 && (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <div>
+                        <div className="text-xs font-black text-slate-900">Your Applications / Leads</div>
+                        <div className="text-[10px] text-slate-500 mt-0.5">Each registration has its own Lead ID and can be tracked separately.</div>
+                      </div>
+                      <span className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-bold">{trackResults.length} Leads</span>
+                    </div>
+                    <div className="space-y-2">
+                      {trackResults.map((item) => (
+                        <button
+                          key={item.appId}
+                          type="button"
+                          onClick={() => setTrackResult(item)}
+                          className={`w-full text-left p-3 rounded-xl border transition-all ${
+                            trackResult?.appId === item.appId
+                              ? 'border-emerald-600 bg-emerald-50'
+                              : 'border-slate-200 hover:border-emerald-300 bg-slate-50/60'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="font-mono text-[11px] font-black text-emerald-800">{item.appId}</div>
+                              <div className="text-xs font-bold text-slate-900 mt-0.5">{item.projectType} · {item.capacity}</div>
+                            </div>
+                            <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-800 text-[10px] font-bold">{item.status}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -1645,19 +1769,19 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                       <div>
                         <span className="text-slate-400">Assigned Engineer:</span>
-                        <div className="font-semibold text-slate-800">{'Not assigned yet'}</div>
+                        <div className="font-semibold text-slate-800">{trackResult.assignedTo || 'Not assigned yet'}</div>
                       </div>
                       <div>
                         <span className="text-slate-400">Project Capacity:</span>
                         <div className="font-semibold text-slate-800">{trackResult.capacity}</div>
                       </div>
                       <div>
-                        <span className="text-slate-400">DPR Documentation:</span>
-                        <div className="font-semibold text-slate-800">{'Not started'}</div>
+                        <span className="text-slate-400">Current CRM Stage:</span>
+                        <div className="font-semibold text-slate-800">{trackResult.status}</div>
                       </div>
                       <div>
-                        <span className="text-slate-400">Subsidy Scheme:</span>
-                        <div className="font-semibold text-slate-800">{'Eligibility to be assessed'}</div>
+                        <span className="text-slate-400">Next Follow-up:</span>
+                        <div className="font-semibold text-slate-800">{trackResult.nextFollowUp || 'Not scheduled'}</div>
                       </div>
                     </div>
                   </div>
@@ -2514,7 +2638,7 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
 
                 <div>
                   <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 font-mono">
-                    Application ID: {submittedAppId}
+                    Lead ID: {submittedAppId}
                   </span>
                   <h2 className="text-xl font-extrabold text-slate-900 mt-2">
                     Congratulations, {formData.fullName}!
@@ -2565,24 +2689,17 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                   )}
 
                   <button
-                    onClick={() => {
-                      setTrackSearchId(submittedAppId);
-                      setActiveSideMenu('track');
-                      setIsSubmitted(false);
-                    }}
+                    onClick={trackSubmittedApplication}
                     className="w-full sm:w-auto px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition-colors"
                   >
                     Track Status
                   </button>
 
                   <button
-                    onClick={() => {
-                      setIsSubmitted(false);
-                      setCurrentStep(1);
-                    }}
+                    onClick={startNewApplication}
                     className="w-full sm:w-auto px-4 py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition-colors"
                   >
-                    + New Registration
+                    + New Apply
                   </button>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
@@ -24,7 +24,13 @@ import { AdminControlView } from './components/portals/AdminControlView';
 import {
   AddLeadModal,
   AddCustomerModal,
-  LeadDetailDrawer
+  LeadDetailDrawer,
+  EditLeadModal,
+  AssignLeadModal,
+  AddFollowUpModal,
+  AddProposalModal,
+  AddLoanModal,
+  UploadDocumentModal
 } from './components/Modals';
 import { SoftQuotationModal } from './components/SoftQuotationModal';
 
@@ -62,6 +68,16 @@ import {
   ManagerApproval
 } from './types';
 
+const loadLocal = <T,>(key: string, fallback: T): T => {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? JSON.parse(raw) as T : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 export default function App() {
   const isCustomerRegistrationRoute = typeof window !== 'undefined' && /^\/customer-registration\/?$/.test(window.location.pathname);
   const isPartnerRegistrationRoute = typeof window !== 'undefined' && /^\/partner-registration\/?$/.test(window.location.pathname);
@@ -70,15 +86,15 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Core Data State
-  const [leads, setLeads] = useState<Lead[]>(INITIAL_LEADS);
-  const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
-  const [partners, setPartners] = useState<Partner[]>(INITIAL_PARTNERS);
+  const [leads, setLeads] = useState<Lead[]>(() => loadLocal('akbs.crm.leads', INITIAL_LEADS));
+  const [customers, setCustomers] = useState<Customer[]>(() => loadLocal('akbs.crm.customers', INITIAL_CUSTOMERS));
+  const [partners, setPartners] = useState<Partner[]>(() => loadLocal('akbs.crm.partners', INITIAL_PARTNERS));
   const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
-  const [proposals, setProposals] = useState<ProposalDPR[]>(INITIAL_PROPOSALS);
-  const [loans, setLoans] = useState<LoanApplication[]>(INITIAL_LOANS);
-  const [documents, setDocuments] = useState<DocumentRecord[]>(INITIAL_DOCUMENTS);
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
-  const [activities, setActivities] = useState<Activity[]>(INITIAL_ACTIVITIES);
+  const [proposals, setProposals] = useState<ProposalDPR[]>(() => loadLocal('akbs.crm.proposals', INITIAL_PROPOSALS));
+  const [loans, setLoans] = useState<LoanApplication[]>(() => loadLocal('akbs.crm.loans', INITIAL_LOANS));
+  const [documents, setDocuments] = useState<DocumentRecord[]>(() => loadLocal('akbs.crm.documents', INITIAL_DOCUMENTS));
+  const [tasks, setTasks] = useState<Task[]>(() => loadLocal('akbs.crm.tasks', INITIAL_TASKS));
+  const [activities, setActivities] = useState<Activity[]>(() => loadLocal('akbs.crm.activities', INITIAL_ACTIVITIES));
 
   // Portals state
   const [siteVisits, setSiteVisits] = useState<SiteVisitLog[]>(INITIAL_SITE_VISITS);
@@ -106,7 +122,7 @@ export default function App() {
   };
 
   // Follow-ups state
-  const [followUps, setFollowUps] = useState<FollowUp[]>([
+  const [followUps, setFollowUps] = useState<FollowUp[]>(() => loadLocal('akbs.crm.followups', [followUps, setFollowUps] = useState<FollowUp[]>([
     {
       id: 'fu-1',
       leadId: 'lead-13',
@@ -155,7 +171,7 @@ export default function App() {
       status: 'Completed',
       notes: 'Sent formal turnkey proposal for 20,000 birds project.'
     }
-  ]);
+  ]));
 
   // Modal State
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
@@ -164,16 +180,37 @@ export default function App() {
   const [selectedLeadId, setSelectedLeadId] = useState<string>('lead-1');
   const [isSoftQuotationOpen, setIsSoftQuotationOpen] = useState(false);
   const [softQuotationLead, setSoftQuotationLead] = useState<Lead | null>(null);
+  const [actionLead, setActionLead] = useState<Lead | null>(null);
+  const [isEditLeadOpen, setIsEditLeadOpen] = useState(false);
+  const [isAssignLeadOpen, setIsAssignLeadOpen] = useState(false);
+  const [isFollowUpOpen, setIsFollowUpOpen] = useState(false);
+  const [isProposalOpen, setIsProposalOpen] = useState(false);
+  const [isLoanOpen, setIsLoanOpen] = useState(false);
+  const [isDocumentUploadOpen, setIsDocumentUploadOpen] = useState(false);
+
+  useEffect(() => { window.localStorage.setItem('akbs.crm.leads', JSON.stringify(leads)); }, [leads]);
+  useEffect(() => { window.localStorage.setItem('akbs.crm.customers', JSON.stringify(customers)); }, [customers]);
+  useEffect(() => { window.localStorage.setItem('akbs.crm.partners', JSON.stringify(partners)); }, [partners]);
+  useEffect(() => { window.localStorage.setItem('akbs.crm.proposals', JSON.stringify(proposals)); }, [proposals]);
+  useEffect(() => { window.localStorage.setItem('akbs.crm.loans', JSON.stringify(loans)); }, [loans]);
+  useEffect(() => { window.localStorage.setItem('akbs.crm.documents', JSON.stringify(documents)); }, [documents]);
+  useEffect(() => { window.localStorage.setItem('akbs.crm.tasks', JSON.stringify(tasks)); }, [tasks]);
+  useEffect(() => { window.localStorage.setItem('akbs.crm.activities', JSON.stringify(activities)); }, [activities]);
+  useEffect(() => { window.localStorage.setItem('akbs.crm.followups', JSON.stringify(followUps)); }, [followUps]);
 
   // Quick Action Handler
-  const handleOpenQuickAction = (actionKey: string) => {
+  const handleOpenQuickAction = (actionKey: string, lead?: Lead) => {
+    const activeLead = lead || selectedLeadForDrawer || leads.find(l => l.id === selectedLeadId) || leads[0] || null;
+    if (lead) {
+      setSelectedLeadId(lead.id);
+      setActionLead(lead);
+    }
+
     switch (actionKey) {
-      case 'send-soft-quotation': {
-        const activeLd = selectedLeadForDrawer || leads.find(l => l.id === selectedLeadId) || leads[0];
-        setSoftQuotationLead(activeLd);
+      case 'send-soft-quotation':
+        setSoftQuotationLead(activeLead);
         setIsSoftQuotationOpen(true);
         break;
-      }
       case 'add-lead':
         setIsAddLeadOpen(true);
         break;
@@ -184,19 +221,52 @@ export default function App() {
         window.open('/partner-registration', '_blank', 'noopener,noreferrer');
         break;
       case 'create-proposal':
-        setCurrentSection('proposals');
+        setActionLead(activeLead);
+        setIsProposalOpen(true);
         break;
       case 'loan-application':
-        setCurrentSection('loans');
+        setIsLoanOpen(true);
         break;
       case 'add-followup':
-        setCurrentSection('followups');
+      case 'followup':
+        setActionLead(activeLead);
+        setIsFollowUpOpen(true);
         break;
       case 'upload-document':
-        setCurrentSection('documents');
+        setIsDocumentUploadOpen(true);
         break;
       case 'send-email':
-        setCurrentSection('communication');
+      case 'email':
+        if (activeLead?.email) {
+          window.location.href = `mailto:${activeLead.email}?subject=${encodeURIComponent('AKBS Poultry Farming - Follow-up')}`;
+        } else {
+          setCurrentSection('communication');
+        }
+        break;
+      case 'call':
+        if (activeLead?.phone) window.location.href = `tel:${activeLead.phone}`;
+        break;
+      case 'task':
+        if (activeLead) {
+          handleAddTask({
+            title: `Follow up: ${activeLead.name}`,
+            subtitle: `${activeLead.birdCapacity.toLocaleString()} birds · ${activeLead.location}`,
+            priority: activeLead.priority || 'Medium',
+            time: 'Today',
+            dueDate: 'Today',
+            category: 'Call',
+            assignedTo: activeLead.assignedTo
+          });
+          setCurrentSection('tasks');
+        }
+        break;
+      case 'edit':
+        setActionLead(activeLead);
+        setIsEditLeadOpen(true);
+        break;
+      case 'assign':
+        setActionLead(activeLead);
+        setIsAssignLeadOpen(true);
         break;
       default:
         break;
@@ -258,6 +328,34 @@ export default function App() {
   // Delete Lead
   const handleDeleteLead = (leadId: string) => {
     setLeads(prev => prev.filter(l => l.id !== leadId));
+  };
+
+  const handleEditLead = (leadId: string, patch: Partial<Lead>) => {
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...patch } : l));
+    setActionLead(prev => prev?.id === leadId ? { ...prev, ...patch } : prev);
+    setSelectedLeadForDrawer(prev => prev?.id === leadId ? { ...prev, ...patch } : prev);
+  };
+
+  const handleAddFollowUp = (followUp: FollowUp) => {
+    setFollowUps(prev => [followUp, ...prev]);
+    handleUpdateLeadStatus(followUp.leadId, 'Follow Up');
+  };
+
+  const handleAddProposal = (proposal: ProposalDPR) => {
+    setProposals(prev => [proposal, ...prev]);
+    const lead = leads.find(l => l.name === proposal.leadName && l.phone === proposal.leadPhone);
+    if (lead) handleUpdateLeadStatus(lead.id, 'DPR');
+    setCurrentSection('proposals');
+  };
+
+  const handleAddLoan = (loan: LoanApplication) => {
+    setLoans(prev => [loan, ...prev]);
+    setCurrentSection('loans');
+  };
+
+  const handleAddDocument = (doc: DocumentRecord) => {
+    setDocuments(prev => [doc, ...prev]);
+    setCurrentSection('documents');
   };
 
   // Customer registration is intentionally standalone and not connected to the CRM yet.
@@ -346,6 +444,7 @@ export default function App() {
               onOpenAddLead={() => setIsAddLeadOpen(true)}
               onUpdateLeadStatus={handleUpdateLeadStatus}
               onDeleteLead={handleDeleteLead}
+              onOpenQuickAction={handleOpenQuickAction}
             />
           )}
 
@@ -370,7 +469,7 @@ export default function App() {
           {currentSection === 'followups' && (
             <FollowUpsView
               followUps={followUps}
-              onOpenAddFollowUp={() => alert('Schedule Follow-up Dialog')}
+              onOpenAddFollowUp={() => { setActionLead(leads.find(l => l.id === selectedLeadId) || null); setIsFollowUpOpen(true); }}
               onToggleStatus={handleToggleFollowupStatus}
             />
           )}
@@ -378,21 +477,21 @@ export default function App() {
           {currentSection === 'proposals' && (
             <DprProposalsView
               proposals={proposals}
-              onOpenCreateProposal={() => alert('New DPR Wizard initiated')}
+              onOpenCreateProposal={() => { setActionLead(leads.find(l => l.id === selectedLeadId) || null); setIsProposalOpen(true); }}
             />
           )}
 
           {currentSection === 'loans' && (
             <FinanceLoansView
               loans={loans}
-              onOpenNewLoan={() => alert('New Bank Loan Application initiated')}
+              onOpenNewLoan={() => setIsLoanOpen(true)}
             />
           )}
 
           {currentSection === 'documents' && (
             <DocumentsView
               documents={documents}
-              onOpenUpload={() => alert('Document upload modal')}
+              onOpenUpload={() => setIsDocumentUploadOpen(true)}
             />
           )}
 
@@ -505,6 +604,49 @@ export default function App() {
           setSoftQuotationLead(selectedLeadForDrawer);
           setIsSoftQuotationOpen(true);
         }}
+      />
+
+      <EditLeadModal
+        isOpen={isEditLeadOpen}
+        onClose={() => setIsEditLeadOpen(false)}
+        lead={actionLead}
+        onSave={handleEditLead}
+      />
+
+      <AssignLeadModal
+        isOpen={isAssignLeadOpen}
+        onClose={() => setIsAssignLeadOpen(false)}
+        lead={actionLead}
+        employeeNames={employees.map(e => e.name)}
+        onAssign={handleAssignLead}
+      />
+
+      <AddFollowUpModal
+        isOpen={isFollowUpOpen}
+        onClose={() => setIsFollowUpOpen(false)}
+        lead={actionLead}
+        leads={leads}
+        onAdd={handleAddFollowUp}
+      />
+
+      <AddProposalModal
+        isOpen={isProposalOpen}
+        onClose={() => setIsProposalOpen(false)}
+        lead={actionLead}
+        leads={leads}
+        onAdd={handleAddProposal}
+      />
+
+      <AddLoanModal
+        isOpen={isLoanOpen}
+        onClose={() => setIsLoanOpen(false)}
+        onAdd={handleAddLoan}
+      />
+
+      <UploadDocumentModal
+        isOpen={isDocumentUploadOpen}
+        onClose={() => setIsDocumentUploadOpen(false)}
+        onAdd={handleAddDocument}
       />
 
       {/* Global Soft Quotation Modal */}

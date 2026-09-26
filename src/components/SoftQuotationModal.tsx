@@ -279,61 +279,59 @@ export const SoftQuotationModal: React.FC<SoftQuotationModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Realistic poultry sizing & engineering calculations
-  // EC Shed: 0.75 sq.ft per bird | Conventional Shed: 1.25 sq.ft per bird
-  const sqFtRatio = shedTech === 'EC' ? 0.75 : 1.25;
-  const shedSqFt = Math.round(birdsCount * sqFtRatio);
-  // Standard poultry shed width is 40 to 45 ft
-  const shedWidth = 45;
-  const shedLength = Math.round(shedSqFt / shedWidth);
+  // AKBS approved quotation calculation.
+  // IMPORTANT: Only the approved 20,000 Birds EC Broiler template carries default commercial figures.
+  // Other capacities / technologies require authorized confirmation instead of auto-inventing rates.
+  const isApprovedAkbsTemplate = birdsCount === 20000 && shedTech === 'EC' && birdType === 'Broiler';
 
-  // Costs calculation
-  // Civil: Pre-fab steel truss, purlins, foundation, concrete flooring, GI sheeting
-  const civilRatePerSqFt = shedTech === 'EC' ? 320 : 250;
-  const civilCost = includeCivilShed ? shedSqFt * civilRatePerSqFt : 0;
+  const shedSqFt = isApprovedAkbsTemplate ? 12000 : Math.round(birdsCount * (shedTech === 'EC' ? 0.6 : 1.2));
+  const shedWidth = isApprovedAkbsTemplate ? 40 : 40;
+  const shedLength = isApprovedAkbsTemplate ? 300 : Math.round(shedSqFt / shedWidth);
 
-  // Climate Control: 50" exhaust cone fans, 150mm cooling pads, environmental controller, tunnel curtain
-  const fanCount = Math.max(2, Math.round(birdsCount / 2500));
-  const coolingPadSqFt = Math.max(100, Math.round(birdsCount * 0.05));
-  const ventilationCost = includeVentilation
-    ? shedTech === 'EC'
-      ? fanCount * 42000 + coolingPadSqFt * 550 + 120000 // Controller + temp sensors + actuators
-      : 75000 // Simple air circulators for open shed
-    : 0;
+  // Approved AKBS 20,000 Birds EC Broiler template breakup:
+  // Civil Work & Flooring                         ₹17,00,000
+  // Steel Structural Work                        ₹27,00,000
+  // Roofing & GI Sheets                           ₹8,00,000
+  // Environment Control Equipment                ₹20,00,000
+  // Utilities & Infrastructure                   ₹28,00,000
+  // Contingency & Pre-operative Expenses         ₹20,00,000
+  // TOTAL                                        ₹1,20,00,000
+  const civilCost = includeCivilShed && isApprovedAkbsTemplate ? 1700000 : 0;
+  const steelStructuralCost = includeVentilation && isApprovedAkbsTemplate ? 2700000 : 0;
+  const roofingCost = includeFeedingDrinking && isApprovedAkbsTemplate ? 800000 : 0;
+  const environmentControlCost = includeSilo && isApprovedAkbsTemplate ? 2000000 : 0;
+  const utilitiesCost = includeElectricals && isApprovedAkbsTemplate ? 2800000 : 0;
+  const preOperativeCost = includeBiosecurity && isApprovedAkbsTemplate ? 2000000 : 0;
 
-  // Automatic Feeding (Pan) & Nipple Drinking system
-  const feedingDrinkingCost = includeFeedingDrinking
-    ? Math.round(birdsCount * (shedTech === 'EC' ? 95 : 65))
-    : 0;
+  // Keep the existing render variable names mapped to the approved commercial components.
+  const ventilationCost = steelStructuralCost;
+  const feedingDrinkingCost = roofingCost;
+  const siloCost = environmentControlCost;
+  const electricalCost = utilitiesCost;
+  const biosecurityCost = preOperativeCost;
 
-  // Silo & Unloader
-  const siloCost = includeSilo ? (birdsCount >= 10000 ? 320000 : 180000) : 0;
+  const fanCount = isApprovedAkbsTemplate ? 6 : 0;
+  const coolingPadSqFt = 0;
 
-  // Electricals, LED lighting, Generator connection, Water plumbing
-  const electricalCost = includeElectricals ? Math.round(shedSqFt * 25 + 90000) : 0;
+  const subTotalCost =
+    civilCost +
+    steelStructuralCost +
+    roofingCost +
+    environmentControlCost +
+    utilitiesCost +
+    preOperativeCost;
+  const contingencyCost = 0;
+  const totalProjectCost = subTotalCost;
 
-  // Biosecurity, disinfectant spray system, boot dip & basic office room
-  const biosecurityCost = includeBiosecurity ? 110000 : 0;
-
-  // Subtotal & Totals
-  const subTotalCost = civilCost + ventilationCost + feedingDrinkingCost + siloCost + electricalCost + biosecurityCost;
-  const contingencyCost = Math.round(subTotalCost * 0.03); // 3% contingency
-  const totalProjectCost = subTotalCost + contingencyCost;
-
-  // Subsidy calculation
+  // Finance figures are mathematical illustrations only after the user selects an assumption.
   const subsidyPercent = subsidyCategory === 'General (25%)' ? 0.25 : subsidyCategory === 'SC/ST/Women/NE (33%)' ? 0.33 : 0;
-  const estimatedSubsidy = Math.round(totalProjectCost * subsidyPercent);
+  const estimatedSubsidy = isApprovedAkbsTemplate ? Math.round(totalProjectCost * subsidyPercent) : 0;
+  const bankLoan = isApprovedAkbsTemplate ? Math.round(totalProjectCost * 0.75) : 0;
+  const farmerEquity = isApprovedAkbsTemplate ? Math.max(0, totalProjectCost - bankLoan) : 0;
 
-  // Bank Loan (75% term loan under SBI/PNB/NABARD Agri infrastructure fund)
-  const bankLoan = Math.round(totalProjectCost * 0.75);
-  // Farmer Margin (25% equity)
-  const farmerEquity = Math.max(0, totalProjectCost - bankLoan);
-
-  // Projected Annual Returns: 6 batches/year @ ₹ 14.50 rearing charges per bird for EC broiler
-  const annualRearingGross = Math.round(birdsCount * 6 * 14.5);
-  const annualOpCosts = Math.round(birdsCount * 6 * 3.8); // electricity, bedding, labour, sanitization
-  const netEstimatedAnnualIncome = annualRearingGross - annualOpCosts;
-  const estPaybackYears = (totalProjectCost / (netEstimatedAnnualIncome || 1)).toFixed(1);
+  // Do not invent production economics / market returns.
+  const netEstimatedAnnualIncome = 0;
+  const estPaybackYears = 'Requires Confirmation';
 
   // Format currency helper
   const formatINR = (val: number) => {
@@ -373,7 +371,7 @@ Ref No: ${quotationNo} | Date: ${quotationDate}
 • NABARD / AHIDF Subsidy: *${formatLakhs(estimatedSubsidy)}*
 • Bank Term Loan (75%): *${formatLakhs(bankLoan)}*
 • Farmer Margin (Equity): *${formatLakhs(farmerEquity)}*
-• Est. Annual Farm Profit: *${formatLakhs(netEstimatedAnnualIncome)}* (Payback: ~${estPaybackYears} Years)
+• Indicative Project Economics: *Requires Confirmation*
 
 *${templateConfig.companyName}*
 Office: ${templateConfig.officeAddress}
@@ -1078,9 +1076,9 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
                       <tr className="hover:bg-slate-50/60">
                         <td className="py-2 px-3 font-mono text-slate-400">01</td>
                         <td className="py-2 px-3">
-                          <span className="font-bold text-slate-900 block">{templateConfig.itemTitles.civil}</span>
+                          <span className="font-bold text-slate-900 block">Civil Work & Flooring</span>
                           <span className="text-[10px] text-slate-500">
-                            High tensile steel truss, columns, roof purlins, 0.50mm galvalume roofing sheets with thermal insulation barrier, civil foundation & PCC concrete flooring.
+                            Civil foundations and PCC/RCC flooring as per the approved AKBS 20,000 Birds EC preliminary template.
                           </span>
                         </td>
                         <td className="py-2 px-3 text-center font-mono">{shedSqFt.toLocaleString()} sq.ft</td>
@@ -1093,15 +1091,13 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
                         <td className="py-2 px-3 font-mono text-slate-400">02</td>
                         <td className="py-2 px-3">
                           <span className="font-bold text-slate-900 block">
-                            {shedTech === 'EC' ? templateConfig.itemTitles.ventilation : 'Natural Ventilation System'}
+                            Steel Structural Work
                           </span>
                           <span className="text-[10px] text-slate-500">
-                            {shedTech === 'EC'
-                              ? `${fanCount} Nos 50" Galvanized cone exhaust fans, ${coolingPadSqFt} sq.ft 150mm cellulose cooling pads with stainless gutter, digital temperature/humidity controller, automated tunnel inlet curtains.`
-                              : 'Side mesh with winchable curtain system and air circulation fans.'}
+                            'Main columns, trusses, purlins, bracing and associated structural steel work as per approved AKBS specification.'
                           </span>
                         </td>
-                        <td className="py-2 px-3 text-center font-mono">{fanCount} Fans</td>
+                        <td className="py-2 px-3 text-center font-mono">Structural Package</td>
                         <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{formatINR(ventilationCost)}</td>
                       </tr>
                     )}
@@ -1110,12 +1106,12 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
                       <tr className="hover:bg-slate-50/60">
                         <td className="py-2 px-3 font-mono text-slate-400">03</td>
                         <td className="py-2 px-3">
-                          <span className="font-bold text-slate-900 block">{templateConfig.itemTitles.feeding}</span>
+                          <span className="font-bold text-slate-900 block">Roofing & GI Sheets</span>
                           <span className="text-[10px] text-slate-500">
-                            Automatic pan feeder lines with drive motors & ultrasonic feed level sensors, SS 360° nipple drinking lines with pressure regulators, filter and Dosatron medicator.
+                            0.50 mm TCT colour-coated GI roofing sheets and associated roofing components.
                           </span>
                         </td>
-                        <td className="py-2 px-3 text-center font-mono">Full Setup</td>
+                        <td className="py-2 px-3 text-center font-mono">Roofing Package</td>
                         <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{formatINR(feedingDrinkingCost)}</td>
                       </tr>
                     )}
@@ -1124,12 +1120,12 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
                       <tr className="hover:bg-slate-50/60">
                         <td className="py-2 px-3 font-mono text-slate-400">04</td>
                         <td className="py-2 px-3">
-                          <span className="font-bold text-slate-900 block">{templateConfig.itemTitles.silo}</span>
+                          <span className="font-bold text-slate-900 block">Environment Control Equipment</span>
                           <span className="text-[10px] text-slate-500">
-                            12-Ton corrugated hot-dip galvanized bulk silo with safety ladder, inspection glass, and automated feed transfer auger into shed hoppers.
+                            Tunnel ventilation, C-type cooling pad, 6 × 50" exhaust fans and digital climate-control equipment.
                           </span>
                         </td>
-                        <td className="py-2 px-3 text-center font-mono">1 Unit</td>
+                        <td className="py-2 px-3 text-center font-mono">EC Package</td>
                         <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{formatINR(siloCost)}</td>
                       </tr>
                     )}
@@ -1138,12 +1134,12 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
                       <tr className="hover:bg-slate-50/60">
                         <td className="py-2 px-3 font-mono text-slate-400">05</td>
                         <td className="py-2 px-3">
-                          <span className="font-bold text-slate-900 block">{templateConfig.itemTitles.electrical}</span>
+                          <span className="font-bold text-slate-900 block">Utilities & Infrastructure</span>
                           <span className="text-[10px] text-slate-500">
-                            IP65 main control panel with phase failure & overload relays, dimmable LED poultry lighting system, generator switchgear provision, and overhead water tank plumbing.
+                            Utilities and internal infrastructure included in the approved preliminary AKBS project estimate.
                           </span>
                         </td>
-                        <td className="py-2 px-3 text-center font-mono">Complete</td>
+                        <td className="py-2 px-3 text-center font-mono">Project Utilities</td>
                         <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{formatINR(electricalCost)}</td>
                       </tr>
                     )}
@@ -1152,20 +1148,23 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
                       <tr className="hover:bg-slate-50/60">
                         <td className="py-2 px-3 font-mono text-slate-400">06</td>
                         <td className="py-2 px-3">
-                          <span className="font-bold text-slate-900 block">{templateConfig.itemTitles.biosecurity}</span>
+                          <span className="font-bold text-slate-900 block">Contingency & Pre-operative Expenses</span>
                           <span className="text-[10px] text-slate-500">
-                            Vehicle tire dip bath, high-pressure fogger/sprayer for terminal disinfection, boot dip station, and basic operator supervisor room.
+                            Indicative contingency and pre-operative expenses included in the approved AKBS template.
                           </span>
                         </td>
-                        <td className="py-2 px-3 text-center font-mono">1 Setup</td>
+                        <td className="py-2 px-3 text-center font-mono">Lump Sum</td>
                         <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{formatINR(biosecurityCost)}</td>
                       </tr>
                     )}
 
-                    <tr className="bg-slate-50 font-semibold">
-                      <td colSpan={3} className="py-2 px-3 text-slate-600 text-right">Contingency, Freight & Site Erection (3%):</td>
-                      <td className="py-2 px-3 text-right font-mono text-slate-900">{formatINR(contingencyCost)}</td>
-                    </tr>
+                    {!isApprovedAkbsTemplate && (
+                      <tr className="bg-amber-50 font-semibold">
+                        <td colSpan={4} className="py-2.5 px-3 text-amber-800 text-center">
+                          Commercial rates for this capacity / technology are not approved in the saved AKBS template. Requires Confirmation.
+                        </td>
+                      </tr>
+                    )}
 
                     <tr className="bg-emerald-50/80 font-bold text-emerald-950 text-xs">
                       <td colSpan={3} className="py-2.5 px-3 text-right text-emerald-900">

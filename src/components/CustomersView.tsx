@@ -25,6 +25,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 }) => {
   const [search, setSearch] = useState('');
   const [stateFilter, setStateFilter] = useState('All');
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   const filteredCustomers = customers.filter(c => {
     const matchesSearch = 
@@ -127,7 +128,8 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
           return (
             <div
               key={cust.id}
-              className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs hover:border-emerald-400 hover:shadow-sm transition-all flex flex-col justify-between"
+              onClick={() => setSelectedCustomer(cust)}
+              className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs hover:border-emerald-400 hover:shadow-sm transition-all flex flex-col justify-between cursor-pointer"
             >
               <div>
                 <div className="flex items-start justify-between gap-2">
@@ -195,6 +197,31 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
           );
         })}
       </div>
+
+      {selectedCustomer && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setSelectedCustomer(null)}>
+          <div className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-slate-200" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+              <div><h2 className="text-base font-bold text-slate-900">{selectedCustomer.farmName}</h2><p className="text-xs text-emerald-800 font-semibold">{selectedCustomer.name}</p></div>
+              <button onClick={() => setSelectedCustomer(null)} className="text-slate-400 hover:text-slate-700 text-xl">×</button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mt-4 text-xs">
+              <div className="p-3 bg-slate-50 rounded-xl"><span className="text-slate-400">Phone</span><div className="font-mono font-bold">{selectedCustomer.phone}</div></div>
+              <div className="p-3 bg-slate-50 rounded-xl"><span className="text-slate-400">Email</span><div className="font-semibold break-all">{selectedCustomer.email}</div></div>
+              <div className="p-3 bg-slate-50 rounded-xl"><span className="text-slate-400">Location</span><div className="font-semibold">{selectedCustomer.location}, {selectedCustomer.state}</div></div>
+              <div className="p-3 bg-slate-50 rounded-xl"><span className="text-slate-400">Capacity</span><div className="font-mono font-bold">{selectedCustomer.capacity.toLocaleString()} Birds</div></div>
+              <div className="p-3 bg-slate-50 rounded-xl"><span className="text-slate-400">Shed Type</span><div className="font-semibold">{selectedCustomer.shedType}</div></div>
+              <div className="p-3 bg-slate-50 rounded-xl"><span className="text-slate-400">Status</span><div className="font-semibold">{selectedCustomer.status}</div></div>
+              <div className="p-3 bg-slate-50 rounded-xl"><span className="text-slate-400">Current Flock</span><div className="font-mono font-bold">{selectedCustomer.currentBatchBirds.toLocaleString()}</div></div>
+              <div className="p-3 bg-slate-50 rounded-xl"><span className="text-slate-400">Batches Completed</span><div className="font-mono font-bold">{selectedCustomer.batchesCompleted}</div></div>
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <a href={`tel:${selectedCustomer.phone}`} className="px-3 py-2 bg-emerald-50 text-emerald-800 rounded-lg font-bold text-xs">Call</a>
+              <a href={`mailto:${selectedCustomer.email}`} className="px-3 py-2 bg-[#0b2818] text-white rounded-lg font-bold text-xs">Email</a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -199,7 +199,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
       </div>
 
       {selectedCustomer && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setSelectedCustomer(null)}>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-4 overflow-y-auto" onClick={() => setSelectedCustomer(null)}>
           <div className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-slate-200 crm-modal-panel" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between pb-3 border-b border-slate-100">
               <div><h2 className="text-base font-bold text-slate-900">{selectedCustomer.farmName}</h2><p className="text-xs text-emerald-800 font-semibold">{selectedCustomer.name}</p></div>

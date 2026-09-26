@@ -391,8 +391,8 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
     const text = encodeURIComponent(generateWhatsAppMessage());
     const waUrl = `https://api.whatsapp.com/send?phone=${phoneWithCountry}&text=${text}`;
 
-    window.open(waUrl, '_blank');
-    setSendSuccess(`Soft Quotation successfully dispatched to WhatsApp (+91 ${cleanPhone})!`);
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+    setSendSuccess(`Quotation draft opened in WhatsApp. Review and send it there.`);
 
     if (onQuotationSent) {
       onQuotationSent(initialData?.leadId, {
@@ -410,7 +410,7 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
     const body = encodeURIComponent(generateWhatsAppMessage());
     const mailUrl = `mailto:${emailAddress || ''}?subject=${subject}&body=${body}`;
 
-    window.open(mailUrl, '_blank');
+    window.open(mailUrl, '_blank', 'noopener,noreferrer');
     setSendSuccess(`Soft Quotation draft opened in email!`);
 
     if (onQuotationSent) {

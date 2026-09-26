@@ -317,11 +317,35 @@ export default function App() {
 
   // Update Lead Status
   const handleUpdateLeadStatus = (leadId: string, status: LeadStatus) => {
+    const lead = leads.find(l => l.id === leadId);
     setLeads(prev =>
       prev.map(l => (l.id === leadId ? { ...l, status } : l))
     );
     if (selectedLeadForDrawer?.id === leadId) {
       setSelectedLeadForDrawer(prev => (prev ? { ...prev, status } : null));
+    }
+    if (status === 'Converted' && lead) {
+      setCustomers(prev => {
+        const exists = prev.some(c => c.phone.replace(/\D/g,'') === lead.phone.replace(/\D/g,''));
+        if (exists) return prev;
+        const newCustomer: Customer = {
+          id: `cust-${Date.now()}`,
+          name: lead.name,
+          farmName: `${lead.name} Poultry Farm`,
+          phone: lead.phone,
+          email: lead.email || '',
+          location: lead.location || lead.district || 'Madhya Pradesh',
+          state: lead.state || 'Madhya Pradesh',
+          capacity: lead.birdCapacity || 0,
+          shedType: lead.shedType?.toLowerCase().includes('open') ? 'Open Sided / Deep Litter' : 'Environment Controlled (EC)',
+          status: 'Active',
+          batchesCompleted: 0,
+          currentBatchBirds: 0,
+          joinedDate: new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),
+          integrationPartner: 'AKBS Direct Farming'
+        };
+        return [newCustomer, ...prev];
+      });
     }
   };
 
@@ -448,6 +472,9 @@ export default function App() {
               onUpdateLeadStatus={handleUpdateLeadStatus}
               onDeleteLead={handleDeleteLead}
               onOpenQuickAction={handleOpenQuickAction}
+              documents={documents}
+              followUps={followUps}
+              activities={activities}
             />
           )}
 

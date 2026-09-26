@@ -109,7 +109,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             ? 'translate-x-0 w-[248px] xl:w-[256px]'
             : '-translate-x-full lg:translate-x-0 lg:w-0 lg:overflow-hidden lg:border-r-0'}`}
       >
-        <div className="w-[248px] xl:w-[256px] h-full bg-[#031d14] border-r border-emerald-950/70 shadow-[10px_0_28px_rgba(1,25,17,0.16)] flex flex-col overflow-hidden">
+        <div className="w-[248px] xl:w-[256px] h-full crm-sidebar-panel bg-[#031d14] border-r border-emerald-950/70 shadow-[10px_0_28px_rgba(1,25,17,0.16)] flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto premium-sidebar-scroll bg-[radial-gradient(circle_at_45%_12%,rgba(16,185,129,0.10),transparent_22%),linear-gradient(180deg,#073323_0%,#04271b_38%,#031d14_100%)]">
             <div className="p-3 pb-3.5">
               <div className="sidebar-brand">

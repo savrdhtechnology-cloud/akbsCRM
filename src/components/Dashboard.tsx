@@ -798,7 +798,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                 <div className="flex items-center gap-1 shrink-0">
                   <button
-                    onClick={() => { window.location.href = `tel:${item.phone || selectedInquiry?.phone || ''}`; }}
+                    onClick={() => {
+                      const phone = leads.find(lead => lead.name.toLowerCase() === item.name.toLowerCase())?.phone || selectedInquiry?.phone || '';
+                      if (phone) window.location.href = `tel:${phone}`;
+                    }}
                     className="p-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600"
                     title="Call"
                   >

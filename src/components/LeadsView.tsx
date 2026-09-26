@@ -35,7 +35,7 @@ import {
   UploadCloud,
   CheckSquare
 } from 'lucide-react';
-import { Lead, LeadStatus, LeadSource } from '../types';
+import { Lead, LeadStatus, LeadSource, DocumentRecord, FollowUp, Activity } from '../types';
 import { SoftQuotationModal } from './SoftQuotationModal';
 
 interface LeadsViewProps {
@@ -46,6 +46,9 @@ interface LeadsViewProps {
   onUpdateLeadStatus: (leadId: string, status: LeadStatus) => void;
   onDeleteLead: (leadId: string) => void;
   onOpenQuickAction?: (actionKey: string, lead?: Lead) => void;
+  documents?: DocumentRecord[];
+  followUps?: FollowUp[];
+  activities?: Activity[];
 }
 
 export const LeadsView: React.FC<LeadsViewProps> = ({
@@ -55,7 +58,10 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   onOpenAddLead,
   onUpdateLeadStatus,
   onDeleteLead,
-  onOpenQuickAction
+  onOpenQuickAction,
+  documents = [],
+  followUps = [],
+  activities = []
 }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'my' | 'unassigned'>('all');
   const [search, setSearch] = useState('');
@@ -70,6 +76,8 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
     return leads[0] || ({} as Lead);
   });
   const [isQuotationModalOpen, setIsQuotationModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const perPage = 10;
 
   const [activeDetailTab, setActiveDetailTab] = useState<
     'overview' | 'project' | 'financial' | 'documents' | 'activities' | 'followups'
@@ -118,7 +126,38 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
     return matchesSearch && matchesStage && matchesState && matchesSource;
   });
 
+  React.useEffect(() => {
+    setPage(1);
+  }, [search, stageFilter, stateFilter, sourceFilter, activeTab]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredLeads.length / perPage));
+  const safePage = Math.min(page, pageCount);
+  const pagedLeads = filteredLeads.slice((safePage - 1) * perPage, safePage * perPage);
+
   const currentLead = leads.find(l => l.id === selectedLead.id) || selectedLead || leads[0];
+  const relatedDocuments = documents.filter(d =>
+    d.relatedEntity.toLowerCase().includes(currentLead?.name?.toLowerCase() || '')
+  );
+  const relatedFollowUps = followUps.filter(f => f.leadId === currentLead?.id);
+  const similarLeads = leads
+    .filter(l => l.id !== currentLead?.id)
+    .sort((a, b) => Math.abs((a.birdCapacity || 0) - (currentLead?.birdCapacity || 0)) - Math.abs((b.birdCapacity || 0) - (currentLead?.birdCapacity || 0)))
+    .slice(0, 3);
+
+  const exportFilteredLeads = () => {
+    const rows = [
+      ['Name','Phone','Email','Location','Status','Source','Bird Capacity','Assigned To'],
+      ...filteredLeads.map(l => [l.name,l.phone,l.email,l.location,l.status,l.source,String(l.birdCapacity),l.assignedTo])
+    ];
+    const csv = rows.map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'akbs-leads.csv';
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleSaveNote = () => {
     if (!newNoteText.trim()) return;
@@ -206,7 +245,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             </div>
             <div>
               <div className="text-[10px] text-slate-500 font-medium leading-none">Total Leads</div>
-              <div className="text-sm font-extrabold text-blue-950 font-mono mt-0.5">248</div>
+              <div className="text-sm font-extrabold text-blue-950 font-mono mt-0.5">{leads.length}</div>
             </div>
           </div>
 
@@ -216,7 +255,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             </div>
             <div>
               <div className="text-[10px] text-slate-500 font-medium leading-none">New Leads</div>
-              <div className="text-sm font-extrabold text-emerald-950 font-mono mt-0.5">56</div>
+              <div className="text-sm font-extrabold text-emerald-950 font-mono mt-0.5">{leads.filter(l => l.status === 'New').length}</div>
             </div>
           </div>
 
@@ -226,7 +265,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             </div>
             <div>
               <div className="text-[10px] text-slate-500 font-medium leading-none">In Process</div>
-              <div className="text-sm font-extrabold text-amber-950 font-mono mt-0.5">112</div>
+              <div className="text-sm font-extrabold text-amber-950 font-mono mt-0.5">{leads.filter(l => !['New','Converted','Lost'].includes(l.status)).length}</div>
             </div>
           </div>
 
@@ -236,7 +275,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             </div>
             <div>
               <div className="text-[10px] text-slate-500 font-medium leading-none">Site Visit</div>
-              <div className="text-sm font-extrabold text-purple-950 font-mono mt-0.5">34</div>
+              <div className="text-sm font-extrabold text-purple-950 font-mono mt-0.5">{leads.filter(l => l.status === 'Site Visit').length}</div>
             </div>
           </div>
 
@@ -246,7 +285,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             </div>
             <div>
               <div className="text-[10px] text-slate-500 font-medium leading-none">Converted</div>
-              <div className="text-sm font-extrabold text-teal-950 font-mono mt-0.5">46</div>
+              <div className="text-sm font-extrabold text-teal-950 font-mono mt-0.5">{leads.filter(l => l.status === 'Converted').length}</div>
             </div>
           </div>
 
@@ -286,7 +325,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                   activeTab === 'my' ? 'bg-white text-slate-900 shadow-2xs font-extrabold' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                My Leads (42)
+                My Leads ({leads.filter(l => l.assignedTo?.includes('Shailendra') || l.assignedTo?.includes('Ankit')).length})
               </button>
               <button
                 onClick={() => setActiveTab('unassigned')}
@@ -294,11 +333,11 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                   activeTab === 'unassigned' ? 'bg-white text-slate-900 shadow-2xs font-extrabold' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                Unassigned (18)
+                Unassigned ({leads.filter(l => !l.assignedTo || l.assignedTo === 'Unassigned').length})
               </button>
             </div>
-            <button className="text-slate-400 hover:text-slate-600 p-1">
-              <MoreVertical className="w-4 h-4" />
+            <button onClick={exportFilteredLeads} className="text-slate-400 hover:text-slate-600 p-1" title="Export filtered leads CSV">
+              <Download className="w-4 h-4" />
             </button>
           </div>
 
@@ -362,7 +401,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
 
           {/* Lead Cards List */}
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100 p-2 space-y-1">
-            {filteredLeads.map((lead) => {
+            {pagedLeads.map((lead) => {
               const isSelected = lead.id === currentLead.id;
               const initials = getInitials(lead.name);
 
@@ -419,21 +458,35 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
 
           {/* Pagination Footer */}
           <div className="p-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-slate-50/50">
-            <span>Showing 1-10 of {leads.length} leads</span>
+            <span>
+              Showing {filteredLeads.length === 0 ? 0 : (safePage - 1) * perPage + 1}-{Math.min(safePage * perPage, filteredLeads.length)} of {filteredLeads.length} leads
+            </span>
             <div className="flex items-center gap-1 font-mono">
-              <button className="w-6 h-6 rounded flex items-center justify-center border bg-white text-slate-600 hover:bg-slate-100">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                className="w-6 h-6 rounded flex items-center justify-center border bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+              >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
-              <button className="w-6 h-6 rounded flex items-center justify-center bg-[#0b2818] text-white font-bold text-xs">
-                1
-              </button>
-              <button className="w-6 h-6 rounded flex items-center justify-center border bg-white text-slate-600 hover:bg-slate-100">
-                2
-              </button>
-              <button className="w-6 h-6 rounded flex items-center justify-center border bg-white text-slate-600 hover:bg-slate-100">
-                3
-              </button>
-              <button className="w-6 h-6 rounded flex items-center justify-center border bg-white text-slate-600 hover:bg-slate-100">
+              {Array.from({ length: Math.min(3, pageCount) }, (_, index) => {
+                const start = Math.max(1, Math.min(safePage - 1, pageCount - 2));
+                const pageNo = start + index;
+                return (
+                  <button
+                    key={pageNo}
+                    onClick={() => setPage(pageNo)}
+                    className={`w-6 h-6 rounded flex items-center justify-center border font-bold text-xs ${safePage === pageNo ? 'bg-[#0b2818] text-white border-[#0b2818]' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
+                  >
+                    {pageNo}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => setPage(p => Math.min(pageCount, p + 1))}
+                disabled={safePage >= pageCount}
+                className="w-6 h-6 rounded flex items-center justify-center border bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+              >
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -516,7 +569,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                   <UserPlus className="w-3.5 h-3.5 text-slate-500" />
                   <span>Assign</span>
                 </button>
-                <button className="p-1.5 border border-slate-200 rounded-lg text-slate-400 hover:text-slate-700">
+                <button onClick={() => setActiveDetailTab('activities')} className="p-1.5 border border-slate-200 rounded-lg text-slate-400 hover:text-slate-700" title="View activities">
                   <MoreVertical className="w-4 h-4" />
                 </button>
               </div>
@@ -546,6 +599,8 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
               ))}
             </div>
 
+            {activeDetailTab === 'overview' && (
+              <>
             {/* Basic Information Box */}
             <div className="bg-slate-50/60 rounded-xl p-3.5 border border-slate-200/80 space-y-2 text-xs">
               <div className="flex items-center gap-2 font-bold text-slate-900 border-b border-slate-200/60 pb-1.5">
@@ -740,30 +795,99 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                   <Layers className="w-3.5 h-3.5 text-emerald-700" />
                   Similar Leads / Suggestions
                 </span>
-                <button className="text-emerald-700 hover:underline font-semibold text-[11px]">
+                <button onClick={() => setActiveDetailTab('project')} className="text-emerald-700 hover:underline font-semibold text-[11px]">
                   View Similar
                 </button>
               </div>
               <div className="grid grid-cols-3 gap-2 text-xs">
-                {[
-                  { name: 'Manoj Kumar', loc: 'Raisen, MP', cost: '₹1.5 Cr', birds: '20,000 Birds', color: 'bg-purple-600' },
-                  { name: 'Deepak Singh', loc: 'Sehore, MP', cost: '₹1.8 Cr', birds: '25,000 Birds', color: 'bg-teal-600' },
-                  { name: 'Arvind Patel', loc: 'Vidisha, MP', cost: '₹2 Cr', birds: '30,000 Birds', color: 'bg-rose-600' }
-                ].map((item, idx) => (
-                  <div key={idx} className="p-2 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white transition-all cursor-pointer">
+                {similarLeads.map((item) => (
+                  <button key={item.id} onClick={() => handleSelectLeadCard(item)} className="p-2 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white transition-all cursor-pointer text-left">
                     <div className="flex items-center gap-1.5">
-                      <div className={`w-5 h-5 rounded-full ${item.color} text-white text-[9px] font-bold flex items-center justify-center`}>
-                        {item.name[0]}
+                      <div className={`w-5 h-5 rounded-full ${getAvatarColor(item.name)} text-[9px] font-bold flex items-center justify-center`}>
+                        {getInitials(item.name)}
                       </div>
                       <div className="font-bold text-[11px] text-slate-900 truncate">{item.name}</div>
                     </div>
-                    <div className="text-[10px] text-slate-500 mt-1">{item.loc}</div>
-                    <div className="text-[10px] font-bold font-mono text-emerald-900">{item.cost}</div>
-                    <div className="text-[9px] text-slate-400">{item.birds}</div>
-                  </div>
+                    <div className="text-[10px] text-slate-500 mt-1">{item.location}</div>
+                    <div className="text-[10px] font-bold font-mono text-emerald-900">{item.estimatedCost || item.budgetEstimate}</div>
+                    <div className="text-[9px] text-slate-400">{item.birdCapacity.toLocaleString()} Birds</div>
+                  </button>
                 ))}
               </div>
             </div>
+              </>
+            )}
+
+            {activeDetailTab === 'project' && (
+              <div className="bg-slate-50/60 rounded-xl p-4 border border-slate-200/80 space-y-3 text-xs">
+                <div className="font-bold text-slate-900 flex items-center gap-2"><Building className="w-4 h-4 text-emerald-700" />Project Details</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><span className="text-slate-400">Project Type</span><div className="font-bold">{currentLead.projectType}</div></div>
+                  <div><span className="text-slate-400">Bird Capacity</span><div className="font-bold font-mono">{currentLead.birdCapacity.toLocaleString()} Birds</div></div>
+                  <div><span className="text-slate-400">Shed Type</span><div className="font-semibold">{currentLead.shedType || 'Not specified'}</div></div>
+                  <div><span className="text-slate-400">Land Area</span><div className="font-semibold">{currentLead.landArea || 'Not specified'}</div></div>
+                  <div><span className="text-slate-400">Land Ownership</span><div className="font-semibold">{currentLead.landOwnership || currentLead.landAvailable || 'Not specified'}</div></div>
+                  <div><span className="text-slate-400">Timeline</span><div className="font-semibold">{currentLead.timeline || 'Not specified'}</div></div>
+                  <div className="col-span-2"><span className="text-slate-400">Support Needed</span><div className="font-semibold">{currentLead.supportNeeded?.join(', ') || 'Turnkey project guidance'}</div></div>
+                </div>
+                <button onClick={() => onOpenQuickAction?.('edit', currentLead)} className="px-3 py-2 bg-white border border-slate-200 rounded-lg font-bold text-slate-700 hover:bg-slate-100">Edit Project Details</button>
+              </div>
+            )}
+
+            {activeDetailTab === 'financial' && (
+              <div className="bg-slate-50/60 rounded-xl p-4 border border-slate-200/80 space-y-3 text-xs">
+                <div className="font-bold text-slate-900 flex items-center gap-2"><Landmark className="w-4 h-4 text-emerald-700" />Financial & Loan Requirement</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><span className="text-slate-400">Budget Estimate</span><div className="font-bold text-emerald-800">{currentLead.estimatedCost || currentLead.budgetEstimate}</div></div>
+                  <div><span className="text-slate-400">Loan Required</span><div className="font-bold">{currentLead.loanRequired || 'To be discussed'}</div></div>
+                  <div><span className="text-slate-400">Status</span><div className="font-semibold">{currentLead.status}</div></div>
+                  <div><span className="text-slate-400">Priority</span><div className="font-semibold">{currentLead.priority || 'Medium'}</div></div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => onOpenQuickAction?.('loan-application', currentLead)} className="px-3 py-2 bg-[#0b2818] text-white rounded-lg font-bold">Create Loan File</button>
+                  <button onClick={() => setIsQuotationModalOpen(true)} className="px-3 py-2 bg-amber-400 text-slate-950 rounded-lg font-bold">Soft Quotation</button>
+                </div>
+              </div>
+            )}
+
+            {activeDetailTab === 'documents' && (
+              <div className="bg-slate-50/60 rounded-xl p-4 border border-slate-200/80 space-y-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <div className="font-bold text-slate-900 flex items-center gap-2"><Paperclip className="w-4 h-4 text-emerald-700" />Documents for {currentLead.name}</div>
+                  <button onClick={() => onOpenQuickAction?.('upload-document', currentLead)} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg font-bold text-emerald-800"><UploadCloud className="w-3.5 h-3.5 inline mr-1"/>Upload</button>
+                </div>
+                {relatedDocuments.length ? relatedDocuments.map(doc => (
+                  <div key={doc.id} className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
+                    <div><div className="font-bold text-slate-900">{doc.name}</div><div className="text-[10px] text-slate-400">{doc.category} · {doc.fileSize} · {doc.uploadDate}</div></div>
+                    <span className="text-[10px] px-2 py-1 bg-slate-100 rounded-full">{doc.status}</span>
+                  </div>
+                )) : <div className="p-4 bg-white border border-dashed border-slate-300 rounded-xl text-slate-500 text-center">No documents linked to this lead yet.</div>}
+              </div>
+            )}
+
+            {activeDetailTab === 'activities' && (
+              <div className="bg-slate-50/60 rounded-xl p-4 border border-slate-200/80 space-y-3 text-xs">
+                <div className="font-bold text-slate-900 flex items-center gap-2"><Clock className="w-4 h-4 text-emerald-700" />Activity Timeline</div>
+                <div className="space-y-2">
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl"><div className="font-bold">Lead created</div><div className="text-slate-500">{currentLead.date}, {currentLead.time} · Source: {currentLead.source}</div></div>
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl"><div className="font-bold">Current stage</div><div className="text-slate-500">{currentLead.status} · Assigned to {currentLead.assignedTo || 'Unassigned'}</div></div>
+                  {activities.slice(0,4).map(a => <div key={a.id} className="p-3 bg-white border border-slate-200 rounded-xl"><div className="font-bold">{a.title}</div><div className="text-slate-500">{a.description} · {a.time}</div></div>)}
+                </div>
+              </div>
+            )}
+
+            {activeDetailTab === 'followups' && (
+              <div className="bg-slate-50/60 rounded-xl p-4 border border-slate-200/80 space-y-3 text-xs">
+                <div className="flex items-center justify-between"><div className="font-bold text-slate-900 flex items-center gap-2"><Calendar className="w-4 h-4 text-emerald-700" />Follow-ups</div><button onClick={() => onOpenQuickAction?.('followup', currentLead)} className="px-3 py-1.5 bg-[#0b2818] text-white rounded-lg font-bold">Schedule</button></div>
+                {relatedFollowUps.length ? relatedFollowUps.map(f => (
+                  <div key={f.id} className="p-3 bg-white border border-slate-200 rounded-xl flex items-start justify-between gap-3">
+                    <div><div className="font-bold">{f.type} · {f.scheduledDate} {f.scheduledTime}</div><div className="text-slate-500 mt-1">{f.notes}</div></div>
+                    <span className="text-[10px] px-2 py-1 bg-slate-100 rounded-full">{f.status}</span>
+                  </div>
+                )) : <div className="p-4 bg-white border border-dashed border-slate-300 rounded-xl text-slate-500 text-center">No follow-ups scheduled for this lead.</div>}
+              </div>
+            )}
+
           </div>
         </div>
 
@@ -776,7 +900,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                 <Clock className="w-3.5 h-3.5 text-emerald-700" />
                 <span>Timeline / Activity Log</span>
               </h3>
-              <button className="text-[11px] text-emerald-700 font-semibold hover:underline">
+              <button onClick={() => setActiveDetailTab('activities')} className="text-[11px] text-emerald-700 font-semibold hover:underline">
                 View All
               </button>
             </div>
@@ -865,7 +989,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                 <Calendar className="w-3.5 h-3.5 text-emerald-700" />
                 <span>Upcoming Follow-ups</span>
               </h3>
-              <button className="text-[11px] text-emerald-700 font-semibold hover:underline">
+              <button onClick={() => setActiveDetailTab('followups')} className="text-[11px] text-emerald-700 font-semibold hover:underline">
                 View All
               </button>
             </div>
@@ -876,7 +1000,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                   <Phone className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Call with {currentLead.name}</span>
                 </div>
-                <button className="text-slate-400 hover:text-slate-600">
+                <button onClick={() => setActiveDetailTab('followups')} className="text-slate-400 hover:text-slate-600">
                   <MoreVertical className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -896,7 +1020,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                 <Paperclip className="w-3.5 h-3.5 text-emerald-700" />
                 <span>Related Documents</span>
               </h3>
-              <button className="text-[11px] text-emerald-700 font-bold hover:underline flex items-center gap-1">
+              <button onClick={() => onOpenQuickAction?.('upload-document', currentLead)} className="text-[11px] text-emerald-700 font-bold hover:underline flex items-center gap-1">
                 <UploadCloud className="w-3 h-3" />
                 <span>Upload</span>
               </button>
@@ -916,7 +1040,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                       <div className="text-[10px] text-slate-400 font-mono">{doc.size} • {doc.date}</div>
                     </div>
                   </div>
-                  <button className="text-slate-400 hover:text-slate-600">
+                  <button onClick={() => setActiveDetailTab('documents')} className="text-slate-400 hover:text-slate-600">
                     <MoreVertical className="w-3.5 h-3.5" />
                   </button>
                 </div>

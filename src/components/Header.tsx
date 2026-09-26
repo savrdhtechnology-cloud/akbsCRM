@@ -97,9 +97,9 @@ export const Header: React.FC<HeaderProps> = ({
     : [];
 
   return (
-    <header className="crm-header sticky top-0 z-30 h-16 bg-white border-b border-slate-200/80 px-4 lg:px-6 flex items-center justify-between shadow-xs">
+    <header className="crm-header sticky top-0 z-30 min-h-16 h-auto bg-white border-b border-slate-200/80 px-4 lg:px-6 flex items-center justify-between shadow-xs">
       {/* Left: Mobile Toggle & Global Search */}
-      <div className="flex items-center gap-3 flex-1 max-w-xl">
+      <div className="flex items-center gap-3 flex-1 min-w-0 max-w-xl crm-header-search-row">
         <button
           onClick={onToggleSidebar}
           className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
@@ -109,7 +109,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         {/* Global Search Bar */}
-        <div className="relative w-full max-w-md hidden sm:block">
+        <div className="relative flex-1 min-w-0 w-full max-w-md crm-header-search">
           <div className="relative flex items-center">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
             <input
@@ -189,7 +189,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Right: + Add, Notification, Messages, Settings, User profile */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0 crm-header-actions">
         {/* + Add Dropdown */}
         <div className="relative" ref={addMenuRef}>
           <button

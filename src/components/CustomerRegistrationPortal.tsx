@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   CheckCircle2,
   ShieldCheck,
@@ -37,6 +37,8 @@ import broilerImg from '../assets/images/broiler_poultry_birds_1790286868486.jpg
 import akbsLogoImg from '../assets/images/akbs_poultry_logo_1790286883961.jpg';
 import aerialLandImg from '../assets/images/aerial_farm_land_1790245878786.jpg';
 import { Lead } from '../types';
+import { PortalAccess, usePortal } from './PortalAccess';
+import { STAGES } from '../lib/leadAdapter';
 
 interface CustomerRegistrationPortalProps {
   onRegisterCustomer?: (newLead: Partial<Lead>) => void;
@@ -49,11 +51,7 @@ type ConsentLanguage = 'English' | 'Hindi';
 
 const CUSTOMER_CONSENT_VERSION = 'AKBS-CONSENT-2026-V1';
 
-const CUSTOMER_AUTH_URL = import.meta.env.VITE_SUPABASE_URL || 'https://ldffgetuzoeupuhoaubn.supabase.co';
-const CUSTOMER_AUTH_KEY =
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  'sb_publishable_KzdI4K0qLXgi3MhA5GXPhg_6f5vB8By';
+
 
 
 const CUSTOMER_CONSENT_CONTENT: Record<ConsentLanguage, {
@@ -270,31 +268,19 @@ const createBlankCustomerApplication = () => ({
   declarationConfirmed: false
 });
 
-export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProps> = ({
+export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProps> = props => <PortalAccess kind="customer"><CustomerApplication {...props}/></PortalAccess>;
+
+const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
   onRegisterCustomer,
   onGoToCRM,
   onGoToLeads
 }) => {
-  // Entry flow: OTP verification is mandatory before customer portal access.
-  const [customerAuthenticated, setCustomerAuthenticated] = useState(false);
-  const [authChecking, setAuthChecking] = useState(true);
-  const [otpIntent, setOtpIntent] = useState<'login' | 'signup'>('login');
-  const [otpChannel, setOtpChannel] = useState<'email' | 'phone'>('phone');
-  const [otpIdentifier, setOtpIdentifier] = useState('');
-  const [otpCode, setOtpCode] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpBusy, setOtpBusy] = useState(false);
-  const [otpError, setOtpError] = useState('');
-  const [portalEntryMode, setPortalEntryMode] = useState<'welcome' | 'signup' | 'form'>('welcome');
-  const [loginApplicationId, setLoginApplicationId] = useState('');
-  const [loginMobile, setLoginMobile] = useState('');
-  const [loginMessage, setLoginMessage] = useState('');
-  const [signupName, setSignupName] = useState('');
-  const [signupMobile, setSignupMobile] = useState('');
-  const [signupEmail, setSignupEmail] = useState('');
-  const [signupMessage, setSignupMessage] = useState('');
-  const [loggedInCustomerMobile, setLoggedInCustomerMobile] = useState('');
-  const [registrationMode, setRegistrationMode] = useState<'gate' | 'form'>('form');
+  const portal = usePortal();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const submitLock = useRef(false);
+  const requestId = useRef(crypto.randomUUID());
+  const [registrationMode, setRegistrationMode] = useState<'gate' | 'form'>(portal.applications.length ? 'gate' : 'form');
   const [duplicateApplication, setDuplicateApplication] = useState<any>(null);
 
   // View mode: 'wizard' (Step-by-step interactive) or 'poster' (All 6 screens matching reference poster)
@@ -309,7 +295,7 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
   >('registration');
 
   // Form Data State matching all 6 steps from the reference mockup
-  const [formData, setFormData] = useState(() => createBlankCustomerApplication());
+  const [formData, setFormData] = useState(() => ({ ...createBlankCustomerApplication(), fullName: portal.profile.name || '', email: portal.profile.email || '' }));
 
   // Track Application state
   const [trackSearchId, setTrackSearchId] = useState('');
@@ -325,128 +311,6 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
   const [consentTermsAccepted, setConsentTermsAccepted] = useState(false);
   const [consentContactAccepted, setConsentContactAccepted] = useState(false);
   const [consentScrolledToEnd, setConsentScrolledToEnd] = useState(false);
-
-  const normalizeOtpPhone = (value: string) => {
-    const digits = value.replace(/\D/g, '').slice(-10);
-    return digits.length === 10 ? `+91${digits}` : '';
-  };
-
-  const authFetch = async (path: string, body?: Record<string, unknown>, accessToken?: string) => {
-    const response = await fetch(`${CUSTOMER_AUTH_URL}/auth/v1/${path}`, {
-      method: body ? 'POST' : 'GET',
-      headers: {
-        apikey: CUSTOMER_AUTH_KEY,
-        'Content-Type': 'application/json',
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
-      },
-      ...(body ? { body: JSON.stringify(body) } : {})
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(data?.msg || data?.message || data?.error_description || data?.error || 'Authentication request failed.');
-    }
-    return data;
-  };
-
-  useEffect(() => {
-    let active = true;
-    const checkExistingSession = async () => {
-      try {
-        const token = window.sessionStorage.getItem('akbs.customer.auth.token') || '';
-        if (!token) return;
-        const authUser = await authFetch('user', undefined, token);
-        if (!active || !authUser?.id) return;
-        setCustomerAuthenticated(true);
-        const verifiedPhone = String(authUser.phone || '').replace(/\D/g, '').slice(-10);
-        if (verifiedPhone) setLoggedInCustomerMobile(verifiedPhone);
-      } catch {
-        window.sessionStorage.removeItem('akbs.customer.auth.token');
-        window.sessionStorage.removeItem('akbs.customer.auth.refresh');
-      } finally {
-        if (active) setAuthChecking(false);
-      }
-    };
-    void checkExistingSession();
-    return () => { active = false; };
-  }, []);
-
-  const sendCustomerOtp = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    setOtpBusy(true);
-    setOtpError('');
-    setOtpCode('');
-    try {
-      if (otpChannel === 'phone') {
-        const phone = normalizeOtpPhone(otpIdentifier);
-        if (!phone) throw new Error('Please enter a valid 10-digit mobile number.');
-        await authFetch('otp', {
-          phone,
-          create_user: otpIntent === 'signup',
-          channel: 'sms'
-        });
-      } else {
-        const email = otpIdentifier.trim().toLowerCase();
-        if (!/^\S+@\S+\.\S+$/.test(email)) throw new Error('Please enter a valid email address.');
-        await authFetch('otp', {
-          email,
-          create_user: otpIntent === 'signup'
-        });
-      }
-      setOtpSent(true);
-    } catch (e: any) {
-      setOtpError(e.message || 'Unable to send OTP.');
-    } finally {
-      setOtpBusy(false);
-    }
-  };
-
-  const verifyCustomerOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setOtpBusy(true);
-    setOtpError('');
-    try {
-      if (!/^\d{6}$/.test(otpCode.trim())) throw new Error('Please enter the 6-digit OTP.');
-      const payload = otpChannel === 'phone'
-        ? { type: 'sms', phone: normalizeOtpPhone(otpIdentifier), token: otpCode.trim() }
-        : { type: 'email', email: otpIdentifier.trim().toLowerCase(), token: otpCode.trim() };
-      const result = await authFetch('verify', payload);
-      if (!result?.access_token) throw new Error('OTP verification did not create a valid session.');
-
-      window.sessionStorage.setItem('akbs.customer.auth.token', result.access_token);
-      if (result.refresh_token) window.sessionStorage.setItem('akbs.customer.auth.refresh', result.refresh_token);
-
-      setCustomerAuthenticated(true);
-      setOtpSent(false);
-      setOtpCode('');
-      setOtpError('');
-
-      const verifiedPhone = otpChannel === 'phone'
-        ? normalizeOtpPhone(otpIdentifier).replace(/\D/g, '').slice(-10)
-        : String(result?.user?.phone || '').replace(/\D/g, '').slice(-10);
-      if (verifiedPhone) setLoggedInCustomerMobile(verifiedPhone);
-
-      if (otpIntent === 'signup') {
-        const verifiedEmail = otpChannel === 'email' ? otpIdentifier.trim().toLowerCase() : String(result?.user?.email || '');
-        const verifiedMobile = otpChannel === 'phone' ? normalizeOtpPhone(otpIdentifier).replace(/\D/g, '').slice(-10) : '';
-        setFormData(prev => ({
-          ...prev,
-          mobileNumber: verifiedMobile || prev.mobileNumber,
-          whatsAppNumber: verifiedMobile || prev.whatsAppNumber,
-          email: verifiedEmail || prev.email
-        }));
-        setRegistrationMode('form');
-        setCurrentStep(1);
-        setMaxUnlockedStep(1);
-        setPortalEntryMode('form');
-      } else {
-        setPortalEntryMode('welcome');
-      }
-    } catch (e: any) {
-      setOtpError(e.message || 'OTP verification failed.');
-    } finally {
-      setOtpBusy(false);
-    }
-  };
 
   const stepsList = [
     { num: 1, label: 'Basic Details', subtitle: 'Name, Mobile, WhatsApp, Email, Language' },
@@ -521,23 +385,7 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     }
   };
 
-  const getSavedApplications = () => {
-    try {
-      const applications = JSON.parse(window.localStorage.getItem('akbs.customer.applications') || '[]');
-      return Array.isArray(applications) ? applications : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const getCrmLeads = () => {
-    try {
-      const crmLeads = JSON.parse(window.localStorage.getItem('akbs.crm.leads') || '[]');
-      return Array.isArray(crmLeads) ? crmLeads : [];
-    } catch {
-      return [];
-    }
-  };
+  const getSavedApplications = () => portal.applications.map(item => ({ ...item, status: STAGES[item.status] || item.status }));
 
   const normalizeText = (value: unknown) => String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
   const normalizeMobile = (value: unknown) => String(value ?? '').replace(/\D/g, '').slice(-10);
@@ -565,17 +413,14 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     }) || null;
   };
 
-  const getLoggedInApplications = () => {
-    if (!loggedInCustomerMobile) return [];
-    return searchSavedApplications(loggedInCustomerMobile);
-  };
+  const getLoggedInApplications = () => getSavedApplications();
 
   const openRegistrationArea = () => {
     setActiveSideMenu('registration');
     setIsSubmitted(false);
     setDuplicateApplication(null);
 
-    if (loggedInCustomerMobile && searchSavedApplications(loggedInCustomerMobile).length > 0) {
+    if (portal.applications.length > 0) {
       setRegistrationMode('gate');
       return;
     }
@@ -583,112 +428,22 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     setRegistrationMode('form');
   };
 
-  const generateLeadId = () => {
-    const year = new Date().getFullYear();
-    const sequenceKey = `akbs.customer.lead.sequence.${year}`;
-    const existing = getSavedApplications();
-    let sequence = Number(window.localStorage.getItem(sequenceKey) || '0') + 1;
-    let candidate = `AKBS-LEAD-${year}-${String(sequence).padStart(4, '0')}`;
-
-    while (existing.some((item: any) => String(item.appId || '').toUpperCase() === candidate)) {
-      sequence += 1;
-      candidate = `AKBS-LEAD-${year}-${String(sequence).padStart(4, '0')}`;
-    }
-
-    window.localStorage.setItem(sequenceKey, String(sequence));
-    return candidate;
-  };
-
-  const handleSubmitApplication = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!customerAuthenticated) return;
-
-    if (!consentTermsAccepted || !consentContactAccepted) {
-      return;
-    }
-
-    const duplicate = findDuplicateApplication(formData);
-    if (duplicate) {
-      setDuplicateApplication(duplicate);
-      setIsConsentModalOpen(false);
-      setIsSubmitted(false);
-      setActiveSideMenu('registration');
-      setRegistrationMode('form');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    const consentTimestamp = new Date().toISOString();
-    const submittedFormData = {
-      ...formData,
-      declarationConfirmed: true
-    };
-    setFormData(submittedFormData);
-
-    const generatedId = generateLeadId();
-    setSubmittedAppId(generatedId);
-    setLoggedInCustomerMobile(normalizeMobile(submittedFormData.mobileNumber));
-    setRegistrationMode('gate');
-    setDuplicateApplication(null);
-    setIsSubmitted(true);
-    setIsConsentModalOpen(false);
-
+  const handleSubmitApplication = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (submitLock.current || !consentTermsAccepted || !consentContactAccepted || !consentScrolledToEnd) return;
+    submitLock.current = true; setSubmitting(true); setSubmitError('');
     try {
-      const existing = JSON.parse(window.localStorage.getItem('akbs.customer.applications') || '[]');
-      const applicationRecord = {
-        appId: generatedId,
-        mobileNumber: submittedFormData.mobileNumber,
-        submittedAt: consentTimestamp,
-        formData: submittedFormData,
-        consent: {
-          version: CUSTOMER_CONSENT_VERSION,
-          language: consentLanguage,
-          declarationAccepted: true,
-          communicationConsentAccepted: true,
-          acceptedAt: consentTimestamp
-        }
-      };
-      window.localStorage.setItem(
-        'akbs.customer.applications',
-        JSON.stringify([applicationRecord, ...existing.filter((item: any) => item.appId !== generatedId)])
-      );
-    } catch {
-      // Local tracking persistence is optional; registration submission should still continue.
-    }
-
-    if (onRegisterCustomer) {
-      onRegisterCustomer({
-        name: submittedFormData.fullName,
-        phone: `+91 ${submittedFormData.mobileNumber}`,
-        whatsApp: `+91 ${submittedFormData.whatsAppNumber || submittedFormData.mobileNumber}`,
-        email: submittedFormData.email,
-        source: 'Website',
-        status: 'New',
-        isHot: true,
-        priority: 'High',
-        location: `${submittedFormData.villageOrCity}, ${submittedFormData.district}, ${submittedFormData.state}`,
-        state: submittedFormData.state,
-        district: submittedFormData.district,
-        village: submittedFormData.villageOrCity,
-        birdCapacity: parseInt(submittedFormData.proposedCapacity.replace(/,/g, ''), 10) || 0,
-        projectType: submittedFormData.poultryType.includes('Layer') ? 'Layer' : 'Broiler',
-        shedType: submittedFormData.shedType,
-        budgetEstimate: submittedFormData.approxProjectCost,
-        estimatedCost: submittedFormData.approxProjectCost,
-        landAvailable: submittedFormData.hasLand === 'Yes' ? `Yes (${submittedFormData.landOwnership})` : 'No',
-        landOwnership: submittedFormData.landOwnership,
-        landArea: `${submittedFormData.landAreaAcres} Acres`,
-        loanRequired: submittedFormData.needsLoan === 'Yes' ? `Yes (${submittedFormData.approxLoanAmount})` : submittedFormData.needsLoan,
-        timeline: submittedFormData.startTimeline,
-        language: submittedFormData.preferredLanguage,
-        experience: submittedFormData.experience,
-        supportNeeded: submittedFormData.supportNeeded,
-        applicationId: generatedId,
-        assignedTo: 'Unassigned',
-        nextFollowUp: 'Not scheduled',
-        notes: `Customer Web Registration [${generatedId}]. Land: ${submittedFormData.landAreaAcres} Acres (${submittedFormData.landOwnership}). Loan req: ${submittedFormData.approxLoanAmount}. Start timeline: ${submittedFormData.startTimeline}. Support: ${submittedFormData.supportNeeded.join(', ')}. Consent: ${CUSTOMER_CONSENT_VERSION}, ${consentLanguage}, accepted ${consentTimestamp}.`
+      const result = await portal.rpc('submit', {
+        request_id: requestId.current,
+        form: { ...formData, declarationConfirmed: true },
+        consent: { version: CUSTOMER_CONSENT_VERSION, language: consentLanguage, declarationAccepted: true, communicationConsentAccepted: true }
       });
-    }
+      if (!result.submittedId) throw new Error('No application confirmation received. Please try again.');
+      setSubmittedAppId(result.submittedId);
+      setRegistrationMode('gate'); setDuplicateApplication(null);
+      setIsSubmitted(true); setIsConsentModalOpen(false);
+    } catch (error: any) { setSubmitError(error.message || 'Application could not be saved. Please retry.'); }
+    finally { submitLock.current = false; setSubmitting(false); }
   };
 
   const requestFinalSubmission = () => {
@@ -714,20 +469,6 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     }
   };
 
-  const findSavedApplication = (applicationId: string, mobile: string) => {
-    const applications = getSavedApplications();
-    const normalizedId = applicationId.trim().toUpperCase();
-    const normalizedMobile = mobile.replace(/\D/g, '').slice(-10);
-
-    return applications.find((item: any) => {
-      const savedId = String(item.appId || '').trim().toUpperCase();
-      const savedMobile = String(item.mobileNumber || item.formData?.mobileNumber || '').replace(/\D/g, '').slice(-10);
-      const idMatches = normalizedId ? savedId === normalizedId : true;
-      const mobileMatches = normalizedMobile ? savedMobile === normalizedMobile : true;
-      return idMatches && mobileMatches && Boolean(normalizedId || normalizedMobile);
-    }) || null;
-  };
-
   const searchSavedApplications = (query: string) => {
     const applications = getSavedApplications();
     const trimmed = query.trim();
@@ -748,24 +489,20 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
 
   const mapSavedApplicationToTrackResult = (record: any) => {
     const data = record?.formData || {};
-    const crmLead = getCrmLeads().find((lead: any) =>
-      String(lead.applicationId || '').toUpperCase() === String(record.appId || '').toUpperCase()
-      || String(lead.id || '').toUpperCase() === String(record.appId || '').toUpperCase()
-    );
 
     return {
       appId: record.appId,
-      farmerName: data.fullName || crmLead?.name || 'Customer',
-      mobileNumber: data.mobileNumber || record.mobileNumber || crmLead?.phone || '',
-      location: [data.villageOrCity, data.district, data.state].filter(Boolean).join(', ') || crmLead?.location || 'Not provided',
-      capacity: data.proposedCapacity ? `${data.proposedCapacity} Birds` : crmLead?.birdCapacity ? `${Number(crmLead.birdCapacity).toLocaleString('en-IN')} Birds` : 'Not provided',
-      status: crmLead?.status || record.status || 'Application Submitted',
+      farmerName: data.fullName || 'Customer',
+      mobileNumber: data.mobileNumber || record.mobileNumber || '',
+      location: [data.villageOrCity, data.district, data.state].filter(Boolean).join(', ') || 'Not provided',
+      capacity: data.proposedCapacity ? `${data.proposedCapacity} Birds` : 'Not provided',
+      status: record.status || 'Application Submitted',
       dateSubmitted: record.submittedAt ? new Date(record.submittedAt).toLocaleString('en-IN') : 'Not available',
-      projectType: data.poultryType || crmLead?.projectType || 'Not provided',
-      shedType: data.shedType || crmLead?.shedType || 'Not provided',
-      loanRequirement: data.needsLoan || crmLead?.loanRequired || 'Not provided',
-      assignedTo: crmLead?.assignedTo && crmLead.assignedTo !== 'Unassigned' ? crmLead.assignedTo : 'Not assigned yet',
-      nextFollowUp: crmLead?.nextFollowUp || 'Not scheduled'
+      projectType: data.poultryType || 'Not provided',
+      shedType: data.shedType || 'Not provided',
+      loanRequirement: data.needsLoan || 'Not provided',
+      assignedTo: record.assignedTo || 'Awaiting assignment',
+      nextFollowUp: 'Contact AKBS for follow-up'
     };
   };
 
@@ -775,25 +512,10 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     setTrackResults(results);
     setTrackSearchId(record.appId || '');
     setTrackMessage('');
-    setLoggedInCustomerMobile(normalizeMobile(record.mobileNumber || record.formData?.mobileNumber || ''));
     setRegistrationMode('gate');
     setDuplicateApplication(null);
-    setPortalEntryMode('form');
     setIsSubmitted(false);
     setActiveSideMenu('track');
-  };
-
-  const handlePortalLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!customerAuthenticated) return;
-    setLoginMessage('');
-    const record = findSavedApplication(loginApplicationId, loginMobile);
-    if (!record) {
-      setLoginMessage('No application found with this Lead ID / Mobile Number on this device.');
-      return;
-    }
-    const sameMobile = searchSavedApplications(record.mobileNumber || record.formData?.mobileNumber || '');
-    openSavedApplication(record, sameMobile.length ? sameMobile : [record]);
   };
 
   const handleTrackSearch = (e: React.FormEvent) => {
@@ -811,55 +533,12 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     openSavedApplication(matches[0], matches);
   };
 
-  const handleCustomerSignup = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSignupMessage('');
-    const mobile = normalizeMobile(signupMobile);
-    if (!signupName.trim()) {
-      setSignupMessage('Please enter your full name.');
-      return;
-    }
-    if (mobile.length !== 10) {
-      setSignupMessage('Please enter a valid 10-digit mobile number.');
-      return;
-    }
-    const existing = searchSavedApplications(mobile);
-    if (existing.length > 0) {
-      setSignupMessage('An application already exists with this mobile number. Please use Customer Login with your Lead ID and registered mobile number.');
-      return;
-    }
-
-    setFormData(prev => ({
-      ...createBlankCustomerApplication(),
-      fullName: signupName.trim(),
-      mobileNumber: mobile,
-      whatsAppNumber: mobile,
-      email: signupEmail.trim()
-    }));
-    setLoggedInCustomerMobile(mobile);
-    setRegistrationMode('form');
-    setCurrentStep(1);
-    setMaxUnlockedStep(1);
-    setStepMessage('');
-    setPortalEntryMode('form');
-    setViewMode('wizard');
-    setActiveSideMenu('registration');
-    try {
-      window.sessionStorage.setItem('akbs.customer.signup.session', JSON.stringify({
-        name: signupName.trim(),
-        mobile,
-        email: signupEmail.trim(),
-        createdAt: new Date().toISOString()
-      }));
-    } catch {}
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   const resetForNewApplication = () => {
-    setFormData(createBlankCustomerApplication());
+    requestId.current = crypto.randomUUID();
+    setSubmitError('');
+    setFormData({ ...createBlankCustomerApplication(), fullName: portal.profile.name || '', email: portal.profile.email || '' });
     setRegistrationMode('form');
     setDuplicateApplication(null);
-    setPortalEntryMode('form');
     setViewMode('wizard');
     setActiveSideMenu('registration');
     setCurrentStep(1);
@@ -871,9 +550,6 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     setTrackResult(null);
     setTrackResults([]);
     setTrackMessage('');
-    setLoginApplicationId('');
-    setLoginMobile('');
-    setLoginMessage('');
     setIsConsentModalOpen(false);
     setConsentTermsAccepted(false);
     setConsentContactAccepted(false);
@@ -883,7 +559,6 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
   };
 
   const startNewApplication = () => {
-    if (!customerAuthenticated) return;
     resetForNewApplication();
   };
 
@@ -999,407 +674,6 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     }
   };
 
-  if (authChecking) {
-    return (
-      <div className="min-h-screen bg-[#eef3f1] flex items-center justify-center">
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl px-8 py-7 text-center">
-          <div className="w-10 h-10 mx-auto rounded-full border-4 border-emerald-100 border-t-emerald-700 animate-spin" />
-          <div className="mt-4 text-sm font-bold text-slate-800">Checking secure customer session…</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!customerAuthenticated) {
-    return (
-      <div className="min-h-screen bg-[#eef3f1] text-slate-800 font-sans">
-        <header className="bg-[#0b2818] text-white border-b border-emerald-900 shadow-md">
-          <div className="max-w-[1240px] mx-auto px-5 py-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-white border-[3px] border-emerald-500 overflow-hidden p-0.5">
-                <img src={akbsLogoImg} alt="AKBS Poultry Farming" className="w-full h-full rounded-full object-cover" />
-              </div>
-              <div>
-                <div className="font-['Outfit',sans-serif] text-xl font-black tracking-wide">AKBS</div>
-                <div className="text-[10px] font-bold tracking-[0.12em] text-emerald-300 uppercase">Secure Customer Portal</div>
-              </div>
-            </div>
-            <div className="hidden sm:flex items-center gap-2 text-xs text-emerald-100">
-              <ShieldCheck className="w-4 h-4 text-emerald-300" />
-              OTP Verified Access
-            </div>
-          </div>
-        </header>
-
-        <main className="max-w-xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
-          <section className="bg-white rounded-3xl border border-slate-200 shadow-xl p-6 sm:p-8">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
-              <Lock className="w-6 h-6" />
-            </div>
-            <h1 className="mt-4 text-2xl sm:text-3xl font-black text-slate-950">
-              {otpIntent === 'signup' ? 'Customer Sign Up' : 'Customer Login'}
-            </h1>
-            <p className="mt-2 text-sm text-slate-500 leading-6">
-              {otpIntent === 'signup'
-                ? 'Verify your email or mobile number with OTP before starting a new application.'
-                : 'Enter your registered email or mobile number. CRM access opens only after OTP verification.'}
-            </p>
-
-            <div className="mt-6 grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
-              <button
-                type="button"
-                onClick={() => { setOtpIntent('login'); setOtpSent(false); setOtpCode(''); setOtpError(''); }}
-                className={`h-10 rounded-lg text-xs font-bold ${otpIntent === 'login' ? 'bg-white text-emerald-900 shadow-sm' : 'text-slate-500'}`}
-              >
-                Existing Customer
-              </button>
-              <button
-                type="button"
-                onClick={() => { setOtpIntent('signup'); setOtpSent(false); setOtpCode(''); setOtpError(''); }}
-                className={`h-10 rounded-lg text-xs font-bold ${otpIntent === 'signup' ? 'bg-white text-emerald-900 shadow-sm' : 'text-slate-500'}`}
-              >
-                New Customer
-              </button>
-            </div>
-
-            <div className="mt-5 flex gap-2">
-              <button
-                type="button"
-                onClick={() => { setOtpChannel('phone'); setOtpIdentifier(''); setOtpSent(false); setOtpCode(''); setOtpError(''); }}
-                className={`flex-1 h-10 rounded-xl border text-xs font-bold ${otpChannel === 'phone' ? 'border-emerald-700 bg-emerald-50 text-emerald-900' : 'border-slate-200 text-slate-500'}`}
-              >
-                Mobile OTP
-              </button>
-              <button
-                type="button"
-                onClick={() => { setOtpChannel('email'); setOtpIdentifier(''); setOtpSent(false); setOtpCode(''); setOtpError(''); }}
-                className={`flex-1 h-10 rounded-xl border text-xs font-bold ${otpChannel === 'email' ? 'border-emerald-700 bg-emerald-50 text-emerald-900' : 'border-slate-200 text-slate-500'}`}
-              >
-                Email OTP
-              </button>
-            </div>
-
-            {!otpSent ? (
-              <form onSubmit={sendCustomerOtp} className="mt-5 space-y-4">
-                <label className="block">
-                  <span className="text-xs font-bold text-slate-700">
-                    {otpChannel === 'phone' ? 'Mobile Number' : 'Email Address'}
-                  </span>
-                  <div className="relative mt-1.5">
-                    {otpChannel === 'phone'
-                      ? <Phone className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                      : <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />}
-                    <input
-                      type={otpChannel === 'phone' ? 'tel' : 'email'}
-                      value={otpIdentifier}
-                      onChange={(e) => setOtpIdentifier(
-                        otpChannel === 'phone'
-                          ? e.target.value.replace(/\D/g, '').slice(0, 10)
-                          : e.target.value
-                      )}
-                      required
-                      placeholder={otpChannel === 'phone' ? 'Enter 10-digit mobile number' : 'Enter email address'}
-                      className="w-full h-11 pl-10 pr-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-700"
-                    />
-                  </div>
-                </label>
-
-                {otpError && <div className="rounded-xl bg-rose-50 border border-rose-200 px-3 py-2.5 text-xs font-semibold text-rose-700">{otpError}</div>}
-
-                <button
-                  type="submit"
-                  disabled={otpBusy}
-                  className="w-full h-12 rounded-xl bg-[#0b2818] hover:bg-[#123e27] disabled:opacity-60 text-white text-sm font-black flex items-center justify-center gap-2 shadow-md"
-                >
-                  {otpBusy ? 'Sending OTP…' : 'Send OTP'}
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={verifyCustomerOtp} className="mt-5 space-y-4">
-                <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-3 text-xs font-semibold text-emerald-800">
-                  OTP sent to {otpChannel === 'phone' ? `+91 ${otpIdentifier}` : otpIdentifier}. Enter the 6-digit code below.
-                </div>
-                <label className="block">
-                  <span className="text-xs font-bold text-slate-700">6-digit OTP</span>
-                  <input
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={6}
-                    required
-                    placeholder="••••••"
-                    className="mt-1.5 w-full h-12 px-4 border border-slate-300 rounded-xl text-center text-xl tracking-[0.45em] font-mono focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-700"
-                  />
-                </label>
-
-                {otpError && <div className="rounded-xl bg-rose-50 border border-rose-200 px-3 py-2.5 text-xs font-semibold text-rose-700">{otpError}</div>}
-
-                <button
-                  type="submit"
-                  disabled={otpBusy || otpCode.length !== 6}
-                  className="w-full h-12 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white text-sm font-black shadow-md"
-                >
-                  {otpBusy ? 'Verifying…' : 'Verify OTP & Continue'}
-                </button>
-
-                <div className="flex items-center justify-between gap-3">
-                  <button type="button" onClick={() => { setOtpSent(false); setOtpCode(''); setOtpError(''); }} className="text-xs font-bold text-slate-600 hover:underline">
-                    Change {otpChannel === 'phone' ? 'mobile number' : 'email'}
-                  </button>
-                  <button type="button" disabled={otpBusy} onClick={() => void sendCustomerOtp()} className="text-xs font-bold text-emerald-800 hover:underline disabled:opacity-50">
-                    Resend OTP
-                  </button>
-                </div>
-              </form>
-            )}
-
-            <p className="mt-6 text-center text-[11px] text-slate-400">
-              Application pages remain locked until OTP verification is successful.
-            </p>
-          </section>
-        </main>
-      </div>
-    );
-  }
-
-  if (portalEntryMode === 'signup') {
-    return (
-      <div className="min-h-screen bg-[#eef3f1] text-slate-800 font-sans">
-        <header className="bg-[#0b2818] text-white border-b border-emerald-900 shadow-md">
-          <div className="max-w-[1240px] mx-auto px-5 py-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-white border-[3px] border-emerald-500 overflow-hidden p-0.5">
-                <img src={akbsLogoImg} alt="AKBS Poultry Farming" className="w-full h-full rounded-full object-cover" />
-              </div>
-              <div>
-                <div className="font-['Outfit',sans-serif] text-xl font-black tracking-wide">AKBS</div>
-                <div className="text-[10px] font-bold tracking-[0.12em] text-emerald-300 uppercase">Poultry Farming</div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setPortalEntryMode('welcome')}
-              className="px-4 py-2 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-xs font-bold"
-            >
-              Back to Login
-            </button>
-          </div>
-        </header>
-
-        <main className="max-w-2xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
-          <section className="bg-white rounded-3xl border border-slate-200 shadow-xl p-6 sm:p-8">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
-              <User className="w-6 h-6" />
-            </div>
-            <h1 className="mt-4 text-2xl sm:text-3xl font-black text-slate-950">New Customer Sign Up</h1>
-            <p className="mt-2 text-sm text-slate-500 leading-6">
-              Create your customer session first. After sign up, Step 1 of the application will open. Future steps stay locked until the current step is completed.
-            </p>
-
-            <form onSubmit={handleCustomerSignup} className="mt-7 space-y-4">
-              <label className="block">
-                <span className="text-xs font-bold text-slate-700">Full Name *</span>
-                <input
-                  value={signupName}
-                  onChange={(e) => setSignupName(e.target.value)}
-                  required
-                  placeholder="Enter your full name"
-                  className="mt-1.5 w-full h-11 px-3.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-700"
-                />
-              </label>
-
-              <label className="block">
-                <span className="text-xs font-bold text-slate-700">Mobile Number *</span>
-                <div className="relative mt-1.5">
-                  <Phone className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                  <input
-                    type="tel"
-                    value={signupMobile}
-                    onChange={(e) => setSignupMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    required
-                    maxLength={10}
-                    placeholder="10-digit mobile number"
-                    className="w-full h-11 pl-10 pr-3 border border-slate-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-700"
-                  />
-                </div>
-              </label>
-
-              <label className="block">
-                <span className="text-xs font-bold text-slate-700">Email Address</span>
-                <div className="relative mt-1.5">
-                  <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                  <input
-                    type="email"
-                    value={signupEmail}
-                    onChange={(e) => setSignupEmail(e.target.value)}
-                    placeholder="Enter your email address"
-                    className="w-full h-11 pl-10 pr-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-700"
-                  />
-                </div>
-              </label>
-
-              {signupMessage && (
-                <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs font-semibold text-amber-800">
-                  {signupMessage}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="w-full h-12 rounded-xl bg-[#0b2818] hover:bg-[#123e27] text-white text-sm font-black flex items-center justify-center gap-2 shadow-md"
-              >
-                Sign Up & Start Application
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
-
-            <div className="mt-5 text-center text-xs text-slate-500">
-              Already registered?{' '}
-              <button type="button" onClick={() => setPortalEntryMode('welcome')} className="font-bold text-emerald-800 hover:underline">
-                Customer Login
-              </button>
-            </div>
-          </section>
-        </main>
-      </div>
-    );
-  }
-
-  if (portalEntryMode === 'welcome') {
-    return (
-      <div className="min-h-screen bg-[#eef3f1] text-slate-800 font-sans">
-        <header className="bg-[#0b2818] text-white border-b border-emerald-900 shadow-md">
-          <div className="max-w-[1240px] mx-auto px-5 py-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-white border-[3px] border-emerald-500 overflow-hidden p-0.5">
-                <img src={akbsLogoImg} alt="AKBS Poultry Farming" className="w-full h-full rounded-full object-cover" />
-              </div>
-              <div>
-                <div className="font-['Outfit',sans-serif] text-xl font-black tracking-wide">AKBS</div>
-                <div className="text-[10px] font-bold tracking-[0.12em] text-emerald-300 uppercase">Poultry Farming</div>
-              </div>
-            </div>
-            <div className="hidden sm:flex items-center gap-2 text-xs text-emerald-100">
-              <ShieldCheck className="w-4 h-4 text-emerald-300" />
-              Secure Customer Portal
-            </div>
-          </div>
-        </header>
-
-        <main className="max-w-[1180px] mx-auto px-4 sm:px-6 py-8 sm:py-14">
-          <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 items-stretch">
-            <section className="relative overflow-hidden rounded-3xl bg-[#0b2818] text-white min-h-[440px] shadow-xl">
-              <img src={poultryBannerImg} alt="AKBS Poultry Project" className="absolute inset-0 w-full h-full object-cover opacity-30" />
-              <div className="absolute inset-0 bg-gradient-to-br from-[#0b2818]/95 via-[#0b2818]/85 to-emerald-900/70" />
-              <div className="relative p-7 sm:p-10 h-full flex flex-col justify-between">
-                <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[11px] font-bold text-emerald-200">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    AKBS Customer Portal
-                  </div>
-                  <h1 className="mt-6 text-3xl sm:text-4xl font-['Outfit',sans-serif] font-black tracking-tight leading-tight">
-                    Start your poultry project with AKBS
-                  </h1>
-                  <p className="mt-4 text-sm sm:text-base text-emerald-50/80 leading-7 max-w-xl">
-                    Register your project requirements, land details and funding needs. New customers can start a fresh application and existing applicants can track a submitted application.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mt-8">
-                  {[
-                    ['6-step application', 'Simple guided process'],
-                    ['Project guidance', 'Technical support'],
-                    ['Loan assistance', 'DPR & funding support'],
-                    ['Secure details', 'Customer information']
-                  ].map(([title, subtitle]) => (
-                    <div key={title} className="rounded-xl bg-white/8 border border-white/10 p-3">
-                      <div className="text-xs font-bold text-white">{title}</div>
-                      <div className="text-[10px] text-emerald-100/70 mt-1">{subtitle}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            <section className="bg-white rounded-3xl border border-slate-200 shadow-xl p-6 sm:p-8">
-              <div>
-                <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
-                  <User className="w-5 h-5" />
-                </div>
-                <h2 className="mt-4 text-2xl font-['Outfit',sans-serif] font-black text-slate-950">Customer Login</h2>
-                <p className="mt-1 text-sm text-slate-500">Track an existing application using your Lead ID and registered mobile number.</p>
-              </div>
-
-              <form onSubmit={handlePortalLogin} className="mt-6 space-y-4">
-                <label className="block">
-                  <span className="text-xs font-bold text-slate-700">Lead ID</span>
-                  <div className="relative mt-1.5">
-                    <FileText className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                    <input
-                      value={loginApplicationId}
-                      onChange={(e) => setLoginApplicationId(e.target.value)}
-                      placeholder="Enter Lead ID"
-                      className="w-full h-11 pl-10 pr-3 border border-slate-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-700"
-                    />
-                  </div>
-                </label>
-
-                <label className="block">
-                  <span className="text-xs font-bold text-slate-700">Registered Mobile Number</span>
-                  <div className="relative mt-1.5">
-                    <Phone className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                    <input
-                      type="tel"
-                      maxLength={10}
-                      value={loginMobile}
-                      onChange={(e) => setLoginMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      placeholder="10-digit mobile number"
-                      className="w-full h-11 pl-10 pr-3 border border-slate-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-700"
-                    />
-                  </div>
-                </label>
-
-                {loginMessage && (
-                  <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs font-semibold text-amber-800">
-                    {loginMessage}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  className="w-full h-11 rounded-xl bg-[#0b2818] hover:bg-[#123e27] text-white text-sm font-bold flex items-center justify-center gap-2 shadow-md"
-                >
-                  <Search className="w-4 h-4" />
-                  Login / Track Application
-                </button>
-              </form>
-
-              <div className="my-6 flex items-center gap-3">
-                <div className="h-px bg-slate-200 flex-1" />
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">New Customer</span>
-                <div className="h-px bg-slate-200 flex-1" />
-              </div>
-
-              <button
-                type="button"
-                onClick={startNewApplication}
-                className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black flex items-center justify-center gap-2 shadow-md"
-              >
-                Apply Now
-                <ArrowRight className="w-4 h-4" />
-              </button>
-
-              <p className="mt-4 text-center text-[11px] text-slate-400">
-                New application form opens blank. No sample or dummy customer details are prefilled.
-              </p>
-            </section>
-          </div>
-        </main>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#edf2f0] flex flex-col text-slate-800 font-sans">
@@ -1441,10 +715,10 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
           {/* Right: 4 Badges + Golden cursive script */}
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setPortalEntryMode('welcome')}
+              onClick={() => { setActiveSideMenu('registration'); setRegistrationMode(portal.applications.length ? 'gate' : 'form'); setIsSubmitted(false); }}
               className="px-3 py-2 rounded-lg border border-emerald-500/40 bg-white/5 hover:bg-white/10 text-[11px] font-bold text-emerald-100 whitespace-nowrap"
             >
-              Customer Login
+              My Applications
             </button>
             <div className="hidden xl:grid grid-cols-4 gap-3 text-center">
               <div className="flex flex-col items-center">
@@ -1635,7 +909,7 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                         />
                       </div>
                       <div>
-                        <label className="text-slate-600 font-medium block text-[9px]">Email (Optional)</label>
+                        <label className="text-slate-600 font-medium block text-[9px]">Account Email</label>
                         <input
                           type="text"
                           readOnly
@@ -2377,7 +1651,7 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                   <div className="mt-5 text-[11px] uppercase tracking-[.14em] font-black text-emerald-700">Customer Account</div>
                   <h2 className="mt-2 text-2xl font-black text-slate-950">Start a New Application</h2>
                   <p className="mt-2 text-sm text-slate-500 leading-6">
-                    You already have {getLoggedInApplications().length} submitted {getLoggedInApplications().length === 1 ? 'lead' : 'leads'} linked to this mobile number.
+                    You already have {getLoggedInApplications().length} submitted {getLoggedInApplications().length === 1 ? 'lead' : 'leads'} in your account.
                     Your existing applications remain available under Track Application.
                   </p>
 
@@ -2596,14 +1870,14 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
 
                       <div>
                         <label className="block text-slate-700 font-semibold mb-1">
-                          Email (Optional)
+                          Account Email
                         </label>
                         <div className="relative">
                           <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                           <input
                             type="email"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            readOnly
+                          value={formData.email}
                             placeholder="Enter your email address"
                             className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0b2818]"
                           />
@@ -3493,6 +2767,7 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                 <span>{CUSTOMER_CONSENT_CONTENT[consentLanguage].secureText}</span>
               </div>
 
+              {submitError && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{submitError}</p>}
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
                 <button
                   type="button"
@@ -3504,10 +2779,10 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                 <button
                   type="button"
                   onClick={() => handleSubmitApplication()}
-                  disabled={!consentScrolledToEnd || !consentTermsAccepted || !consentContactAccepted}
+                  disabled={submitting || !consentScrolledToEnd || !consentTermsAccepted || !consentContactAccepted}
                   className="h-10 px-5 rounded-xl bg-[#0b2818] hover:bg-[#123e27] disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white text-xs font-black flex items-center justify-center gap-2"
                 >
-                  <span>{CUSTOMER_CONSENT_CONTENT[consentLanguage].agreeButton}</span>
+                  <span>{submitting ? 'Saving application…' : CUSTOMER_CONSENT_CONTENT[consentLanguage].agreeButton}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>

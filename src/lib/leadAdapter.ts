@@ -5,7 +5,7 @@ export const dateLabel = (value?: string) => value ? new Date(value).toLocaleDat
 export function mapLead(row: any, users: any[] = []): Lead {
  const d=row.details||{};
  return {id:row.id, applicationId:row.reference, name:row.name,phone:row.phone,email:row.email||'',
- source:row.source==='WEBSITE'||row.source==='CUSTOMER'?'Website':row.source==='PARTNER'?'Others':'Direct Call',
+ source:row.source==='WEBSITE'||row.source==='CUSTOMER'||row.source==='CUSTOMER_PORTAL'?'Website':row.source==='PARTNER'||row.source==='PARTNER_PORTAL'?'Others':'Direct Call',
  status:STAGES[row.stage]||'New',date:dateLabel(row.created_at),time:new Date(row.created_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),
  location:row.location||d.location||'', birdCapacity:Number(row.capacity)||0,projectType:d.poultry_type||row.project_type||'Other',
  budgetEstimate:d.budgetEstimate||(row.project_cost?new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(row.project_cost):''),

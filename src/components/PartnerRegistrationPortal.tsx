@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Handshake,
   Building2,
@@ -12,14 +12,23 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { AkbsLogo } from './AkbsLogo';
+import { PortalAccess, usePortal } from './PortalAccess';
 
-export const PartnerRegistrationPortal: React.FC = () => {
-  const [submitted, setSubmitted] = useState(false);
+export const PartnerRegistrationPortal: React.FC = () => <PortalAccess kind="partner"><PartnerApplication/></PortalAccess>;
+
+const PartnerApplication: React.FC = () => {
+  const portal = usePortal();
+  const requestId = useRef(crypto.randomUUID());
+  const lock = useRef(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [consent, setConsent] = useState(false);
+  const [submitted, setSubmitted] = useState(portal.applications.length > 0);
   const [form, setForm] = useState({
-    fullName: '',
+    fullName: portal.profile.name || '',
     businessName: '',
     mobile: '',
-    email: '',
+    email: portal.profile.email || '',
     city: '',
     state: 'Madhya Pradesh',
     category: 'Referral / Business Partner',
@@ -30,6 +39,18 @@ export const PartnerRegistrationPortal: React.FC = () => {
 
   const update = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
 
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (lock.current || !consent) return;
+    lock.current = true; setBusy(true); setError('');
+    try {
+      const result = await portal.rpc('submit', { request_id: requestId.current, form,
+        consent: { version: 'AKBS-PARTNER-2026-V1', declarationAccepted: consent, communicationConsentAccepted: consent } });
+      if (!result.submittedId) throw new Error('No registration confirmation received. Please try again.');
+      setSubmitted(true);
+    } catch(e: any) { setError(e.message || 'Unable to save registration.'); }
+    finally { lock.current = false; setBusy(false); }
+  }
   if (submitted) {
     return (
       <div className="min-h-screen bg-[#f3f6f4] flex items-center justify-center p-5">
@@ -37,16 +58,12 @@ export const PartnerRegistrationPortal: React.FC = () => {
           <div className="w-16 h-16 mx-auto rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
             <CheckCircle2 className="w-9 h-9" />
           </div>
-          <h1 className="mt-5 text-2xl font-extrabold text-slate-900">Partner registration completed</h1>
+          <h1 className="mt-5 text-2xl font-extrabold text-slate-900">Partner application received</h1>
           <p className="mt-2 text-sm text-slate-500">
-            This module is currently standalone and is not connected to the website or Admin CRM database.
+            Your profile has been saved with AKBS. Our team will review your partnership application.
           </p>
-          <button
-            onClick={() => setSubmitted(false)}
-            className="mt-6 h-11 px-5 rounded-xl bg-[#0b3824] text-white text-xs font-bold"
-          >
-            New Registration
-          </button>
+          <div className="mt-5 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-900"><p className="font-bold">{portal.applications[0]?.appId}</p><p className="mt-2">Status: {portal.applications[0]?.status?.replaceAll('_', ' ')}</p></div>
+          <a href="https://akbspoultry.com" className="inline-block mt-6 rounded-xl bg-[#0b3824] text-white px-5 py-3 text-sm font-semibold">Return to website</a>
         </div>
       </div>
     );
@@ -60,7 +77,7 @@ export const PartnerRegistrationPortal: React.FC = () => {
             <AkbsLogo theme="light" size="md" showTagline={false} />
           </div>
           <div className="hidden md:block text-right">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-emerald-300 font-bold">Standalone Module</div>
+            <div className="text-[10px] uppercase tracking-[0.16em] text-emerald-300 font-bold">AKBS Partner Account</div>
             <div className="text-sm font-bold">Partner Registration Portal</div>
           </div>
         </div>
@@ -75,10 +92,10 @@ export const PartnerRegistrationPortal: React.FC = () => {
               </div>
               <h1 className="mt-5 text-2xl font-extrabold leading-tight">Join AKBS as a Business / Referral Partner</h1>
               <p className="mt-3 text-sm text-emerald-100/75 leading-relaxed">
-                Submit your profile for partnership onboarding. This page is separate from the Admin CRM.
+                Submit your profile for partnership onboarding. Your profile will reach our partnership team directly.
               </p>
               <div className="mt-6 space-y-3 text-xs">
-                {['Dedicated partner profile', 'Referral & business category', 'Separate onboarding workflow'].map((x, i) => (
+                {['Dedicated partner profile', 'Referral & business category', 'Application reference & status'].map((x, i) => (
                   <div key={x} className="flex gap-3 items-center">
                     <span className="w-6 h-6 rounded-full bg-emerald-400/15 flex items-center justify-center font-bold">{i + 1}</span>
                     <span>{x}</span>
@@ -89,10 +106,10 @@ export const PartnerRegistrationPortal: React.FC = () => {
 
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
               <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
-                <ShieldCheck className="w-4 h-4" /> Integration disabled
+                <ShieldCheck className="w-4 h-4" /> Connected to AKBS
               </div>
               <p className="mt-1 text-[11px] text-amber-800/80">
-                No website or CRM database connection is active on this module yet.
+                Your registration is securely saved and available to our team for review.
               </p>
             </div>
           </aside>
@@ -101,17 +118,17 @@ export const PartnerRegistrationPortal: React.FC = () => {
             <div className="px-5 sm:px-7 py-6 border-b border-slate-100">
               <div className="text-[10px] uppercase tracking-[0.14em] text-emerald-700 font-bold">Partner Onboarding</div>
               <h2 className="mt-1 text-xl font-extrabold text-slate-900">Partner Registration Form</h2>
-              <p className="mt-1 text-xs text-slate-500">Standalone UI/workflow for partner registration.</p>
+              <p className="mt-1 text-xs text-slate-500">Complete your details to apply for an AKBS partnership.</p>
             </div>
 
-            <form onSubmit={e => { e.preventDefault(); setSubmitted(true); }} className="p-5 sm:p-7 space-y-6">
+            <form onSubmit={submit} className="p-5 sm:p-7 space-y-6">
               <section>
                 <div className="text-xs font-bold text-slate-900 mb-3">1. Contact Details</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field icon={<User />} label="Full Name" value={form.fullName} onChange={v => update('fullName', v)} placeholder="Partner full name" required />
                   <Field icon={<Building2 />} label="Business / Firm Name" value={form.businessName} onChange={v => update('businessName', v)} placeholder="Business name" />
                   <Field icon={<Phone />} label="Mobile Number" value={form.mobile} onChange={v => update('mobile', v)} placeholder="+91 98765 43210" required />
-                  <Field icon={<Mail />} label="Email Address" value={form.email} onChange={v => update('email', v)} placeholder="name@example.com" />
+                  <Field icon={<Mail />} label="Account Email" readOnly value={form.email} onChange={v => update('email', v)} placeholder="name@example.com" />
                 </div>
               </section>
 
@@ -165,9 +182,11 @@ export const PartnerRegistrationPortal: React.FC = () => {
                 </div>
               </section>
 
+              <label className="flex items-start gap-2 text-xs text-slate-600"><input type="checkbox" required checked={consent} onChange={e=>setConsent(e.target.checked)} className="accent-emerald-800"/>I confirm my details are accurate and agree to be contacted by AKBS about this partnership application.</label>
+              {error && <p role="alert" className="bg-rose-50 text-rose-700 p-3 rounded-xl text-sm">{error}</p>}
               <div className="pt-2 flex items-center justify-end">
-                <button type="submit" className="h-11 px-6 rounded-xl bg-[#0b3824] hover:bg-[#0e472d] text-white text-xs font-bold flex items-center gap-2 shadow-sm">
-                  Submit Partner Registration <ArrowRight className="w-4 h-4" />
+                <button type="submit" disabled={busy} className="h-11 px-6 rounded-xl bg-[#0b3824] hover:bg-[#0e472d] text-white text-xs font-bold flex items-center gap-2 shadow-sm">
+                  {busy ? 'Saving registration…' : 'Submit Partner Registration'} <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </form>
@@ -184,7 +203,8 @@ const Field = ({
   value,
   onChange,
   placeholder,
-  required = false
+  required = false,
+  readOnly = false
 }: {
   icon: React.ReactNode;
   label: string;
@@ -192,6 +212,7 @@ const Field = ({
   onChange: (v: string) => void;
   placeholder: string;
   required?: boolean;
+  readOnly?: boolean;
 }) => (
   <div>
     <label className="block text-[11px] font-bold text-slate-600 mb-1.5">{label}{required ? ' *' : ''}</label>
@@ -199,6 +220,8 @@ const Field = ({
       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 [&>svg]:w-4 [&>svg]:h-4">{icon}</span>
       <input
         required={required}
+        readOnly={readOnly}
+        aria-label={label}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}

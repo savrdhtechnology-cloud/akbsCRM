@@ -269,10 +269,14 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
   onGoToLeads
 }) => {
   // Entry flow: customer sees the portal login/welcome screen first.
-  const [portalEntryMode, setPortalEntryMode] = useState<'welcome' | 'form'>('welcome');
+  const [portalEntryMode, setPortalEntryMode] = useState<'welcome' | 'signup' | 'form'>('welcome');
   const [loginApplicationId, setLoginApplicationId] = useState('');
   const [loginMobile, setLoginMobile] = useState('');
   const [loginMessage, setLoginMessage] = useState('');
+  const [signupName, setSignupName] = useState('');
+  const [signupMobile, setSignupMobile] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupMessage, setSignupMessage] = useState('');
   const [loggedInCustomerMobile, setLoggedInCustomerMobile] = useState('');
   const [registrationMode, setRegistrationMode] = useState<'gate' | 'form'>('form');
   const [duplicateApplication, setDuplicateApplication] = useState<any>(null);
@@ -282,6 +286,8 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
 
   // Current active step (1 to 6)
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [maxUnlockedStep, setMaxUnlockedStep] = useState<number>(1);
+  const [stepMessage, setStepMessage] = useState('');
   const [activeSideMenu, setActiveSideMenu] = useState<
     'registration' | 'track' | 'projects' | 'loan' | 'stories' | 'contact'
   >('registration');
@@ -322,9 +328,50 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     }));
   };
 
+  const validateStep = (step: number) => {
+    if (step === 1) {
+      if (!formData.fullName.trim()) return 'Please enter your full name.';
+      if (normalizeMobile(formData.mobileNumber).length !== 10) return 'Please enter a valid 10-digit mobile number.';
+    }
+    if (step === 2) {
+      if (!formData.projectObjective || !formData.poultryType || !formData.shedType || !formData.proposedCapacity) {
+        return 'Please complete all project details before continuing.';
+      }
+    }
+    if (step === 3) {
+      if (!formData.state.trim() || !formData.district.trim() || !formData.villageOrCity.trim()) {
+        return 'Please complete your project location details.';
+      }
+      if (formData.hasLand === 'Yes' && !String(formData.landAreaAcres).trim()) {
+        return 'Please enter the available land area.';
+      }
+    }
+    if (step === 4) {
+      if (!formData.approxProjectCost || !String(formData.ownContribution).trim()) {
+        return 'Please complete the financial details.';
+      }
+      if (formData.needsLoan === 'Yes' && !String(formData.approxLoanAmount).trim()) {
+        return 'Please enter the approximate loan amount.';
+      }
+    }
+    if (step === 5) {
+      if (!formData.startTimeline) return 'Please select your project start timeline.';
+      if (formData.supportNeeded.length === 0) return 'Please select at least one support requirement.';
+    }
+    return '';
+  };
+
   const handleNextStep = () => {
+    const validationMessage = validateStep(currentStep);
+    if (validationMessage) {
+      setStepMessage(validationMessage);
+      return;
+    }
+    setStepMessage('');
     if (currentStep < 6) {
-      setCurrentStep(prev => prev + 1);
+      const nextStep = currentStep + 1;
+      setMaxUnlockedStep(prev => Math.max(prev, nextStep));
+      setCurrentStep(nextStep);
       window.scrollTo({ top: 120, behavior: 'smooth' });
     }
   };
@@ -624,6 +671,50 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     openSavedApplication(matches[0], matches);
   };
 
+  const handleCustomerSignup = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSignupMessage('');
+    const mobile = normalizeMobile(signupMobile);
+    if (!signupName.trim()) {
+      setSignupMessage('Please enter your full name.');
+      return;
+    }
+    if (mobile.length !== 10) {
+      setSignupMessage('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+    const existing = searchSavedApplications(mobile);
+    if (existing.length > 0) {
+      setSignupMessage('An application already exists with this mobile number. Please use Customer Login with your Lead ID and registered mobile number.');
+      return;
+    }
+
+    setFormData(prev => ({
+      ...createBlankCustomerApplication(),
+      fullName: signupName.trim(),
+      mobileNumber: mobile,
+      whatsAppNumber: mobile,
+      email: signupEmail.trim()
+    }));
+    setLoggedInCustomerMobile(mobile);
+    setRegistrationMode('form');
+    setCurrentStep(1);
+    setMaxUnlockedStep(1);
+    setStepMessage('');
+    setPortalEntryMode('form');
+    setViewMode('wizard');
+    setActiveSideMenu('registration');
+    try {
+      window.sessionStorage.setItem('akbs.customer.signup.session', JSON.stringify({
+        name: signupName.trim(),
+        mobile,
+        email: signupEmail.trim(),
+        createdAt: new Date().toISOString()
+      }));
+    } catch {}
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const resetForNewApplication = () => {
     setFormData(createBlankCustomerApplication());
     setRegistrationMode('form');
@@ -632,6 +723,8 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     setViewMode('wizard');
     setActiveSideMenu('registration');
     setCurrentStep(1);
+    setMaxUnlockedStep(1);
+    setStepMessage('');
     setIsSubmitted(false);
     setSubmittedAppId('');
     setTrackSearchId('');
@@ -765,6 +858,109 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
     }
   };
 
+  if (portalEntryMode === 'signup') {
+    return (
+      <div className="min-h-screen bg-[#eef3f1] text-slate-800 font-sans">
+        <header className="bg-[#0b2818] text-white border-b border-emerald-900 shadow-md">
+          <div className="max-w-[1240px] mx-auto px-5 py-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-white border-[3px] border-emerald-500 overflow-hidden p-0.5">
+                <img src={akbsLogoImg} alt="AKBS Poultry Farming" className="w-full h-full rounded-full object-cover" />
+              </div>
+              <div>
+                <div className="font-['Outfit',sans-serif] text-xl font-black tracking-wide">AKBS</div>
+                <div className="text-[10px] font-bold tracking-[0.12em] text-emerald-300 uppercase">Poultry Farming</div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPortalEntryMode('welcome')}
+              className="px-4 py-2 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-xs font-bold"
+            >
+              Back to Login
+            </button>
+          </div>
+        </header>
+
+        <main className="max-w-2xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+          <section className="bg-white rounded-3xl border border-slate-200 shadow-xl p-6 sm:p-8">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
+              <User className="w-6 h-6" />
+            </div>
+            <h1 className="mt-4 text-2xl sm:text-3xl font-black text-slate-950">New Customer Sign Up</h1>
+            <p className="mt-2 text-sm text-slate-500 leading-6">
+              Create your customer session first. After sign up, Step 1 of the application will open. Future steps stay locked until the current step is completed.
+            </p>
+
+            <form onSubmit={handleCustomerSignup} className="mt-7 space-y-4">
+              <label className="block">
+                <span className="text-xs font-bold text-slate-700">Full Name *</span>
+                <input
+                  value={signupName}
+                  onChange={(e) => setSignupName(e.target.value)}
+                  required
+                  placeholder="Enter your full name"
+                  className="mt-1.5 w-full h-11 px-3.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-700"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-xs font-bold text-slate-700">Mobile Number *</span>
+                <div className="relative mt-1.5">
+                  <Phone className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                  <input
+                    type="tel"
+                    value={signupMobile}
+                    onChange={(e) => setSignupMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    required
+                    maxLength={10}
+                    placeholder="10-digit mobile number"
+                    className="w-full h-11 pl-10 pr-3 border border-slate-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-700"
+                  />
+                </div>
+              </label>
+
+              <label className="block">
+                <span className="text-xs font-bold text-slate-700">Email Address</span>
+                <div className="relative mt-1.5">
+                  <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                  <input
+                    type="email"
+                    value={signupEmail}
+                    onChange={(e) => setSignupEmail(e.target.value)}
+                    placeholder="Enter your email address"
+                    className="w-full h-11 pl-10 pr-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-700"
+                  />
+                </div>
+              </label>
+
+              {signupMessage && (
+                <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs font-semibold text-amber-800">
+                  {signupMessage}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="w-full h-12 rounded-xl bg-[#0b2818] hover:bg-[#123e27] text-white text-sm font-black flex items-center justify-center gap-2 shadow-md"
+              >
+                Sign Up & Start Application
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </form>
+
+            <div className="mt-5 text-center text-xs text-slate-500">
+              Already registered?{' '}
+              <button type="button" onClick={() => setPortalEntryMode('welcome')} className="font-bold text-emerald-800 hover:underline">
+                Customer Login
+              </button>
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
   if (portalEntryMode === 'welcome') {
     return (
       <div className="min-h-screen bg-[#eef3f1] text-slate-800 font-sans">
@@ -882,7 +1078,10 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
 
               <button
                 type="button"
-                onClick={startNewApplication}
+                onClick={() => {
+                  setSignupMessage('');
+                  setPortalEntryMode('signup');
+                }}
                 className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black flex items-center justify-center gap-2 shadow-md"
               >
                 Apply Now
@@ -1985,8 +2184,13 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                       return (
                         <div
                           key={step.num}
-                          onClick={() => setCurrentStep(step.num)}
-                          className="flex flex-col items-center cursor-pointer group z-10"
+                          onClick={() => {
+                            if (step.num <= maxUnlockedStep) {
+                              setStepMessage('');
+                              setCurrentStep(step.num);
+                            }
+                          }}
+                          className={`flex flex-col items-center group z-10 ${step.num <= maxUnlockedStep ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
                         >
                           <div
                             className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all shadow-xs ${
@@ -1994,7 +2198,7 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                                 ? 'bg-[#0b2818] text-white ring-4 ring-emerald-100 scale-110'
                                 : isCompleted
                                 ? 'bg-emerald-700 text-white'
-                                : 'bg-white border-2 border-slate-300 text-slate-500 group-hover:border-slate-400'
+                                : 'bg-white border-2 border-slate-300 text-slate-400'
                             }`}
                           >
                             {isCompleted ? <Check className="w-4 h-4" /> : step.num}
@@ -2755,6 +2959,12 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
                         </div>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {stepMessage && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
+                    {stepMessage}
                   </div>
                 )}
 

@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import { AkbsLogo } from "../components/AkbsLogo";
+import broilerHeroImg from "../assets/images/broiler_farmer_hero_1790287489096.jpg";
 const databaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://ldffgetuzoeupuhoaubn.supabase.co";
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_KzdI4K0qLXgi3MhA5GXPhg_6f5vB8By";
 export interface User {
@@ -136,6 +137,8 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(!!token);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [signupMessage, setSignupMessage] = useState("");
   const request = useRef(0);
   const clear = useCallback(() => {
     request.current++;
@@ -192,164 +195,128 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
     };
   }, [token, refresh, clear]);
   useEffect(() => {
-    if (!user || user.must_change_password) return;
-    const run = () => {
-      if (document.visibilityState === "visible")
-        void refresh().catch(() => {});
-    };
-    const timer = setInterval(run, 30000);
-    window.addEventListener("focus", run);
-    return () => {
-      clearInterval(timer);
-      window.removeEventListener("focus", run);
-    };
-  }, [!!user, user?.must_change_password, refresh]);
-  const command = async (a: string, d: Record<string, any> = {}) => {
-    const out = await rpc(a, d, token);
-    try {
-      await refresh();
-    } catch {
-      setError(
-        "Saved, but refresh failed. Please refresh before editing again.",
-      );
-    }
-    return out;
-  };
-  if (loading)
-    return (
-      <div className="crm-login crm-login-loading">
-        <div className="crm-login-loader-card">
-          <AkbsLogo size="md" />
-          <div className="crm-login-spinner" aria-hidden="true" />
-          <p>Preparing your secure workspace…</p>
-        </div>
-      </div>
-    );
-  if (!user || user.must_change_password)
+    if (!user || user.must_change_password)
     return (
       <div className="crm-login">
         <div className="crm-login-shell">
-          <section className="crm-login-visual" aria-label="AKBS CRM overview">
-            <div className="crm-login-brand">
-              <AkbsLogo size="lg" />
-            </div>
+          <section
+            className="crm-login-visual"
+            aria-label="AKBS CRM overview"
+            style={{ backgroundImage: `linear-gradient(90deg,rgba(244,249,246,.97) 0%,rgba(244,249,246,.82) 38%,rgba(244,249,246,.22) 70%,rgba(4,47,31,.12) 100%), url(${broilerHeroImg})` }}
+          >
+            <div className="crm-login-brand"><AkbsLogo size="lg" /></div>
             <div className="crm-login-visual-copy">
-              <span className="crm-login-kicker">AKBS POULTRY FARMING</span>
-              <h2>One secure workspace for your complete poultry business operations.</h2>
-              <p>
-                Manage leads, customer onboarding, DPR workflows, financing, follow-ups and team activity from one professional CRM.
-              </p>
+              <h2>Empowering Poultry Entrepreneurs <span>Across India</span></h2>
+              <p>A complete CRM to manage inquiries, customers, projects, documentation, financing and growth — all in one place.</p>
             </div>
-            <div className="crm-login-feature-grid">
-              <div><strong>Lead Management</strong><span>Track every enquiry & follow-up</span></div>
-              <div><strong>DPR & Finance</strong><span>Monitor proposals and loan workflows</span></div>
-              <div><strong>Role Based Access</strong><span>Admin, manager & employee control</span></div>
-              <div><strong>Live Business Data</strong><span>Connected with AKBS website records</span></div>
+            <div className="crm-login-feature-list">
+              <div><b>01</b><p><strong>Manage Customers</strong><span>From inquiry to project</span></p></div>
+              <div><b>02</b><p><strong>Track Projects</strong><span>DPR, proposals & financing</span></p></div>
+              <div><b>03</b><p><strong>Team Productivity</strong><span>Real-time tracking & reports</span></p></div>
+              <div><b>04</b><p><strong>Partner Growth</strong><span>Commission & payouts</span></p></div>
             </div>
             <div className="crm-login-trust">
-              <span className="crm-login-trust-dot" />
-              Secure staff access · Protected business workspace
+              <span>Modern Farming Solutions</span><span>Expert Technical Support</span><span>End-to-End Project Assistance</span>
             </div>
           </section>
 
           <section className="crm-login-panel">
-            <form
-              className="crm-login-card"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setBusy(true);
-                setError("");
-                const f = new FormData(e.currentTarget);
-                try {
-                  const result = await rpc(
-                    user ? "password" : "login",
-                    user
-                      ? {
-                          current_password: f.get("current"),
-                          password: f.get("password"),
-                        }
-                      : { login: f.get("login"), password: f.get("password") },
-                    token,
-                  );
-                  sessionStorage.setItem("akbs-workspace-session", result.token);
-                  setUser(null);
-                  setToken(result.token);
-                } catch (e: any) {
-                  setError(e.message);
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
+            <div className="crm-login-card">
               <div className="crm-login-mobile-brand"><AkbsLogo size="md" /></div>
-              <div className="crm-login-heading">
-                <span className="crm-eyebrow">{user ? "SECURE ACCOUNT SETUP" : "STAFF LOGIN"}</span>
-                <h1>{user ? "Set your new password" : "Welcome back"}</h1>
-                <p>
-                  {user
-                    ? "For your security, replace the temporary password before continuing."
-                    : "Sign in to access the AKBS CRM management workspace."}
-                </p>
-              </div>
 
-              <div className="crm-login-fields">
-                {!user ? (
-                  <label>
-                    <span>Email / Login ID</span>
-                    <input
-                      name="login"
-                      required
-                      autoComplete="username"
-                      type="text"
-                      placeholder="Enter your email or login ID"
-                    />
-                  </label>
-                ) : (
-                  <label>
-                    <span>Current password</span>
-                    <input
-                      name="current"
-                      type="password"
-                      required
-                      autoComplete="current-password"
-                      placeholder="Enter temporary password"
-                    />
-                  </label>
-                )}
-                <label>
-                  <span>{user ? "New password" : "Password"}</span>
-                  <input
-                    name="password"
-                    type="password"
-                    required
-                    minLength={user ? 12 : 1}
-                    maxLength={72}
-                    autoComplete={user ? "new-password" : "current-password"}
-                    placeholder={user ? "Create a secure new password" : "Enter your password"}
-                  />
-                </label>
-              </div>
-
-              {error && (
-                <p role="alert" className="crm-error">
-                  {error}
-                </p>
+              {user ? (
+                <form
+                  className="crm-auth-form"
+                  onSubmit={async (e) => {
+                    e.preventDefault(); setBusy(true); setError("");
+                    const f = new FormData(e.currentTarget);
+                    try {
+                      const result = await rpc("password", { current_password: f.get("current"), password: f.get("password") }, token);
+                      sessionStorage.setItem("akbs-workspace-session", result.token);
+                      setUser(null); setToken(result.token);
+                    } catch (e:any) { setError(e.message); } finally { setBusy(false); }
+                  }}
+                >
+                  <div className="crm-login-heading">
+                    <span className="crm-eyebrow">SECURE ACCOUNT SETUP</span>
+                    <h1>Set your new password</h1>
+                    <p>Replace your temporary password before continuing.</p>
+                  </div>
+                  <div className="crm-login-fields">
+                    <label><span>Current password</span><input name="current" type="password" required autoComplete="current-password" placeholder="Enter temporary password" /></label>
+                    <label><span>New password</span><input name="password" type="password" required minLength={12} maxLength={72} autoComplete="new-password" placeholder="Create a secure new password" /></label>
+                  </div>
+                  {error && <p role="alert" className="crm-error">{error}</p>}
+                  <button className="primary crm-login-submit" disabled={busy}>{busy ? "Please wait…" : "Save password & continue"}</button>
+                </form>
+              ) : authMode === "login" ? (
+                <form
+                  className="crm-auth-form"
+                  onSubmit={async (e) => {
+                    e.preventDefault(); setBusy(true); setError(""); setSignupMessage("");
+                    const f = new FormData(e.currentTarget);
+                    try {
+                      const result = await rpc("login", { login: f.get("login"), password: f.get("password") }, token);
+                      sessionStorage.setItem("akbs-workspace-session", result.token);
+                      setUser(null); setToken(result.token);
+                    } catch (e:any) { setError(e.message); } finally { setBusy(false); }
+                  }}
+                >
+                  <div className="crm-login-heading">
+                    <span className="crm-eyebrow">WELCOME TO</span>
+                    <h1>AKBS CRM</h1>
+                    <p>Sign in with your registered AKBS staff account to access the CRM dashboard.</p>
+                  </div>
+                  <div className="crm-login-fields">
+                    <label><span>Email / Login ID</span><input name="login" required autoComplete="username" type="text" placeholder="Enter your email or login ID" /></label>
+                    <label><span>Password</span><input name="password" type="password" required autoComplete="current-password" placeholder="Enter your password" /></label>
+                  </div>
+                  {error && <p role="alert" className="crm-error">{error}</p>}
+                  <button className="primary crm-login-submit" disabled={busy}>{busy ? "Signing in…" : "Sign in securely →"}</button>
+                  <div className="crm-login-divider"><span>New to AKBS CRM?</span></div>
+                  <button type="button" className="crm-signup-link" onClick={() => {setAuthMode("signup");setError("");setSignupMessage("");}}>Create account / Sign up</button>
+                  <div className="crm-login-footer-note">Login is available only for approved and registered staff accounts.</div>
+                </form>
+              ) : (
+                <form
+                  className="crm-auth-form"
+                  onSubmit={async (e) => {
+                    e.preventDefault(); setBusy(true); setError(""); setSignupMessage("");
+                    const f = new FormData(e.currentTarget);
+                    try {
+                      await rpc("website_inquiry", {
+                        name: f.get("name"),
+                        email: f.get("email"),
+                        phone: f.get("phone"),
+                        message: `CRM ACCESS REQUEST | Role: ${f.get("role")} | Department: ${f.get("department")} | Requested from crm.akbspoultry.com`,
+                        rate_key: String(f.get("email") || f.get("phone") || "crm-access")
+                      }, "");
+                      setSignupMessage("Your CRM access request has been submitted. An admin must approve and create your staff account before you can sign in.");
+                      (e.currentTarget as HTMLFormElement).reset();
+                    } catch (e:any) { setError(e.message); } finally { setBusy(false); }
+                  }}
+                >
+                  <div className="crm-login-heading">
+                    <span className="crm-eyebrow">NEW STAFF ACCESS</span>
+                    <h1>Sign up for AKBS CRM</h1>
+                    <p>Submit your details. CRM access is activated only after administrator approval.</p>
+                  </div>
+                  <div className="crm-login-fields crm-signup-grid">
+                    <label><span>Full Name</span><input name="name" required type="text" placeholder="Enter your full name" /></label>
+                    <label><span>Mobile Number</span><input name="phone" required type="tel" placeholder="+91" /></label>
+                    <label className="crm-span-2"><span>Official Email</span><input name="email" required type="email" placeholder="name@akbspoultry.com" /></label>
+                    <label><span>Department</span><input name="department" required type="text" placeholder="Sales / Finance / Operations" /></label>
+                    <label><span>Requested Role</span><select name="role" required defaultValue=""><option value="" disabled>Select role</option><option>Employee</option><option>Manager</option><option>Finance</option></select></label>
+                  </div>
+                  {error && <p role="alert" className="crm-error">{error}</p>}
+                  {signupMessage && <p role="status" className="crm-success">{signupMessage}</p>}
+                  <button className="primary crm-login-submit" disabled={busy}>{busy ? "Submitting…" : "Submit sign-up request →"}</button>
+                  <button type="button" className="crm-back-login" onClick={() => {setAuthMode("login");setError("");setSignupMessage("");}}>← Already registered? Back to login</button>
+                </form>
               )}
 
-              <button className="primary crm-login-submit" disabled={busy}>
-                {busy
-                  ? "Please wait…"
-                  : user
-                    ? "Save password & continue"
-                    : "Sign in to workspace"}
-              </button>
-
-              <div className="crm-login-footer-note">
-                <span>Authorized AKBS staff only</span>
-                <span>•</span>
-                <span>Secure session protected</span>
-              </div>
-            </form>
+              <div className="crm-security-note">Your information is handled securely. Unauthorized access is prohibited.</div>
+            </div>
           </section>
         </div>
       </div>

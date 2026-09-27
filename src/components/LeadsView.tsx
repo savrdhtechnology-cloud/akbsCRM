@@ -38,6 +38,8 @@ import {
 } from 'lucide-react';
 import { Lead, LeadStatus, LeadSource, DocumentRecord, FollowUp, Activity } from '../types';
 import { SoftQuotationModal } from './SoftQuotationModal';
+import { ApplicationProgressTimeline } from './ApplicationProgressTimeline';
+import { crmLeadProgress } from '../lib/applicationProgress';
 
 interface LeadsViewProps {
   leads: Lead[];
@@ -157,6 +159,12 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   const pagedLeads = filteredLeads.slice((safePage - 1) * perPage, safePage * perPage);
 
   const currentLead = leads.find(l => l.id === selectedLead.id) || selectedLead || leads[0];
+  const currentLeadProgress = currentLead?.id ? crmLeadProgress(currentLead as any) : [];
+  const currentLeadProgressId =
+    currentLeadProgress.find(stage => stage.status === 'in_progress')?.id ||
+    currentLeadProgress.find(stage => stage.status === 'pending')?.id ||
+    currentLeadProgress[currentLeadProgress.length - 1]?.id;
+
 
   React.useEffect(() => {
     if (!currentLead?.id) return;
@@ -701,6 +709,17 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
 
             {activeDetailTab === 'overview' && (
               <>
+            {currentLeadProgress.length > 0 && (
+              <ApplicationProgressTimeline
+                title="Lead / Application Progress"
+                subtitle="Live progress calculated from the application data and current CRM stage."
+                stages={currentLeadProgress}
+                activeStageId={currentLeadProgressId}
+                readOnly
+                compact
+              />
+            )}
+
             {/* Basic Information Box */}
             <div className="bg-slate-50/60 rounded-xl p-3.5 border border-slate-200/80 space-y-2 text-xs">
               <div className="flex items-center gap-2 font-bold text-slate-900 border-b border-slate-200/60 pb-1.5">

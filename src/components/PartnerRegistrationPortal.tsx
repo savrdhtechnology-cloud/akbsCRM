@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { AkbsLogo } from './AkbsLogo';
 import { PortalAccess, usePortal } from './PortalAccess';
+import { ApplicationProgressTimeline } from './ApplicationProgressTimeline';
+import { partnerOnboardingProgress } from '../lib/applicationProgress';
 
 export const PartnerRegistrationPortal: React.FC = () => <PortalAccess kind="partner"><PartnerApplication/></PortalAccess>;
 
@@ -38,6 +40,12 @@ const PartnerApplication: React.FC = () => {
   });
 
   const update = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
+  const partnerProgressStages = partnerOnboardingProgress(form, submitted);
+  const partnerActiveStageId =
+    partnerProgressStages.find(stage => stage.status === 'in_progress')?.id ||
+    partnerProgressStages.find(stage => stage.status === 'pending')?.id ||
+    partnerProgressStages[partnerProgressStages.length - 1]?.id;
+
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -54,7 +62,15 @@ const PartnerApplication: React.FC = () => {
   if (submitted) {
     return (
       <div className="min-h-screen bg-[#f3f6f4] flex items-center justify-center p-5">
-        <div className="max-w-lg w-full bg-white rounded-3xl border border-slate-200 shadow-xl p-8 text-center">
+        <div className="max-w-5xl w-full space-y-5">
+          <ApplicationProgressTimeline
+            title="Partnership Application Progress"
+            subtitle="Your onboarding progress is calculated from the information submitted to AKBS."
+            stages={partnerOnboardingProgress(form, true)}
+            activeStageId={partnerActiveStageId}
+            readOnly
+          />
+          <div className="max-w-lg mx-auto bg-white rounded-3xl border border-slate-200 shadow-xl p-8 text-center">
           <div className="w-16 h-16 mx-auto rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
             <CheckCircle2 className="w-9 h-9" />
           </div>
@@ -64,6 +80,7 @@ const PartnerApplication: React.FC = () => {
           </p>
           <div className="mt-5 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-900"><p className="font-bold">{portal.applications[0]?.appId}</p><p className="mt-2">Status: {portal.applications[0]?.status?.replaceAll('_', ' ')}</p></div>
           <a href="https://akbspoultry.com" className="inline-block mt-6 rounded-xl bg-[#0b3824] text-white px-5 py-3 text-sm font-semibold">Return to website</a>
+          </div>
         </div>
       </div>
     );
@@ -113,6 +130,15 @@ const PartnerApplication: React.FC = () => {
               </p>
             </div>
           </aside>
+
+          <div className="space-y-5">
+            <ApplicationProgressTimeline
+              title="Partner Registration Progress"
+              subtitle="Complete your profile step by step. Progress updates automatically as you fill the form."
+              stages={partnerProgressStages}
+              activeStageId={partnerActiveStageId}
+              readOnly
+            />
 
           <section className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 sm:px-7 py-6 border-b border-slate-100">
@@ -191,6 +217,7 @@ const PartnerApplication: React.FC = () => {
               </div>
             </form>
           </section>
+          </div>
         </div>
       </main>
     </div>

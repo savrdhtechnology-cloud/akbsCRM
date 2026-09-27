@@ -7,18 +7,22 @@
     {
       "source": "/soft-quotations/:path*",
       "destination": "/index.html"
-    }
-  ],
-  "redirects": [
+    },
     {
       "source": "/customer-registration",
-      "destination": "https://www.akbspoultry.com/customer/register",
-      "permanent": false
+      "destination": "/index.html"
+    },
+    {
+      "source": "/customer-registration/:path*",
+      "destination": "/index.html"
     },
     {
       "source": "/partner-registration",
-      "destination": "https://www.akbspoultry.com/partner/register",
-      "permanent": false
+      "destination": "/index.html"
+    },
+    {
+      "source": "/partner-registration/:path*",
+      "destination": "/index.html"
     }
   ]
 }

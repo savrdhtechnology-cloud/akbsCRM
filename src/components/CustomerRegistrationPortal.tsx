@@ -39,6 +39,8 @@ import aerialLandImg from '../assets/images/aerial_farm_land_1790245878786.jpg';
 import { Lead } from '../types';
 import { PortalAccess, usePortal } from './PortalAccess';
 import { STAGES } from '../lib/leadAdapter';
+import { ApplicationProgressTimeline } from './ApplicationProgressTimeline';
+import { customerApplicationProgress } from '../lib/applicationProgress';
 
 interface CustomerRegistrationPortalProps {
   onRegisterCustomer?: (newLead: Partial<Lead>) => void;
@@ -323,6 +325,12 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
     { num: 5, label: 'Experience & Support', subtitle: 'Experience, Requirements, Timeline' },
     { num: 6, label: 'Review & Submit', subtitle: 'Confirm Details & Submit' }
   ];
+  const applicationProgressStages = customerApplicationProgress({
+    ...formData,
+    declarationConfirmed: formData.declarationConfirmed || isSubmitted
+  });
+  const activeProgressStageId = applicationProgressStages[Math.max(0, Math.min(currentStep - 1, applicationProgressStages.length - 1))]?.id;
+
 
   const toggleSupportItem = (item: string) => {
     setFormData(prev => ({
@@ -1908,58 +1916,20 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                   </div>
                 )}
 
-                {/* Step Navigation Progress Indicator (1 to 6) */}
-                <div className="py-2">
-                  <div className="flex items-center justify-between relative">
-                    <div className="absolute left-4 right-4 top-4 h-0.5 bg-slate-200 -z-0" />
-                    <div
-                      className="absolute left-4 top-4 h-0.5 bg-[#0b2818] transition-all duration-300 -z-0"
-                      style={{
-                        width: `${((currentStep - 1) / (stepsList.length - 1)) * 100}%`
-                      }}
-                    />
-
-                    {stepsList.map((step) => {
-                      const isCompleted = step.num < currentStep;
-                      const isActive = step.num === currentStep;
-
-                      return (
-                        <div
-                          key={step.num}
-                          onClick={() => {
-                            if (!canOpenStep(step.num)) return;
-                            setStepMessage('');
-                            setCurrentStep(step.num);
-                          }}
-                          className={`flex flex-col items-center group z-10 ${canOpenStep(step.num) ? 'cursor-pointer' : 'cursor-not-allowed opacity-50 pointer-events-auto'}`}
-                        >
-                          <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all shadow-xs ${
-                              isActive
-                                ? 'bg-[#0b2818] text-white ring-4 ring-emerald-100 scale-110'
-                                : isCompleted
-                                ? 'bg-emerald-700 text-white'
-                                : 'bg-white border-2 border-slate-300 text-slate-400'
-                            }`}
-                          >
-                            {isCompleted ? <Check className="w-4 h-4" /> : step.num}
-                          </div>
-                          <span
-                            className={`text-[10px] mt-1.5 font-medium hidden sm:block text-center max-w-[80px] leading-tight ${
-                              isActive
-                                ? 'font-bold text-emerald-950'
-                                : isCompleted
-                                ? 'text-slate-700 font-medium'
-                                : 'text-slate-400'
-                            }`}
-                          >
-                            {step.label}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                <ApplicationProgressTimeline
+                  title="Your Application Progress"
+                  subtitle="Complete all required details step by step. Progress is calculated automatically from the information you enter."
+                  stages={applicationProgressStages}
+                  activeStageId={activeProgressStageId}
+                  onStageClick={(stage) => {
+                    const targetIndex = applicationProgressStages.findIndex(item => item.id === stage.id);
+                    const targetStep = targetIndex + 1;
+                    if (targetStep < 1 || !canOpenStep(targetStep)) return;
+                    setStepMessage('');
+                    setCurrentStep(targetStep);
+                    window.scrollTo({ top: 120, behavior: 'smooth' });
+                  }}
+                />
 
                 {/* FORM SECTIONS ACCORDING TO STEP */}
 

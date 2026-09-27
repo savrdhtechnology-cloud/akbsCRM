@@ -32,6 +32,7 @@ interface SidebarProps {
   onSelectRole?: (role: PortalRole) => void;
   onClose?: () => void;
   onCloseMobile?: () => void;
+  onLogout?: () => void;
 }
 
 type NavItem = {
@@ -46,7 +47,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectSection,
   isOpen,
   onClose,
-  onCloseMobile
+  onCloseMobile,
+  onLogout
 }) => {
   const handleClose = onClose || onCloseMobile || (() => {});
 
@@ -230,6 +232,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 <button
                   type="button"
+                  onClick={() => onLogout?.()}
                   className="w-full flex items-center justify-between rounded-xl px-0.5 py-1 text-left text-white/88 transition-colors hover:text-white"
                 >
                   <span className="flex items-center gap-2.5">

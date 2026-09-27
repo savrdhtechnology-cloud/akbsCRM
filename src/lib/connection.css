@@ -291,3 +291,15 @@
   .crm-signup-grid{grid-template-columns:1fr}
   .crm-span-2{grid-column:auto}
 }
+
+.crm-auth-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:-4px}
+.crm-auth-helper{font-size:11px;color:#7a8d99}
+.crm-text-action{border:0;background:transparent;color:#0a8f60;font-size:12px;font-weight:800;padding:0;cursor:pointer}
+.crm-text-action:hover{text-decoration:underline}
+.crm-login-feature-list{margin-top:30px}
+.crm-login-feature-list>div{padding:2px 0}
+.crm-login-card{display:grid;gap:0}
+.crm-auth-form{display:grid;gap:20px}
+@media(max-width:640px){
+  .crm-auth-row{align-items:flex-start;flex-direction:column}
+}

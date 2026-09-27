@@ -17,6 +17,7 @@ type Snapshot = {
 type PortalContextValue = Snapshot & {
   rpc: (action: string, data?: Record<string, unknown>) => Promise<Snapshot>;
   refresh: () => Promise<Snapshot>;
+  timeline: (leadId: string) => Promise<any>;
 };
 
 const PortalContext = createContext<PortalContextValue | null>(null);
@@ -60,6 +61,15 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
 
   const partner = kind === 'partner';
   const title = partner ? 'Partner' : 'Customer';
+
+  async function timeline(leadId: string) {
+    if (!sessionToken) throw new Error('Verify your email OTP first.');
+    return rpcCall('akbs_portal_timeline', {
+      p_kind: kind,
+      p_session_token: sessionToken,
+      p_lead_id: leadId
+    });
+  }
 
   async function portalRpc(action: string, data: Record<string, unknown> = {}) {
     if (!sessionToken) throw new Error('Verify your email OTP first.');
@@ -221,7 +231,7 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
 
   if (sessionToken && snapshot?.enrolled) {
     return (
-      <PortalContext.Provider value={{ ...snapshot, rpc: portalRpc, refresh: () => portalRpc('snapshot') }}>
+      <PortalContext.Provider value={{ ...snapshot, rpc: portalRpc, refresh: () => portalRpc('snapshot'), timeline }}>
         <div className="bg-white border-b border-slate-200 px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
           <span>{title} account · {snapshot.profile.email}</span>
           <div className="flex gap-4">

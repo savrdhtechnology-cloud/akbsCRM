@@ -194,15 +194,37 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
   }, [token, refresh, clear]);
   useEffect(() => {
     if (!user || user.must_change_password) return;
-    const run = () => {
-      if (document.visibilityState === "visible")
-        void refresh().catch(() => {});
+
+    let stopped = false;
+    let inFlight = false;
+
+    const run = async () => {
+      if (stopped || inFlight || document.visibilityState !== "visible") return;
+      inFlight = true;
+      try {
+        await refresh();
+      } catch {
+        // Background sync is silent; existing data remains available.
+      } finally {
+        inFlight = false;
+      }
     };
-    const timer = setInterval(run, 30000);
-    window.addEventListener("focus", run);
+
+    // Keep every staff portal continuously synced to the same source database.
+    const timer = window.setInterval(() => void run(), 2000);
+    const onFocus = () => void run();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void run();
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+
     return () => {
-      clearInterval(timer);
-      window.removeEventListener("focus", run);
+      stopped = true;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [!!user, user?.must_change_password, refresh]);
   const command = async (a: string, d: Record<string, any> = {}) => {

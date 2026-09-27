@@ -147,6 +147,47 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
     return () => { active = false; };
   }, [kind]);
 
+  useEffect(() => {
+    if (!sessionToken || !snapshot?.enrolled) return;
+
+    let stopped = false;
+    let inFlight = false;
+
+    const sync = async () => {
+      if (stopped || inFlight || document.visibilityState !== 'visible') return;
+      inFlight = true;
+      try {
+        const current: Snapshot = await rpcCall('akbs_portal_custom', {
+          p_action: 'snapshot',
+          p_kind: kind,
+          p_session_token: sessionToken,
+          p_data: {}
+        });
+        if (!stopped) setSnapshot(current);
+      } catch {
+        // Keep the last good portal state during transient network errors.
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    const timer = window.setInterval(() => void sync(), 2000);
+    const onFocus = () => void sync();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void sync();
+    };
+
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [sessionToken, snapshot?.enrolled, kind]);
+
   async function sendOtp(e?: React.FormEvent) {
     if (e) e.preventDefault();
     setBusy(true);
@@ -263,14 +304,6 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
   if (sessionToken && snapshot?.enrolled) {
     return (
       <PortalContext.Provider value={{ ...snapshot, rpc: portalRpc, refresh: () => portalRpc('snapshot'), timeline, loadDraft, saveDraft, deleteDraft }}>
-        <div className="bg-white border-b border-slate-200 px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
-          <span>{title} account · {snapshot.profile.email}</span>
-          <div className="flex gap-4">
-            <button disabled={busy} onClick={() => void portalRpc('snapshot')} className="font-semibold text-emerald-800">Refresh status</button>
-            <a href="https://akbspoultry.com" className="text-emerald-800 font-semibold">Website</a>
-            <button disabled={busy} onClick={signOut} className="font-semibold text-slate-700">Sign out</button>
-          </div>
-        </div>
         {error && <p role="alert" className="bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
         {children}
       </PortalContext.Provider>

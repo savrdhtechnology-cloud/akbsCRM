@@ -302,6 +302,9 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
   const [trackResult, setTrackResult] = useState<any>(null);
   const [trackResults, setTrackResults] = useState<any[]>([]);
   const [trackMessage, setTrackMessage] = useState('');
+  const [timelineData, setTimelineData] = useState<any>(null);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [timelineError, setTimelineError] = useState('');
 
   // Success state after step 6 submission
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -501,6 +504,7 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
 
     return {
       appId: record.appId,
+      leadId: record.id || record.leadId || '',
       farmerName: data.fullName || 'Customer',
       mobileNumber: data.mobileNumber || record.mobileNumber || '',
       location: [data.villageOrCity, data.district, data.state].filter(Boolean).join(', ') || 'Not provided',
@@ -515,9 +519,28 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
     };
   };
 
+  const loadApplicationTimeline = async (leadId: string) => {
+    if (!leadId) {
+      setTimelineData(null);
+      return;
+    }
+    setTimelineLoading(true);
+    setTimelineError('');
+    try {
+      const result = await portal.timeline(leadId);
+      setTimelineData(result);
+    } catch (error: any) {
+      setTimelineData(null);
+      setTimelineError(error.message || 'Timeline could not be loaded.');
+    } finally {
+      setTimelineLoading(false);
+    }
+  };
+
   const openSavedApplication = (record: any, relatedRecords?: any[]) => {
     const results = (relatedRecords || [record]).map(mapSavedApplicationToTrackResult);
-    setTrackResult(mapSavedApplicationToTrackResult(record));
+    const selected = mapSavedApplicationToTrackResult(record);
+    setTrackResult(selected);
     setTrackResults(results);
     setTrackSearchId(record.appId || '');
     setTrackMessage('');
@@ -525,6 +548,9 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
     setDuplicateApplication(null);
     setIsSubmitted(false);
     setActiveSideMenu('track');
+    setTimelineData(null);
+    setTimelineError('');
+    void loadApplicationTimeline(selected.leadId);
   };
 
   const handleTrackSearch = (e: React.FormEvent) => {
@@ -559,6 +585,8 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
     setTrackResult(null);
     setTrackResults([]);
     setTrackMessage('');
+    setTimelineData(null);
+    setTimelineError('');
     setIsConsentModalOpen(false);
     setConsentTermsAccepted(false);
     setConsentContactAccepted(false);
@@ -1644,6 +1672,134 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                         <span className="text-slate-400">Next Follow-up:</span>
                         <div className="font-semibold text-slate-800">{trackResult.nextFollowUp || 'Not scheduled'}</div>
                       </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <div className="flex items-center justify-between gap-3 mb-4">
+                        <div>
+                          <div className="text-sm font-black text-slate-900">Application Journey</div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">Live progress from application submission to project completion.</div>
+                        </div>
+                        {timelineLoading && (
+                          <span className="text-[10px] font-bold text-emerald-700 animate-pulse">Refreshing timeline…</span>
+                        )}
+                      </div>
+
+                      {timelineError && (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">
+                          {timelineError}
+                        </div>
+                      )}
+
+                      <div className="relative pl-1">
+                        <div className="absolute left-[19px] top-5 bottom-5 w-0.5 bg-slate-200" />
+                        <div className="space-y-4">
+                          {[
+                            {
+                              key: 'submitted',
+                              title: 'Application Submitted',
+                              detail: 'Your application has been received by AKBS.',
+                              done: true,
+                              at: timelineData?.createdAt || trackResult.dateSubmitted
+                            },
+                            {
+                              key: 'assigned',
+                              title: 'Team Assignment',
+                              detail: timelineData?.assignedTo && timelineData.assignedTo !== 'Awaiting assignment'
+                                ? `Assigned to ${timelineData.assignedTo}`
+                                : 'AKBS team assignment is pending.',
+                              done: !!timelineData?.assignedTo && timelineData.assignedTo !== 'Awaiting assignment',
+                              at: timelineData?.events?.find((e:any) => ['OWNER_CHANGED','AUTO_ASSIGNED'].includes(e.action))?.at
+                            },
+                            {
+                              key: 'contacted',
+                              title: 'Initial Review & Contact',
+                              detail: 'Project details reviewed and customer contacted.',
+                              done: ['CONTACTED','QUALIFIED','SITE_VISIT','DPR','PROPOSAL','LOAN_PROCESSING','CONVERTED'].includes(timelineData?.stage || ''),
+                              at: timelineData?.events?.find((e:any) => e.action === 'STAGE_CHANGED' && String(e.detail).includes('CONTACTED'))?.at
+                            },
+                            {
+                              key: 'visit',
+                              title: 'Site / Project Assessment',
+                              detail: 'Location, land and technical requirements are assessed.',
+                              done: ['SITE_VISIT','DPR','PROPOSAL','LOAN_PROCESSING','CONVERTED'].includes(timelineData?.stage || '') ||
+                                !!timelineData?.events?.find((e:any) => String(e.action).startsWith('VISIT_')),
+                              at: timelineData?.events?.find((e:any) => String(e.action).startsWith('VISIT_'))?.at
+                            },
+                            {
+                              key: 'dpr',
+                              title: 'DPR / Proposal',
+                              detail: 'Project planning, quotation and DPR are prepared.',
+                              done: ['DPR','PROPOSAL','LOAN_PROCESSING','CONVERTED'].includes(timelineData?.stage || '') ||
+                                !!timelineData?.events?.find((e:any) => String(e.action).startsWith('PROPOSAL_')),
+                              at: timelineData?.events?.find((e:any) => String(e.action).startsWith('PROPOSAL_'))?.at
+                            },
+                            {
+                              key: 'finance',
+                              title: 'Loan / Financing',
+                              detail: 'Finance documents, bank processing and approvals are tracked.',
+                              done: ['LOAN_PROCESSING','CONVERTED'].includes(timelineData?.stage || '') ||
+                                !!timelineData?.events?.find((e:any) => String(e.action).startsWith('FINANCING_')),
+                              at: timelineData?.events?.find((e:any) => String(e.action).startsWith('FINANCING_'))?.at
+                            },
+                            {
+                              key: 'completion',
+                              title: 'Project Conversion / Completion',
+                              detail: 'Application converted into an active AKBS project.',
+                              done: (timelineData?.stage || '') === 'CONVERTED',
+                              at: timelineData?.events?.find((e:any) => e.action === 'STAGE_CHANGED' && String(e.detail).includes('CONVERTED'))?.at
+                            }
+                          ].map((item, index) => (
+                            <div key={item.key} className="relative flex gap-3 group">
+                              <div className={`relative z-10 w-9 h-9 rounded-full flex items-center justify-center shrink-0 border-4 border-slate-50 transition-all duration-500 ${
+                                item.done
+                                  ? 'bg-emerald-600 text-white shadow-[0_0_0_4px_rgba(16,185,129,0.12)]'
+                                  : index === 1 && timelineLoading
+                                    ? 'bg-amber-400 text-white animate-pulse'
+                                    : 'bg-white text-slate-400 ring-1 ring-slate-300'
+                              }`}>
+                                {item.done ? <Check className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+                              </div>
+                              <div className={`flex-1 rounded-xl border p-3 transition-all duration-300 ${
+                                item.done ? 'bg-emerald-50/70 border-emerald-200' : 'bg-white border-slate-200'
+                              }`}>
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className={`text-xs font-black ${item.done ? 'text-emerald-950' : 'text-slate-700'}`}>{item.title}</div>
+                                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                                    item.done ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
+                                  }`}>
+                                    {item.done ? 'Completed' : 'Pending'}
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-slate-500 mt-1 leading-4">{item.detail}</div>
+                                {item.at && (
+                                  <div className="text-[9px] text-slate-400 mt-1.5 font-mono">
+                                    {new Date(item.at).toLocaleString('en-IN')}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {!!timelineData?.events?.length && (
+                        <div className="mt-5 rounded-xl border border-slate-200 bg-white p-3">
+                          <div className="text-[11px] font-black text-slate-900 mb-2">Recent Updates</div>
+                          <div className="space-y-2">
+                            {timelineData.events.slice(-5).reverse().map((event:any, idx:number) => (
+                              <div key={event.at + event.action + idx} className="flex gap-2 text-[10px]">
+                                <div className="mt-1.5 w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                                <div>
+                                  <div className="font-bold text-slate-800">{event.title}</div>
+                                  {event.detail && <div className="text-slate-500 mt-0.5">{event.detail}</div>}
+                                  <div className="text-slate-400 mt-0.5 font-mono">{new Date(event.at).toLocaleString('en-IN')}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

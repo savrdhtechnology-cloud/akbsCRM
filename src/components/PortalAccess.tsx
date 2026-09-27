@@ -18,6 +18,9 @@ type PortalContextValue = Snapshot & {
   rpc: (action: string, data?: Record<string, unknown>) => Promise<Snapshot>;
   refresh: () => Promise<Snapshot>;
   timeline: (leadId: string) => Promise<any>;
+  loadDraft: () => Promise<any>;
+  saveDraft: (requestId: string, form: Record<string, unknown>, currentStage: number) => Promise<any>;
+  deleteDraft: (requestId: string) => Promise<any>;
 };
 
 const PortalContext = createContext<PortalContextValue | null>(null);
@@ -61,6 +64,34 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
 
   const partner = kind === 'partner';
   const title = partner ? 'Partner' : 'Customer';
+
+  async function loadDraft() {
+    if (!sessionToken) throw new Error('Verify your email OTP first.');
+    return rpcCall('akbs_portal_draft_load', {
+      p_kind: kind,
+      p_session_token: sessionToken
+    });
+  }
+
+  async function saveDraft(requestId: string, form: Record<string, unknown>, currentStage: number) {
+    if (!sessionToken) throw new Error('Verify your email OTP first.');
+    return rpcCall('akbs_portal_draft_save', {
+      p_kind: kind,
+      p_session_token: sessionToken,
+      p_request_id: requestId,
+      p_form: form,
+      p_current_stage: currentStage
+    });
+  }
+
+  async function deleteDraft(requestId: string) {
+    if (!sessionToken) throw new Error('Verify your email OTP first.');
+    return rpcCall('akbs_portal_draft_delete', {
+      p_kind: kind,
+      p_session_token: sessionToken,
+      p_request_id: requestId
+    });
+  }
 
   async function timeline(leadId: string) {
     if (!sessionToken) throw new Error('Verify your email OTP first.');
@@ -231,7 +262,7 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
 
   if (sessionToken && snapshot?.enrolled) {
     return (
-      <PortalContext.Provider value={{ ...snapshot, rpc: portalRpc, refresh: () => portalRpc('snapshot'), timeline }}>
+      <PortalContext.Provider value={{ ...snapshot, rpc: portalRpc, refresh: () => portalRpc('snapshot'), timeline, loadDraft, saveDraft, deleteDraft }}>
         <div className="bg-white border-b border-slate-200 px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
           <span>{title} account · {snapshot.profile.email}</span>
           <div className="flex gap-4">

@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import { AkbsLogo } from "../components/AkbsLogo";
+import { AuthPortal } from "../components/AuthPortal";
 const databaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://ldffgetuzoeupuhoaubn.supabase.co";
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_KzdI4K0qLXgi3MhA5GXPhg_6f5vB8By";
 export interface User {
@@ -215,6 +216,72 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
     }
     return out;
   };
+  const login = async (login: string, password: string) => {
+    setBusy(true);
+    setError("");
+    try {
+      const result = await rpc("login", { login, password }, token);
+      sessionStorage.setItem("akbs-workspace-session", result.token);
+      setUser(null);
+      setToken(result.token);
+    } catch (e: any) {
+      setError(e.message);
+      throw e;
+    } finally {
+      setBusy(false);
+    }
+  };
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    setBusy(true);
+    setError("");
+    try {
+      const result = await rpc("password", { current_password: currentPassword, password: newPassword }, token);
+      sessionStorage.setItem("akbs-workspace-session", result.token);
+      setUser(null);
+      setToken(result.token);
+    } catch (e: any) {
+      setError(e.message);
+      throw e;
+    } finally {
+      setBusy(false);
+    }
+  };
+  const submitAccessRequest = async (data: {name:string;phone:string;email:string;department:string;role:string}) => {
+    setBusy(true);
+    setError("");
+    try {
+      await rpc("website_inquiry", {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        message: `CRM STAFF SIGN-UP REQUEST | Role: ${data.role} | Department: ${data.department}`,
+        rate_key: data.email || data.phone || "crm-signup",
+      }, "");
+    } catch (e: any) {
+      setError(e.message);
+      throw e;
+    } finally {
+      setBusy(false);
+    }
+  };
+  const submitResetRequest = async (data: {login:string;email:string;phone:string}) => {
+    setBusy(true);
+    setError("");
+    try {
+      await rpc("website_inquiry", {
+        name: data.login || "CRM user",
+        email: data.email,
+        phone: data.phone,
+        message: `CRM PASSWORD RESET REQUEST | Login ID: ${data.login}`,
+        rate_key: data.login || data.email || data.phone || "crm-reset",
+      }, "");
+    } catch (e: any) {
+      setError(e.message);
+      throw e;
+    } finally {
+      setBusy(false);
+    }
+  };
   if (loading)
     return (
       <div className="crm-login crm-login-loading">
@@ -227,132 +294,15 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
     );
   if (!user || user.must_change_password)
     return (
-      <div className="crm-login">
-        <div className="crm-login-shell">
-          <section className="crm-login-visual" aria-label="AKBS CRM overview">
-            <div className="crm-login-brand">
-              <AkbsLogo size="lg" />
-            </div>
-            <div className="crm-login-visual-copy">
-              <span className="crm-login-kicker">AKBS POULTRY FARMING</span>
-              <h2>One secure workspace for your complete poultry business operations.</h2>
-              <p>
-                Manage leads, customer onboarding, DPR workflows, financing, follow-ups and team activity from one professional CRM.
-              </p>
-            </div>
-            <div className="crm-login-feature-grid">
-              <div><strong>Lead Management</strong><span>Track every enquiry & follow-up</span></div>
-              <div><strong>DPR & Finance</strong><span>Monitor proposals and loan workflows</span></div>
-              <div><strong>Role Based Access</strong><span>Admin, manager & employee control</span></div>
-              <div><strong>Live Business Data</strong><span>Connected with AKBS website records</span></div>
-            </div>
-            <div className="crm-login-trust">
-              <span className="crm-login-trust-dot" />
-              Secure staff access · Protected business workspace
-            </div>
-          </section>
-
-          <section className="crm-login-panel">
-            <form
-              className="crm-login-card"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setBusy(true);
-                setError("");
-                const f = new FormData(e.currentTarget);
-                try {
-                  const result = await rpc(
-                    user ? "password" : "login",
-                    user
-                      ? {
-                          current_password: f.get("current"),
-                          password: f.get("password"),
-                        }
-                      : { login: f.get("login"), password: f.get("password") },
-                    token,
-                  );
-                  sessionStorage.setItem("akbs-workspace-session", result.token);
-                  setUser(null);
-                  setToken(result.token);
-                } catch (e: any) {
-                  setError(e.message);
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              <div className="crm-login-mobile-brand"><AkbsLogo size="md" /></div>
-              <div className="crm-login-heading">
-                <span className="crm-eyebrow">{user ? "SECURE ACCOUNT SETUP" : "STAFF LOGIN"}</span>
-                <h1>{user ? "Set your new password" : "Welcome back"}</h1>
-                <p>
-                  {user
-                    ? "For your security, replace the temporary password before continuing."
-                    : "Sign in to access the AKBS CRM management workspace."}
-                </p>
-              </div>
-
-              <div className="crm-login-fields">
-                {!user ? (
-                  <label>
-                    <span>Email / Login ID</span>
-                    <input
-                      name="login"
-                      required
-                      autoComplete="username"
-                      type="text"
-                      placeholder="Enter your email or login ID"
-                    />
-                  </label>
-                ) : (
-                  <label>
-                    <span>Current password</span>
-                    <input
-                      name="current"
-                      type="password"
-                      required
-                      autoComplete="current-password"
-                      placeholder="Enter temporary password"
-                    />
-                  </label>
-                )}
-                <label>
-                  <span>{user ? "New password" : "Password"}</span>
-                  <input
-                    name="password"
-                    type="password"
-                    required
-                    minLength={user ? 12 : 1}
-                    maxLength={72}
-                    autoComplete={user ? "new-password" : "current-password"}
-                    placeholder={user ? "Create a secure new password" : "Enter your password"}
-                  />
-                </label>
-              </div>
-
-              {error && (
-                <p role="alert" className="crm-error">
-                  {error}
-                </p>
-              )}
-
-              <button className="primary crm-login-submit" disabled={busy}>
-                {busy
-                  ? "Please wait…"
-                  : user
-                    ? "Save password & continue"
-                    : "Sign in to workspace"}
-              </button>
-
-              <div className="crm-login-footer-note">
-                <span>Authorized AKBS staff only</span>
-                <span>•</span>
-                <span>Secure session protected</span>
-              </div>
-            </form>
-          </section>
-        </div>
-      </div>
+      <AuthPortal
+        user={user}
+        busy={busy}
+        error={error}
+        onLogin={login}
+        onPasswordChange={changePassword}
+        onSignupRequest={submitAccessRequest}
+        onResetRequest={submitResetRequest}
+      />
     );
   if (!["ADMIN", "MANAGER", "EMPLOYEE", "FINANCE"].includes(user.role))
     return (

@@ -216,91 +216,142 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
     return out;
   };
   if (loading)
-    return <div className="crm-login">Loading your workspace…</div>;
+    return (
+      <div className="crm-login crm-login-loading">
+        <div className="crm-login-loader-card">
+          <AkbsLogo size="md" />
+          <div className="crm-login-spinner" aria-hidden="true" />
+          <p>Preparing your secure workspace…</p>
+        </div>
+      </div>
+    );
   if (!user || user.must_change_password)
     return (
       <div className="crm-login">
-        <form
-          className="crm-login-card"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setBusy(true);
-            setError("");
-            const f = new FormData(e.currentTarget);
-            try {
-              const result = await rpc(
-                user ? "password" : "login",
-                user
-                  ? {
-                      current_password: f.get("current"),
-                      password: f.get("password"),
-                    }
-                  : { login: f.get("login"), password: f.get("password") },
-                token,
-              );
-              sessionStorage.setItem("akbs-workspace-session", result.token);
-              setUser(null);
-              setToken(result.token);
-            } catch (e: any) {
-              setError(e.message);
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          <AkbsLogo size="lg" />
-          <span className="crm-eyebrow">YOUR GROWTH WORKSPACE</span>
-          <h1>{user ? "Set your new password" : "Welcome to AKBS CRM"}</h1>
-          <p>
-            {user
-              ? "Enter your temporary password and choose a new password."
-              : "Sign in with your existing AKBS staff account."}
-          </p>
-          {!user ? (
-            <label>
-              Email / Login
-              <input
-                name="login"
-                required
-                autoComplete="username"
-                type="text"
-              />
-            </label>
-          ) : (
-            <label>
-              Current password
-              <input
-                name="current"
-                type="password"
-                required
-                autoComplete="current-password"
-              />
-            </label>
-          )}
-          <label>
-            {user ? "New password" : "Password"}
-            <input
-              name="password"
-              type="password"
-              required
-              minLength={user ? 12 : 1}
-              maxLength={72}
-              autoComplete={user ? "new-password" : "current-password"}
-            />
-          </label>
-          {error && (
-            <p role="alert" className="crm-error">
-              {error}
-            </p>
-          )}
-          <button className="primary" disabled={busy}>
-            {busy
-              ? "Please wait…"
-              : user
-                ? "Save password"
-                : "Sign in securely"}
-          </button>
-        </form>
+        <div className="crm-login-shell">
+          <section className="crm-login-visual" aria-label="AKBS CRM overview">
+            <div className="crm-login-brand">
+              <AkbsLogo size="lg" />
+            </div>
+            <div className="crm-login-visual-copy">
+              <span className="crm-login-kicker">AKBS POULTRY FARMING</span>
+              <h2>One secure workspace for your complete poultry business operations.</h2>
+              <p>
+                Manage leads, customer onboarding, DPR workflows, financing, follow-ups and team activity from one professional CRM.
+              </p>
+            </div>
+            <div className="crm-login-feature-grid">
+              <div><strong>Lead Management</strong><span>Track every enquiry & follow-up</span></div>
+              <div><strong>DPR & Finance</strong><span>Monitor proposals and loan workflows</span></div>
+              <div><strong>Role Based Access</strong><span>Admin, manager & employee control</span></div>
+              <div><strong>Live Business Data</strong><span>Connected with AKBS website records</span></div>
+            </div>
+            <div className="crm-login-trust">
+              <span className="crm-login-trust-dot" />
+              Secure staff access · Protected business workspace
+            </div>
+          </section>
+
+          <section className="crm-login-panel">
+            <form
+              className="crm-login-card"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setBusy(true);
+                setError("");
+                const f = new FormData(e.currentTarget);
+                try {
+                  const result = await rpc(
+                    user ? "password" : "login",
+                    user
+                      ? {
+                          current_password: f.get("current"),
+                          password: f.get("password"),
+                        }
+                      : { login: f.get("login"), password: f.get("password") },
+                    token,
+                  );
+                  sessionStorage.setItem("akbs-workspace-session", result.token);
+                  setUser(null);
+                  setToken(result.token);
+                } catch (e: any) {
+                  setError(e.message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              <div className="crm-login-mobile-brand"><AkbsLogo size="md" /></div>
+              <div className="crm-login-heading">
+                <span className="crm-eyebrow">{user ? "SECURE ACCOUNT SETUP" : "STAFF LOGIN"}</span>
+                <h1>{user ? "Set your new password" : "Welcome back"}</h1>
+                <p>
+                  {user
+                    ? "For your security, replace the temporary password before continuing."
+                    : "Sign in to access the AKBS CRM management workspace."}
+                </p>
+              </div>
+
+              <div className="crm-login-fields">
+                {!user ? (
+                  <label>
+                    <span>Email / Login ID</span>
+                    <input
+                      name="login"
+                      required
+                      autoComplete="username"
+                      type="text"
+                      placeholder="Enter your email or login ID"
+                    />
+                  </label>
+                ) : (
+                  <label>
+                    <span>Current password</span>
+                    <input
+                      name="current"
+                      type="password"
+                      required
+                      autoComplete="current-password"
+                      placeholder="Enter temporary password"
+                    />
+                  </label>
+                )}
+                <label>
+                  <span>{user ? "New password" : "Password"}</span>
+                  <input
+                    name="password"
+                    type="password"
+                    required
+                    minLength={user ? 12 : 1}
+                    maxLength={72}
+                    autoComplete={user ? "new-password" : "current-password"}
+                    placeholder={user ? "Create a secure new password" : "Enter your password"}
+                  />
+                </label>
+              </div>
+
+              {error && (
+                <p role="alert" className="crm-error">
+                  {error}
+                </p>
+              )}
+
+              <button className="primary crm-login-submit" disabled={busy}>
+                {busy
+                  ? "Please wait…"
+                  : user
+                    ? "Save password & continue"
+                    : "Sign in to workspace"}
+              </button>
+
+              <div className="crm-login-footer-note">
+                <span>Authorized AKBS staff only</span>
+                <span>•</span>
+                <span>Secure session protected</span>
+              </div>
+            </form>
+          </section>
+        </div>
       </div>
     );
   if (!["ADMIN", "MANAGER", "EMPLOYEE", "FINANCE"].includes(user.role))

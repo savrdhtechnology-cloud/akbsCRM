@@ -253,6 +253,7 @@ export default function App() {
         }}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        onLogout={crm.logout}
       />
 
       {/* Main Content Area */}

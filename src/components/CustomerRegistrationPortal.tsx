@@ -302,6 +302,16 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
   // Form Data State matching all 6 steps from the reference mockup
   const [formData, setFormData] = useState(() => ({ ...createBlankCustomerApplication(), fullName: portal.profile.name || '', email: portal.profile.email || '' }));
 
+  // Success state after step 6 submission
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedAppId, setSubmittedAppId] = useState('');
+  const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
+  const [consentLanguage, setConsentLanguage] = useState<ConsentLanguage>('Hindi');
+  const [consentTermsAccepted, setConsentTermsAccepted] = useState(false);
+  const [consentContactAccepted, setConsentContactAccepted] = useState(false);
+  const [consentScrolledToEnd, setConsentScrolledToEnd] = useState(false);
+
+
   // Restore latest saved draft for this verified customer account.
   useEffect(() => {
     let active = true;
@@ -360,14 +370,6 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timelineError, setTimelineError] = useState('');
 
-  // Success state after step 6 submission
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [submittedAppId, setSubmittedAppId] = useState('');
-  const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
-  const [consentLanguage, setConsentLanguage] = useState<ConsentLanguage>('Hindi');
-  const [consentTermsAccepted, setConsentTermsAccepted] = useState(false);
-  const [consentContactAccepted, setConsentContactAccepted] = useState(false);
-  const [consentScrolledToEnd, setConsentScrolledToEnd] = useState(false);
 
   const stepsList = [
     { num: 1, label: 'Basic Details', subtitle: 'Name, Mobile, WhatsApp, Email, Language' },

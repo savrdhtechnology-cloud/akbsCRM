@@ -249,18 +249,18 @@ const createBlankCustomerApplication = () => ({
   projectObjective: 'New Poultry Farm' as 'New Poultry Farm' | 'Existing Farm Expansion' | 'Farm Renovation' | 'Capacity Expansion',
   poultryType: 'Broiler (Meat)' as 'Broiler (Meat)' | 'Layer (Egg)' | 'EC / Environment Controlled' | 'Other',
   shedType: 'Conventional / Normal' as 'EC (Environment Controlled)' | 'Conventional / Normal',
-  proposedCapacity: '',
+  proposedCapacity: '5,000',
   hasLand: 'Yes' as 'Yes' | 'No',
   landOwnership: 'Own Land' as 'Own Land' | 'Leased Land' | 'Family Land' | 'Buying New Land',
   landAreaAcres: '',
-  state: '',
+  state: 'Madhya Pradesh',
   district: '',
   villageOrCity: '',
   googleMapsLink: '',
-  approxProjectCost: '',
+  approxProjectCost: '₹10 - 25 Lakh',
   needsLoan: 'Yes' as 'Yes' | 'No' | 'Need guidance',
-  ownContribution: '',
-  approxLoanAmount: '',
+  ownContribution: '₹5 - 10 Lakh',
+  approxLoanAmount: '₹10 - 25 Lakh',
   discussedWithBank: 'No' as 'Yes' | 'No',
   experience: 'No, I am new' as 'No, I am new' | 'Yes, 1-3 years' | 'Yes, 3+ years' | 'Family poultry business',
   supportNeeded: [] as string[],
@@ -341,12 +341,12 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
       }
     }
     if (step === 3) {
-      if (!formData.state.trim() || !formData.district.trim() || !formData.villageOrCity.trim()) {
-        return 'Please complete your project location details.';
-      }
-      if (formData.hasLand === 'Yes' && !String(formData.landAreaAcres).trim()) {
-        return 'Please enter the available land area.';
-      }
+      if (!formData.hasLand) return 'Please select land availability.';
+      if (!formData.landOwnership) return 'Please select land ownership.';
+      if (!String(formData.landAreaAcres).trim()) return 'Please enter the land area.';
+      if (!String(formData.state || '').trim()) return 'Please select the state.';
+      if (!String(formData.district || '').trim()) return 'Please enter the district.';
+      if (!String(formData.villageOrCity || '').trim()) return 'Please enter the village / city.';
     }
     if (step === 4) {
       if (!formData.approxProjectCost || !String(formData.ownContribution).trim()) {
@@ -361,6 +361,15 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
       if (formData.supportNeeded.length === 0) return 'Please select at least one support requirement.';
     }
     return '';
+  };
+
+  const canOpenStep = (targetStep: number) => {
+    if (targetStep <= 1) return true;
+    if (targetStep > maxUnlockedStep) return false;
+    for (let step = 1; step < targetStep; step += 1) {
+      if (validateStep(step)) return false;
+    }
+    return true;
   };
 
   const handleNextStep = () => {
@@ -1762,12 +1771,11 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                         <div
                           key={step.num}
                           onClick={() => {
-                            if (step.num <= maxUnlockedStep) {
-                              setStepMessage('');
-                              setCurrentStep(step.num);
-                            }
+                            if (!canOpenStep(step.num)) return;
+                            setStepMessage('');
+                            setCurrentStep(step.num);
                           }}
-                          className={`flex flex-col items-center group z-10 ${step.num <= maxUnlockedStep ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+                          className={`flex flex-col items-center group z-10 ${canOpenStep(step.num) ? 'cursor-pointer' : 'cursor-not-allowed opacity-50 pointer-events-auto'}`}
                         >
                           <div
                             className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all shadow-xs ${

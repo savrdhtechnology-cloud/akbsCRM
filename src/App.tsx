@@ -282,7 +282,6 @@ export default function App() {
 
         {/* Dynamic Route View */}
         <main className="flex-1 overflow-y-auto bg-[#f3f6f4]">
-          <div className="connection-bar"><span>{saving?'Saving…':'Connected to website database'} · {crm.user.name} · {leads.length} leads</span><button onClick={()=>void crm.refresh().catch(()=>{})}>Refresh</button><button onClick={crm.logout}>Sign out</button></div>
           {(saveError||crm.error)&&<div role="alert" className="connection-error">{saveError||crm.error}</div>}
           {currentSection === 'dashboard' && (
             <Dashboard

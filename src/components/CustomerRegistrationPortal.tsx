@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   CheckCircle2,
   ShieldCheck,
@@ -48,6 +48,13 @@ interface CustomerRegistrationPortalProps {
 type ConsentLanguage = 'English' | 'Hindi';
 
 const CUSTOMER_CONSENT_VERSION = 'AKBS-CONSENT-2026-V1';
+
+const CUSTOMER_AUTH_URL = import.meta.env.VITE_SUPABASE_URL || 'https://ldffgetuzoeupuhoaubn.supabase.co';
+const CUSTOMER_AUTH_KEY =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  'sb_publishable_KzdI4K0qLXgi3MhA5GXPhg_6f5vB8By';
+
 
 const CUSTOMER_CONSENT_CONTENT: Record<ConsentLanguage, {
   title: string;
@@ -268,7 +275,16 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
   onGoToCRM,
   onGoToLeads
 }) => {
-  // Entry flow: customer sees the portal login/welcome screen first.
+  // Entry flow: OTP verification is mandatory before customer portal access.
+  const [customerAuthenticated, setCustomerAuthenticated] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
+  const [otpIntent, setOtpIntent] = useState<'login' | 'signup'>('login');
+  const [otpChannel, setOtpChannel] = useState<'email' | 'phone'>('phone');
+  const [otpIdentifier, setOtpIdentifier] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpBusy, setOtpBusy] = useState(false);
+  const [otpError, setOtpError] = useState('');
   const [portalEntryMode, setPortalEntryMode] = useState<'welcome' | 'signup' | 'form'>('welcome');
   const [loginApplicationId, setLoginApplicationId] = useState('');
   const [loginMobile, setLoginMobile] = useState('');
@@ -309,6 +325,128 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
   const [consentTermsAccepted, setConsentTermsAccepted] = useState(false);
   const [consentContactAccepted, setConsentContactAccepted] = useState(false);
   const [consentScrolledToEnd, setConsentScrolledToEnd] = useState(false);
+
+  const normalizeOtpPhone = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(-10);
+    return digits.length === 10 ? `+91${digits}` : '';
+  };
+
+  const authFetch = async (path: string, body?: Record<string, unknown>, accessToken?: string) => {
+    const response = await fetch(`${CUSTOMER_AUTH_URL}/auth/v1/${path}`, {
+      method: body ? 'POST' : 'GET',
+      headers: {
+        apikey: CUSTOMER_AUTH_KEY,
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+      },
+      ...(body ? { body: JSON.stringify(body) } : {})
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data?.msg || data?.message || data?.error_description || data?.error || 'Authentication request failed.');
+    }
+    return data;
+  };
+
+  useEffect(() => {
+    let active = true;
+    const checkExistingSession = async () => {
+      try {
+        const token = window.sessionStorage.getItem('akbs.customer.auth.token') || '';
+        if (!token) return;
+        const authUser = await authFetch('user', undefined, token);
+        if (!active || !authUser?.id) return;
+        setCustomerAuthenticated(true);
+        const verifiedPhone = String(authUser.phone || '').replace(/\D/g, '').slice(-10);
+        if (verifiedPhone) setLoggedInCustomerMobile(verifiedPhone);
+      } catch {
+        window.sessionStorage.removeItem('akbs.customer.auth.token');
+        window.sessionStorage.removeItem('akbs.customer.auth.refresh');
+      } finally {
+        if (active) setAuthChecking(false);
+      }
+    };
+    void checkExistingSession();
+    return () => { active = false; };
+  }, []);
+
+  const sendCustomerOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setOtpBusy(true);
+    setOtpError('');
+    setOtpCode('');
+    try {
+      if (otpChannel === 'phone') {
+        const phone = normalizeOtpPhone(otpIdentifier);
+        if (!phone) throw new Error('Please enter a valid 10-digit mobile number.');
+        await authFetch('otp', {
+          phone,
+          create_user: otpIntent === 'signup',
+          channel: 'sms'
+        });
+      } else {
+        const email = otpIdentifier.trim().toLowerCase();
+        if (!/^\S+@\S+\.\S+$/.test(email)) throw new Error('Please enter a valid email address.');
+        await authFetch('otp', {
+          email,
+          create_user: otpIntent === 'signup'
+        });
+      }
+      setOtpSent(true);
+    } catch (e: any) {
+      setOtpError(e.message || 'Unable to send OTP.');
+    } finally {
+      setOtpBusy(false);
+    }
+  };
+
+  const verifyCustomerOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setOtpBusy(true);
+    setOtpError('');
+    try {
+      if (!/^\d{6}$/.test(otpCode.trim())) throw new Error('Please enter the 6-digit OTP.');
+      const payload = otpChannel === 'phone'
+        ? { type: 'sms', phone: normalizeOtpPhone(otpIdentifier), token: otpCode.trim() }
+        : { type: 'email', email: otpIdentifier.trim().toLowerCase(), token: otpCode.trim() };
+      const result = await authFetch('verify', payload);
+      if (!result?.access_token) throw new Error('OTP verification did not create a valid session.');
+
+      window.sessionStorage.setItem('akbs.customer.auth.token', result.access_token);
+      if (result.refresh_token) window.sessionStorage.setItem('akbs.customer.auth.refresh', result.refresh_token);
+
+      setCustomerAuthenticated(true);
+      setOtpSent(false);
+      setOtpCode('');
+      setOtpError('');
+
+      const verifiedPhone = otpChannel === 'phone'
+        ? normalizeOtpPhone(otpIdentifier).replace(/\D/g, '').slice(-10)
+        : String(result?.user?.phone || '').replace(/\D/g, '').slice(-10);
+      if (verifiedPhone) setLoggedInCustomerMobile(verifiedPhone);
+
+      if (otpIntent === 'signup') {
+        const verifiedEmail = otpChannel === 'email' ? otpIdentifier.trim().toLowerCase() : String(result?.user?.email || '');
+        const verifiedMobile = otpChannel === 'phone' ? normalizeOtpPhone(otpIdentifier).replace(/\D/g, '').slice(-10) : '';
+        setFormData(prev => ({
+          ...prev,
+          mobileNumber: verifiedMobile || prev.mobileNumber,
+          whatsAppNumber: verifiedMobile || prev.whatsAppNumber,
+          email: verifiedEmail || prev.email
+        }));
+        setRegistrationMode('form');
+        setCurrentStep(1);
+        setMaxUnlockedStep(1);
+        setPortalEntryMode('form');
+      } else {
+        setPortalEntryMode('welcome');
+      }
+    } catch (e: any) {
+      setOtpError(e.message || 'OTP verification failed.');
+    } finally {
+      setOtpBusy(false);
+    }
+  };
 
   const stepsList = [
     { num: 1, label: 'Basic Details', subtitle: 'Name, Mobile, WhatsApp, Email, Language' },
@@ -463,6 +601,7 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
 
   const handleSubmitApplication = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (!customerAuthenticated) return;
 
     if (!consentTermsAccepted || !consentContactAccepted) {
       return;
@@ -646,6 +785,7 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
 
   const handlePortalLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!customerAuthenticated) return;
     setLoginMessage('');
     const record = findSavedApplication(loginApplicationId, loginMobile);
     if (!record) {
@@ -743,6 +883,7 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
   };
 
   const startNewApplication = () => {
+    if (!customerAuthenticated) return;
     resetForNewApplication();
   };
 
@@ -857,6 +998,171 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
         );
     }
   };
+
+  if (authChecking) {
+    return (
+      <div className="min-h-screen bg-[#eef3f1] flex items-center justify-center">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl px-8 py-7 text-center">
+          <div className="w-10 h-10 mx-auto rounded-full border-4 border-emerald-100 border-t-emerald-700 animate-spin" />
+          <div className="mt-4 text-sm font-bold text-slate-800">Checking secure customer session…</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!customerAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#eef3f1] text-slate-800 font-sans">
+        <header className="bg-[#0b2818] text-white border-b border-emerald-900 shadow-md">
+          <div className="max-w-[1240px] mx-auto px-5 py-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-white border-[3px] border-emerald-500 overflow-hidden p-0.5">
+                <img src={akbsLogoImg} alt="AKBS Poultry Farming" className="w-full h-full rounded-full object-cover" />
+              </div>
+              <div>
+                <div className="font-['Outfit',sans-serif] text-xl font-black tracking-wide">AKBS</div>
+                <div className="text-[10px] font-bold tracking-[0.12em] text-emerald-300 uppercase">Secure Customer Portal</div>
+              </div>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 text-xs text-emerald-100">
+              <ShieldCheck className="w-4 h-4 text-emerald-300" />
+              OTP Verified Access
+            </div>
+          </div>
+        </header>
+
+        <main className="max-w-xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+          <section className="bg-white rounded-3xl border border-slate-200 shadow-xl p-6 sm:p-8">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
+              <Lock className="w-6 h-6" />
+            </div>
+            <h1 className="mt-4 text-2xl sm:text-3xl font-black text-slate-950">
+              {otpIntent === 'signup' ? 'Customer Sign Up' : 'Customer Login'}
+            </h1>
+            <p className="mt-2 text-sm text-slate-500 leading-6">
+              {otpIntent === 'signup'
+                ? 'Verify your email or mobile number with OTP before starting a new application.'
+                : 'Enter your registered email or mobile number. CRM access opens only after OTP verification.'}
+            </p>
+
+            <div className="mt-6 grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
+              <button
+                type="button"
+                onClick={() => { setOtpIntent('login'); setOtpSent(false); setOtpCode(''); setOtpError(''); }}
+                className={`h-10 rounded-lg text-xs font-bold ${otpIntent === 'login' ? 'bg-white text-emerald-900 shadow-sm' : 'text-slate-500'}`}
+              >
+                Existing Customer
+              </button>
+              <button
+                type="button"
+                onClick={() => { setOtpIntent('signup'); setOtpSent(false); setOtpCode(''); setOtpError(''); }}
+                className={`h-10 rounded-lg text-xs font-bold ${otpIntent === 'signup' ? 'bg-white text-emerald-900 shadow-sm' : 'text-slate-500'}`}
+              >
+                New Customer
+              </button>
+            </div>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => { setOtpChannel('phone'); setOtpIdentifier(''); setOtpSent(false); setOtpCode(''); setOtpError(''); }}
+                className={`flex-1 h-10 rounded-xl border text-xs font-bold ${otpChannel === 'phone' ? 'border-emerald-700 bg-emerald-50 text-emerald-900' : 'border-slate-200 text-slate-500'}`}
+              >
+                Mobile OTP
+              </button>
+              <button
+                type="button"
+                onClick={() => { setOtpChannel('email'); setOtpIdentifier(''); setOtpSent(false); setOtpCode(''); setOtpError(''); }}
+                className={`flex-1 h-10 rounded-xl border text-xs font-bold ${otpChannel === 'email' ? 'border-emerald-700 bg-emerald-50 text-emerald-900' : 'border-slate-200 text-slate-500'}`}
+              >
+                Email OTP
+              </button>
+            </div>
+
+            {!otpSent ? (
+              <form onSubmit={sendCustomerOtp} className="mt-5 space-y-4">
+                <label className="block">
+                  <span className="text-xs font-bold text-slate-700">
+                    {otpChannel === 'phone' ? 'Mobile Number' : 'Email Address'}
+                  </span>
+                  <div className="relative mt-1.5">
+                    {otpChannel === 'phone'
+                      ? <Phone className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                      : <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />}
+                    <input
+                      type={otpChannel === 'phone' ? 'tel' : 'email'}
+                      value={otpIdentifier}
+                      onChange={(e) => setOtpIdentifier(
+                        otpChannel === 'phone'
+                          ? e.target.value.replace(/\D/g, '').slice(0, 10)
+                          : e.target.value
+                      )}
+                      required
+                      placeholder={otpChannel === 'phone' ? 'Enter 10-digit mobile number' : 'Enter email address'}
+                      className="w-full h-11 pl-10 pr-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-700"
+                    />
+                  </div>
+                </label>
+
+                {otpError && <div className="rounded-xl bg-rose-50 border border-rose-200 px-3 py-2.5 text-xs font-semibold text-rose-700">{otpError}</div>}
+
+                <button
+                  type="submit"
+                  disabled={otpBusy}
+                  className="w-full h-12 rounded-xl bg-[#0b2818] hover:bg-[#123e27] disabled:opacity-60 text-white text-sm font-black flex items-center justify-center gap-2 shadow-md"
+                >
+                  {otpBusy ? 'Sending OTP…' : 'Send OTP'}
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={verifyCustomerOtp} className="mt-5 space-y-4">
+                <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-3 text-xs font-semibold text-emerald-800">
+                  OTP sent to {otpChannel === 'phone' ? `+91 ${otpIdentifier}` : otpIdentifier}. Enter the 6-digit code below.
+                </div>
+                <label className="block">
+                  <span className="text-xs font-bold text-slate-700">6-digit OTP</span>
+                  <input
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    required
+                    placeholder="••••••"
+                    className="mt-1.5 w-full h-12 px-4 border border-slate-300 rounded-xl text-center text-xl tracking-[0.45em] font-mono focus:outline-none focus:ring-2 focus:ring-emerald-100 focus:border-emerald-700"
+                  />
+                </label>
+
+                {otpError && <div className="rounded-xl bg-rose-50 border border-rose-200 px-3 py-2.5 text-xs font-semibold text-rose-700">{otpError}</div>}
+
+                <button
+                  type="submit"
+                  disabled={otpBusy || otpCode.length !== 6}
+                  className="w-full h-12 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white text-sm font-black shadow-md"
+                >
+                  {otpBusy ? 'Verifying…' : 'Verify OTP & Continue'}
+                </button>
+
+                <div className="flex items-center justify-between gap-3">
+                  <button type="button" onClick={() => { setOtpSent(false); setOtpCode(''); setOtpError(''); }} className="text-xs font-bold text-slate-600 hover:underline">
+                    Change {otpChannel === 'phone' ? 'mobile number' : 'email'}
+                  </button>
+                  <button type="button" disabled={otpBusy} onClick={() => void sendCustomerOtp()} className="text-xs font-bold text-emerald-800 hover:underline disabled:opacity-50">
+                    Resend OTP
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <p className="mt-6 text-center text-[11px] text-slate-400">
+              Application pages remain locked until OTP verification is successful.
+            </p>
+          </section>
+        </main>
+      </div>
+    );
+  }
 
   if (portalEntryMode === 'signup') {
     return (
@@ -1078,10 +1384,7 @@ export const CustomerRegistrationPortal: React.FC<CustomerRegistrationPortalProp
 
               <button
                 type="button"
-                onClick={() => {
-                  setSignupMessage('');
-                  setPortalEntryMode('signup');
-                }}
+                onClick={startNewApplication}
                 className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black flex items-center justify-center gap-2 shadow-md"
               >
                 Apply Now

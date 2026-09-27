@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   CheckCircle2,
   ShieldCheck,
@@ -282,6 +282,9 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
   const [submitError, setSubmitError] = useState('');
   const submitLock = useRef(false);
   const requestId = useRef(crypto.randomUUID());
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState('');
+  const [draftSaving, setDraftSaving] = useState(false);
   const [registrationMode, setRegistrationMode] = useState<'gate' | 'form'>(portal.applications.length ? 'gate' : 'form');
   const [duplicateApplication, setDuplicateApplication] = useState<any>(null);
 
@@ -298,6 +301,55 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
 
   // Form Data State matching all 6 steps from the reference mockup
   const [formData, setFormData] = useState(() => ({ ...createBlankCustomerApplication(), fullName: portal.profile.name || '', email: portal.profile.email || '' }));
+
+  // Restore latest saved draft for this verified customer account.
+  useEffect(() => {
+    let active = true;
+    const restoreDraft = async () => {
+      try {
+        const draft = await portal.loadDraft();
+        if (!active) return;
+        if (draft?.requestId && draft?.form && typeof draft.form === 'object') {
+          requestId.current = draft.requestId;
+          setFormData({
+            ...createBlankCustomerApplication(),
+            ...draft.form,
+            fullName: draft.form.fullName || portal.profile.name || '',
+            email: portal.profile.email || draft.form.email || ''
+          });
+          const stage = Math.max(1, Math.min(Number(draft.currentStage || 1), 6));
+          setCurrentStep(stage);
+          setMaxUnlockedStep(stage);
+          setRegistrationMode('form');
+          setDraftSavedAt(draft.updatedAt ? new Date(draft.updatedAt).toLocaleString('en-IN') : '');
+        }
+      } catch {
+        // Draft restore is non-blocking; the live form remains usable.
+      } finally {
+        if (active) setDraftRestored(true);
+      }
+    };
+    void restoreDraft();
+    return () => { active = false; };
+  }, []);
+
+  // Autosave partial progress so refresh/sign-in restores the same percentage and stage.
+  useEffect(() => {
+    if (!draftRestored || registrationMode !== 'form' || isSubmitted) return;
+    const timer = window.setTimeout(async () => {
+      setDraftSaving(true);
+      try {
+        const result = await portal.saveDraft(requestId.current, formData, currentStep);
+        setDraftSavedAt(result?.updatedAt ? new Date(result.updatedAt).toLocaleString('en-IN') : new Date().toLocaleString('en-IN'));
+      } catch {
+        // Keep editing available even if a background save fails.
+      } finally {
+        setDraftSaving(false);
+      }
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [formData, currentStep, registrationMode, draftRestored, isSubmitted]);
+
 
   // Track Application state
   const [trackSearchId, setTrackSearchId] = useState('');
@@ -460,6 +512,8 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
       });
       if (!result.submittedId) throw new Error('No application confirmation received. Please try again.');
       setSubmittedAppId(result.submittedId);
+      await portal.deleteDraft(requestId.current).catch(() => undefined);
+      setDraftSavedAt('');
       setRegistrationMode('gate'); setDuplicateApplication(null);
       setIsSubmitted(true); setIsConsentModalOpen(false);
     } catch (error: any) { setSubmitError(error.message || 'Application could not be saved. Please retry.'); }
@@ -578,6 +632,7 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
 
   const resetForNewApplication = () => {
     requestId.current = crypto.randomUUID();
+    setDraftSavedAt('');
     setSubmitError('');
     setFormData({ ...createBlankCustomerApplication(), fullName: portal.profile.name || '', email: portal.profile.email || '' });
     setRegistrationMode('form');
@@ -1929,6 +1984,29 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                     setCurrentStep(targetStep);
                     window.scrollTo({ top: 120, behavior: 'smooth' });
                   }}
+                  footer={
+                    <div className="px-4 sm:px-5 pb-4 sm:pb-5 flex flex-wrap items-center justify-between gap-2 text-[10px]">
+                      <span className="text-slate-400">
+                        {draftSaving ? 'Saving progress…' : draftSavedAt ? `Saved · ${draftSavedAt}` : 'Progress saves automatically'}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={draftSaving}
+                        onClick={async () => {
+                          setDraftSaving(true);
+                          try {
+                            const result = await portal.saveDraft(requestId.current, formData, currentStep);
+                            setDraftSavedAt(result?.updatedAt ? new Date(result.updatedAt).toLocaleString('en-IN') : new Date().toLocaleString('en-IN'));
+                          } finally {
+                            setDraftSaving(false);
+                          }
+                        }}
+                        className="h-9 px-3 rounded-lg border border-emerald-700 text-emerald-800 font-bold bg-white hover:bg-emerald-50 disabled:opacity-60"
+                      >
+                        Save & Continue Later
+                      </button>
+                    </div>
+                  }
                 />
 
                 {/* FORM SECTIONS ACCORDING TO STEP */}

@@ -617,11 +617,24 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                     </div>
                   </div>
 
-                  <div className="mt-2.5 flex items-center justify-between text-[10px]">
-                    <span className={`px-2 py-0.5 rounded-md font-semibold border ${getStatusBadgeStyle(lead.status)}`}>
-                      {lead.status}
-                    </span>
-                    <span className="text-slate-400">
+                  <div className="mt-2.5 flex items-center justify-between gap-2 text-[10px]">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className={`px-2 py-0.5 rounded-md font-semibold border ${getStatusBadgeStyle(lead.status)}`}>
+                        {lead.status}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-md font-bold border ${
+                        lead.feeStatus === 'Verified'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : lead.feeStatus === 'Proof Submitted'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : lead.feeStatus === 'Rejected'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}>
+                        Fee: {lead.feeStatus || 'Pending'}
+                      </span>
+                    </div>
+                    <span className="text-slate-400 shrink-0">
                       {lead.relativeTime || lead.date || 'Today'}
                     </span>
                   </div>
@@ -744,6 +757,18 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-900">
                       <Target className="w-3 h-3" />
                       Lead Status: {currentLead.status}
+                    </span>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${
+                      currentLead.feeStatus === 'Verified'
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                        : currentLead.feeStatus === 'Proof Submitted'
+                          ? 'border-blue-200 bg-blue-50 text-blue-900'
+                          : currentLead.feeStatus === 'Rejected'
+                            ? 'border-rose-200 bg-rose-50 text-rose-900'
+                            : 'border-amber-200 bg-amber-50 text-amber-900'
+                    }`}>
+                      <BadgeIndianRupee className="w-3 h-3" />
+                      Fee: {currentLead.feeStatus || 'Pending'} · ₹{Number(currentLead.feeAmount || 2999).toLocaleString('en-IN')}
                     </span>
                   </div>
                   )}

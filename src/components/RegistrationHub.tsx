@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink, Globe2, Handshake, ShieldCheck, UserRoundPlus } from 'lucide-react';
+import { ExternalLink, Handshake, ShieldCheck, UserRoundPlus, CheckCircle2 } from 'lucide-react';
 
 export const RegistrationHub: React.FC = () => {
   const modules = [
@@ -9,7 +9,7 @@ export const RegistrationHub: React.FC = () => {
       path: '/customer-registration',
       icon: <UserRoundPlus className="w-6 h-6" />,
       badge: 'Customer Module',
-      bullets: ['6-step registration flow', 'Independent full-screen form', 'Website connection disabled']
+      bullets: ['6-step registration flow', 'Independent full-screen form', 'CRM-connected workflow']
     },
     {
       title: 'Partner Registration',
@@ -17,7 +17,7 @@ export const RegistrationHub: React.FC = () => {
       path: '/partner-registration',
       icon: <Handshake className="w-6 h-6" />,
       badge: 'Partner Module',
-      bullets: ['Partner profile details', 'Independent full-screen form', 'Website connection disabled']
+      bullets: ['Partner profile details', 'Independent full-screen form', 'CRM-connected workflow']
     }
   ];
 
@@ -68,12 +68,12 @@ export const RegistrationHub: React.FC = () => {
         ))}
       </div>
 
-      <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 flex items-start gap-3">
-        <Globe2 className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+      <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3.5 flex items-start gap-3">
+        <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
         <div>
-          <div className="text-xs font-bold text-amber-900">Website integration is currently disabled</div>
-          <div className="text-[11px] text-amber-800/80 mt-0.5">
-            These modules are isolated for layout/workflow testing. Website/API integration can be added later.
+          <div className="text-xs font-bold text-emerald-900">Registration workflow connected with CRM</div>
+          <div className="text-[11px] text-emerald-800/80 mt-0.5">
+            Customer and partner registrations are handled through the CRM-connected registration modules.
           </div>
         </div>
       </div>

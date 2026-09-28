@@ -213,7 +213,7 @@ export const FeeManagementView: React.FC = () => {
     ['This Month Revenue',money(thisMonth),ArrowUpRight,'bg-teal-50 text-teal-700']
   ] as const;
 
-  return <div data-fee-layout="content-only" className="min-h-full bg-[#f5f8f6]">
+  return <div className="min-h-full bg-[#f5f8f6]">
     <div className="border-b border-slate-200 bg-white px-4 sm:px-6 py-4">
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
@@ -228,7 +228,8 @@ export const FeeManagementView: React.FC = () => {
       </div>
     </div>
 
-    <main className="p-4 sm:p-5 space-y-4 min-w-0">
+    <div className="block">
+      <main className="p-4 sm:p-5 space-y-4 min-w-0">
         {error&&<div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">{error}</div>}
         <div className="grid sm:grid-cols-2 xl:grid-cols-6 gap-3">
           {summaryCards.map(([label,value,Icon,cls])=><div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
@@ -342,7 +343,8 @@ export const FeeManagementView: React.FC = () => {
           <h2 className="font-black">Payment Audit Log</h2><p className="text-xs text-slate-500 mt-1">Refund and adjustment events with staff accountability.</p>
           <div className="mt-4 space-y-2">{events.map((e:any)=><div key={e.id} className="rounded-xl border p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2"><div><div className="font-bold text-xs">{e.eventType} · {money(e.amount)}</div><div className="text-[10px] text-slate-500">{e.note||'No note'} · by {e.createdBy}</div></div><div className="text-[10px] text-slate-400">{dt(e.createdAt)}</div></div>)}{!events.length&&<div className="text-xs text-slate-400">No audit events yet.</div>}</div>
         </section>}
-    </main>
+      </main>
+    </div>
 
     {createOpen&&<div className="fixed inset-0 z-[100] bg-slate-950/60 grid place-items-center p-4"><div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl p-5">
       <div className="flex justify-between"><div><h2 className="font-black">Create Fee / Add Transaction</h2><p className="text-xs text-slate-500 mt-1">Add a service fee or record an offline payment reference.</p></div><button onClick={()=>setCreateOpen(false)}><XCircle className="w-5 h-5 text-slate-400"/></button></div>

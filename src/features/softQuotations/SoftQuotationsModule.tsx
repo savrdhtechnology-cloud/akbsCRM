@@ -612,14 +612,14 @@ AKBS Poultry Farming Private Limited`;
             <div className="text-xs text-slate-600">
               <span className="font-black text-slate-900">Analyzer completed.</span>{' '}
               {templateMatched ? 'Template matched.' : 'Template variation detected.'}
-              {missingForReview.length ? ` ${missingForReview.length} confirmation item(s) remain.` : ' All required checks are complete.'}
+              {missingForReview.length ? ` ${missingForReview.length} site/commercial item(s) remain indicative and will be finalized later.` : ' Standard template check complete.'}
             </div>
             <div className="flex gap-2 shrink-0">
               <button onClick={() => rejectQuote(activeQuote.id)} className="btn-secondary text-rose-700">
                 <XCircle className="w-4 h-4"/>Return
               </button>
-              <button onClick={() => approveQuote(activeQuote.id)} className="btn-primary" disabled={!reviewReady}>
-                <BadgeCheck className="w-4 h-4"/>{reviewReady ? 'Approve Quotation' : 'Confirm Details First'}
+              <button onClick={() => approveQuote(activeQuote.id)} className="btn-primary">
+                <BadgeCheck className="w-4 h-4"/>Approve Quotation
               </button>
             </div>
           </div>

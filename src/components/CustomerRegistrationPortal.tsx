@@ -322,7 +322,7 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
   const [paymentSubmitted, setPaymentSubmitted] = useState(false);
   const [receiptEmailStatus, setReceiptEmailStatus] = useState<'idle' | 'sent' | 'failed'>('idle');
-  const [feeConfig, setFeeConfig] = useState({ baseFee: INITIAL_PROJECT_FEE, discountPercent: 0, offerLabel: '', offerActive: false, payableFee: INITIAL_PROJECT_FEE });
+  const [feeConfig, setFeeConfig] = useState<any>({ baseFee: INITIAL_PROJECT_FEE, discountPercent: 0, offerLabel: '', offerActive: false, payableFee: INITIAL_PROJECT_FEE, paymentAccount: null });
   const [receiptEmailMessage, setReceiptEmailMessage] = useState('');
 
 
@@ -336,7 +336,8 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
           discountPercent: Number(cfg.discountPercent || 0),
           offerLabel: String(cfg.offerLabel || ''),
           offerActive: Boolean(cfg.offerActive),
-          payableFee: Number(cfg.payableFee || cfg.baseFee || INITIAL_PROJECT_FEE)
+          payableFee: Number(cfg.payableFee || cfg.baseFee || INITIAL_PROJECT_FEE),
+          paymentAccount: cfg.paymentAccount || null
         });
       })
       .catch(() => undefined);
@@ -3047,6 +3048,28 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                   </div>
                 </div>
               </div>
+
+              {feeConfig.paymentAccount && (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                  <div className="text-xs uppercase tracking-wider font-black text-emerald-700">Official Payment Account</div>
+                  <div className="mt-3 grid sm:grid-cols-[1fr_auto] gap-4 items-start">
+                    <div className="space-y-2 text-xs text-slate-700">
+                      <div><span className="text-slate-500">Account Name:</span> <b>{feeConfig.paymentAccount.accountHolder}</b></div>
+                      {feeConfig.paymentAccount.bankName && <div><span className="text-slate-500">Bank:</span> <b>{feeConfig.paymentAccount.bankName}</b></div>}
+                      {feeConfig.paymentAccount.accountNumber && <div><span className="text-slate-500">Account No:</span> <b className="font-mono">{feeConfig.paymentAccount.accountNumber}</b></div>}
+                      {feeConfig.paymentAccount.ifsc && <div><span className="text-slate-500">IFSC:</span> <b className="font-mono">{feeConfig.paymentAccount.ifsc}</b></div>}
+                      {feeConfig.paymentAccount.branch && <div><span className="text-slate-500">Branch:</span> <b>{feeConfig.paymentAccount.branch}</b></div>}
+                      {feeConfig.paymentAccount.upiId && <div><span className="text-slate-500">UPI ID:</span> <b>{feeConfig.paymentAccount.upiId}</b></div>}
+                    </div>
+                    {feeConfig.paymentAccount.qrImageUrl && (
+                      <div className="rounded-xl border border-emerald-200 bg-white p-2 text-center">
+                        <img src={feeConfig.paymentAccount.qrImageUrl} alt="AKBS official payment QR" className="w-36 h-36 object-contain rounded-lg" />
+                        <div className="mt-1 text-[9px] font-bold text-slate-500">Scan official AKBS QR</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="rounded-2xl border border-slate-200 p-4 space-y-4">
                 <label className="flex items-start gap-2.5 text-xs text-slate-700 cursor-pointer">

@@ -337,7 +337,9 @@ export default function App() {
           )}
 
           {currentSection === 'team-management' && (
-            <TeamManagementView />
+            <TeamManagementView
+              onAddEmployee={() => setCurrentSection('admin-control')}
+            />
           )}
 
           {currentSection === 'registrations' && (

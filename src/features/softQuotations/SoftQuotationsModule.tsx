@@ -507,6 +507,11 @@ AKBS Poultry Farming Private Limited`;
           </div>
         </div>
         {notice && <Notice>{notice}</Notice>}
+        {activeQuote.status === 'REVIEW' && roleCanApprove(currentRole) && (
+          <div className="print:hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <b>Manager Review Required:</b> Check the quotation content, use the AI Content Assistant from Edit/Review if needed, then Approve or Reject. Customer sending stays locked until approval.
+          </div>
+        )}
       {loadingQuotes && <div className="rounded-xl border bg-white px-4 py-3 text-sm text-slate-500">Loading shared quotation workflow…</div>}
         {activeQuote.versions?.length > 0 && (
           <div className="print:hidden rounded-xl border bg-white p-4 text-xs">
@@ -531,13 +536,14 @@ AKBS Poultry Farming Private Limited`;
 
       {notice && <Notice>{notice}</Notice>}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
         <Metric label="Total Quotations" value={quotes.length} onClick={() => setFilter('ALL')}/>
         <Metric label="Draft" value={metric('DRAFT')} onClick={() => setFilter('DRAFT')}/>
+        <Metric label="Pending Review" value={metric('REVIEW')} onClick={() => setFilter('REVIEW')}/>
+        <Metric label="Approved" value={metric('APPROVED')} onClick={() => setFilter('APPROVED')}/>
         <Metric label="Sent" value={metric('SENT')} onClick={() => setFilter('SENT')}/>
         <Metric label="Viewed" value={metric('VIEWED')} onClick={() => setFilter('VIEWED')}/>
         <Metric label="Accepted" value={metric('ACCEPTED')} onClick={() => setFilter('ACCEPTED')}/>
-        <Metric label="Expired" value={metric('EXPIRED')} onClick={() => setFilter('EXPIRED')}/>
         <Metric label="Estimated Value" value={formatMoney(totalValue)} onClick={() => setFilter('ALL')}/>
       </div>
 
@@ -590,11 +596,18 @@ AKBS Poultry Farming Private Limited`;
                     <div className="font-mono font-black text-slate-900 break-words">{formatMoney(q.grandTotal)}</div>
                     <div className="text-[10px] text-slate-400 mt-1">Preliminary estimate</div>
                   </td>
-                  <td className="px-3 py-3"><StatusBadge status={q.status}/></td>
+                  <td className="px-3 py-3">
+                    <StatusBadge status={q.status}/>
+                    {currentRole === 'employee' && q.status === 'REVIEW' && <div className="text-[9px] text-amber-700 font-bold mt-1">Waiting for manager</div>}
+                    {currentRole === 'employee' && q.status === 'APPROVED' && <div className="text-[9px] text-emerald-700 font-bold mt-1">Approved by manager</div>}
+                    {currentRole === 'employee' && q.status === 'REJECTED' && <div className="text-[9px] text-rose-700 font-bold mt-1">Revision requested</div>}
+                  </td>
                   <td className="px-2 py-3 relative">
                     <div className="flex items-center gap-0.5 whitespace-nowrap">
                       <button title="View" onClick={() => navigate(`/soft-quotations/${q.id}`)} className="icon-btn"><Eye className="w-4 h-4"/></button>
-                      <button title="Edit" onClick={() => navigate(`/soft-quotations/${q.id}/edit`)} className="icon-btn"><Edit3 className="w-4 h-4"/></button>
+                      {(currentRole !== 'employee' || ['DRAFT','REJECTED'].includes(q.status)) && (
+                        <button title={currentRole === 'employee' ? 'Revise request' : 'Review / Edit'} onClick={() => navigate(`/soft-quotations/${q.id}/edit`)} className="icon-btn"><Edit3 className="w-4 h-4"/></button>
+                      )}
                       <button onClick={() => setActionMenu(actionMenu === q.id ? null : q.id)} className="icon-btn" title="More actions"><MoreHorizontal className="w-4 h-4"/></button>
                     </div>
                     {actionMenu === q.id && (

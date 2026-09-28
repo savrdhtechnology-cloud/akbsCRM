@@ -22,6 +22,7 @@ type PortalContextValue = Snapshot & {
   saveDraft: (requestId: string, form: Record<string, unknown>, currentStage: number) => Promise<any>;
   deleteDraft: (requestId: string) => Promise<any>;
   sendPaymentReceipt: (applicationId: string) => Promise<any>;
+  submitPaymentProof: (applicationId: string, reference: string, file?: { name: string; type: string; data: string } | null) => Promise<any>;
 };
 
 const PortalContext = createContext<PortalContextValue | null>(null);
@@ -107,6 +108,22 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result?.error || result?.message || 'Receipt email could not be sent.');
+    return result;
+  }
+
+  async function submitPaymentProof(applicationId: string, reference: string, file?: { name: string; type: string; data: string } | null) {
+    if (!sessionToken) throw new Error('Verify your email OTP first.');
+    const response = await fetch(`${URL}/functions/v1/akbs-customer-payment-proof`, {
+      method: 'POST',
+      headers: {
+        apikey: KEY,
+        Authorization: `Bearer ${KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ sessionToken, applicationId, reference, file: file || null })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result?.error || result?.message || 'Payment proof could not be submitted.');
     return result;
   }
 
@@ -320,7 +337,7 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
 
   if (sessionToken && snapshot?.enrolled) {
     return (
-      <PortalContext.Provider value={{ ...snapshot, rpc: portalRpc, refresh: () => portalRpc('snapshot'), timeline, loadDraft, saveDraft, deleteDraft, sendPaymentReceipt }}>
+      <PortalContext.Provider value={{ ...snapshot, rpc: portalRpc, refresh: () => portalRpc('snapshot'), timeline, loadDraft, saveDraft, deleteDraft, sendPaymentReceipt, submitPaymentProof }}>
         {error && <p role="alert" className="bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
         {children}
       </PortalContext.Provider>

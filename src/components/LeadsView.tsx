@@ -34,7 +34,8 @@ import {
   Landmark,
   Shield,
   UploadCloud,
-  CheckSquare
+  CheckSquare,
+  BadgeIndianRupee
 } from 'lucide-react';
 import { Lead, LeadStatus, LeadSource, DocumentRecord, FollowUp, Activity } from '../types';
 import { SoftQuotationModal } from './SoftQuotationModal';

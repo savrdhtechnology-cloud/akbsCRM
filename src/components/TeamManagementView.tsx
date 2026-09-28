@@ -2,23 +2,27 @@ import React, { useMemo, useState } from 'react';
 import {
   Users, UserPlus, UserCheck, UserX, Handshake, ShieldCheck, Activity,
   TrendingUp, Search, CheckCircle2, XCircle, Clock3, BriefcaseBusiness,
-  Mail, Phone, MapPin, RefreshCcw, Plus, X
+  Mail, Phone, MapPin, RefreshCcw, Plus, X, KeyRound, Shield, Eye, Check
 } from 'lucide-react';
 import { useCrm } from '../lib/crm';
 
 type Tab = 'employees' | 'partners' | 'pending-partners';
 
-type TeamManagementViewProps = {
-  onAddEmployee?: () => void;
-};
-
-export const TeamManagementView: React.FC<TeamManagementViewProps> = ({ onAddEmployee }) => {
+export const TeamManagementView: React.FC = () => {
   const crm = useCrm();
   const [tab, setTab] = useState<Tab>('employees');
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState('');
   const [message, setMessage] = useState('');
   const [showPartnerModal, setShowPartnerModal] = useState(false);
+  const [showEmployeeModal, setShowEmployeeModal] = useState(false);
+  const [employeeForm, setEmployeeForm] = useState({
+    name: '',
+    login: '',
+    password: '',
+    jobProfile: 'SALES_EXECUTIVE',
+    managerId: ''
+  });
   const [partnerForm, setPartnerForm] = useState({
     name: '',
     contactPerson: '',
@@ -93,6 +97,58 @@ export const TeamManagementView: React.FC<TeamManagementViewProps> = ({ onAddEmp
     } finally { setBusyId(''); }
   };
 
+  const accessPresets:Record<string,{label:string;role:string;description:string;modules:string[]}> = {
+    SALES_EXECUTIVE:{
+      label:'Sales Executive',
+      role:'EMPLOYEE',
+      description:'Own assigned leads only. Can work on lead follow-ups, customer communication and sales tasks.',
+      modules:['Assigned Leads','Follow-ups','Customers','Tasks']
+    },
+    TELECALLER:{
+      label:'Telecaller',
+      role:'EMPLOYEE',
+      description:'Own assigned leads only. Focused access for calling, follow-ups and lead notes.',
+      modules:['Assigned Leads','Follow-ups','Call Notes']
+    },
+    MANAGER:{
+      label:'Manager',
+      role:'MANAGER',
+      description:'Can manage only leads belonging to their team and unassigned leads in their management scope.',
+      modules:['Team Leads','Assignments','Follow-ups','Site Visits','Tasks','Reports']
+    },
+    FIELD_EXECUTIVE:{
+      label:'Field Executive',
+      role:'EMPLOYEE',
+      description:'Own assigned leads only with site visit and task execution workflow.',
+      modules:['Assigned Leads','Site Visits','Tasks','Follow-ups']
+    }
+  };
+
+  const createEmployee = async (e:React.FormEvent) => {
+    e.preventDefault();
+    setMessage('');
+    const preset=accessPresets[employeeForm.jobProfile];
+    if(!employeeForm.name.trim() || !employeeForm.login.trim() || employeeForm.password.length<12) {
+      setMessage('Name, Login ID and a temporary password of at least 12 characters are required.');
+      return;
+    }
+    setBusyId('new-employee');
+    try {
+      await crm.command('user_create',{
+        name:employeeForm.name.trim(),
+        login:employeeForm.login.trim(),
+        password:employeeForm.password,
+        role:preset.role,
+        manager_id:preset.role==='EMPLOYEE' ? employeeForm.managerId || null : null
+      });
+      setMessage(`${preset.label} account created successfully. Data access is restricted by role and assignment.`);
+      setShowEmployeeModal(false);
+      setEmployeeForm({name:'',login:'',password:'',jobProfile:'SALES_EXECUTIVE',managerId:''});
+    } catch(e:any) {
+      setMessage(e.message || 'Unable to add employee.');
+    } finally { setBusyId(''); }
+  };
+
   const createPartner = async (e:React.FormEvent) => {
     e.preventDefault();
     setMessage('');
@@ -141,7 +197,7 @@ export const TeamManagementView: React.FC<TeamManagementViewProps> = ({ onAddEmp
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => onAddEmployee?.()}
+            onClick={() => setShowEmployeeModal(true)}
             className="h-10 px-4 rounded-xl bg-[#0b3824] text-white text-xs font-bold flex items-center gap-2 shadow-sm hover:bg-[#123e27]"
           >
             <UserPlus className="w-4 h-4"/> Add Employee
@@ -271,6 +327,75 @@ export const TeamManagementView: React.FC<TeamManagementViewProps> = ({ onAddEmp
           </div>
         )}
       </div>
+
+      {showEmployeeModal && (
+        <div className="fixed inset-0 z-[120] bg-slate-950/55 backdrop-blur-sm grid place-items-center p-4">
+          <div className="w-full max-w-2xl rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden max-h-[92vh] overflow-y-auto">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-700">Team Management</div>
+                <h3 className="text-lg font-black text-slate-900">Add Employee & Set Access</h3>
+              </div>
+              <button onClick={()=>setShowEmployeeModal(false)} className="w-9 h-9 rounded-xl bg-slate-100 grid place-items-center text-slate-600"><X className="w-4 h-4"/></button>
+            </div>
+
+            <form onSubmit={createEmployee} className="p-5 space-y-5">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <label className="text-[11px] font-bold text-slate-600">Employee Name *
+                  <input required value={employeeForm.name} onChange={e=>setEmployeeForm({...employeeForm,name:e.target.value})} className="mt-1.5 w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-emerald-500"/>
+                </label>
+                <label className="text-[11px] font-bold text-slate-600">Login ID / Email *
+                  <input required type="text" value={employeeForm.login} onChange={e=>setEmployeeForm({...employeeForm,login:e.target.value})} placeholder="employee@akbspoultry.com" className="mt-1.5 w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-emerald-500"/>
+                </label>
+                <label className="text-[11px] font-bold text-slate-600">Temporary Password *
+                  <input required minLength={12} maxLength={72} type="text" value={employeeForm.password} onChange={e=>setEmployeeForm({...employeeForm,password:e.target.value})} placeholder="Minimum 12 characters" className="mt-1.5 w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono outline-none focus:border-emerald-500"/>
+                </label>
+                <label className="text-[11px] font-bold text-slate-600">Employee Type / Access Profile *
+                  <select value={employeeForm.jobProfile} onChange={e=>setEmployeeForm({...employeeForm,jobProfile:e.target.value})} className="mt-1.5 w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-emerald-500">
+                    <option value="SALES_EXECUTIVE">Sales Executive</option>
+                    <option value="TELECALLER">Telecaller</option>
+                    <option value="FIELD_EXECUTIVE">Field Executive</option>
+                    <option value="MANAGER">Manager</option>
+                  </select>
+                </label>
+              </div>
+
+              {accessPresets[employeeForm.jobProfile].role==='EMPLOYEE' && (
+                <label className="block text-[11px] font-bold text-slate-600">Reporting Manager
+                  <select value={employeeForm.managerId} onChange={e=>setEmployeeForm({...employeeForm,managerId:e.target.value})} className="mt-1.5 w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-emerald-500">
+                    <option value="">No manager assigned yet</option>
+                    {staff.filter(u=>u.role==='MANAGER' && u.active).map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
+                  </select>
+                </label>
+              )}
+
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
+                <div className="flex items-center gap-2 text-sm font-black text-emerald-950">
+                  <Shield className="w-4 h-4"/> {accessPresets[employeeForm.jobProfile].label} Access
+                </div>
+                <p className="mt-1.5 text-[11px] text-emerald-800/80 leading-relaxed">{accessPresets[employeeForm.jobProfile].description}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {accessPresets[employeeForm.jobProfile].modules.map(m=><span key={m} className="inline-flex items-center gap-1 rounded-full bg-white border border-emerald-200 px-2.5 py-1 text-[10px] font-bold text-emerald-800"><Check className="w-3 h-3"/>{m}</span>)}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-[10px] text-slate-500 flex gap-2">
+                <Eye className="w-4 h-4 text-slate-500 shrink-0"/>
+                <div>
+                  <b className="text-slate-700">Data isolation:</b> Employees can see only leads assigned to their own user account. Managers see only their managed team scope. One employee cannot open another employee's assigned lead data.
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-1">
+                <button type="button" onClick={()=>setShowEmployeeModal(false)} className="h-10 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600">Cancel</button>
+                <button disabled={busyId==='new-employee'} type="submit" className="h-10 px-5 rounded-xl bg-[#0b3824] text-white text-xs font-bold flex items-center gap-2 disabled:opacity-60">
+                  <KeyRound className="w-4 h-4"/>{busyId==='new-employee'?'Creating…':'Create Employee Login'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {showPartnerModal && (
         <div className="fixed inset-0 z-[120] bg-slate-950/55 backdrop-blur-sm grid place-items-center p-4">

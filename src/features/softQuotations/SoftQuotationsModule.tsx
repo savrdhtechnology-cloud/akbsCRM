@@ -498,9 +498,6 @@ AKBS Poultry Farming Private Limited`;
   if (route.mode === 'detail') {
     if (!activeQuote) return <div className="p-8">Quotation not found.</div>;
 
-    const templateTotal = AKBS_EC_20000_TEMPLATE.costBreakup.reduce((sum,item)=>sum+Number(item.estimatedAmount||0),0);
-    const amountVariance = activeQuote.grandTotal - templateTotal;
-    const amountVariancePct = templateTotal ? Math.round((amountVariance / templateTotal) * 1000) / 10 : 0;
     const missingForReview = [
       !activeQuote.projectLocation ? 'Project / site location' : '',
       !activeQuote.customer?.mobile ? 'Customer mobile' : '',
@@ -511,7 +508,6 @@ AKBS Poultry Farming Private Limited`;
       activeQuote.projectType === AKBS_EC_20000_TEMPLATE.projectType &&
       Number(activeQuote.projectCapacity) === Number(AKBS_EC_20000_TEMPLATE.capacity);
     const reviewReady = missingForReview.length === 0;
-    const commercial = activeQuote.commercialTerms || ({} as any);
 
     return (
       <div className="p-4 sm:p-6 lg:p-8 space-y-5">
@@ -529,10 +525,7 @@ AKBS Poultry Farming Private Limited`;
             {(activeQuote.status === 'DRAFT' || activeQuote.status === 'REJECTED' || roleCanEditApproved(currentRole)) && (
               <button onClick={() => navigate(`/soft-quotations/${activeQuote.id}/edit`)} className="btn-secondary"><Edit3 className="w-4 h-4"/>Edit</button>
             )}
-            {activeQuote.status === 'REVIEW' && roleCanApprove(currentRole) && <>
-              <button onClick={() => rejectQuote(activeQuote.id)} className="btn-secondary text-rose-700"><XCircle className="w-4 h-4"/>Reject</button>
-              <button onClick={() => approveQuote(activeQuote.id)} className="btn-primary"><BadgeCheck className="w-4 h-4"/>Approve</button>
-            </>}
+
             {currentRole === 'employee' ? (
               ['APPROVED','SENT','VIEWED'].includes(activeQuote.status) ? (
                 <button onClick={() => copyEmployeeApprovedSummary(activeQuote)} className="btn-primary">
@@ -550,108 +543,26 @@ AKBS Poultry Farming Private Limited`;
         </div>
         {notice && <Notice>{notice}</Notice>}
         {activeQuote.status === 'REVIEW' && roleCanApprove(currentRole) && (
-          <div className="print:hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            <b>Manager Review Required:</b> Check the quotation content, use the Quotation Analyzer from Edit/Review if needed, then Approve or Reject. Customer sending stays locked until approval.
+          <div className="print:hidden rounded-xl border border-slate-200 bg-white px-4 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="text-xs text-slate-600">
+              <span className="font-black text-slate-900">Analyzer Check:</span>{' '}
+              {templateMatched ? 'Quotation matches the approved AKBS standard template.' : 'Quotation differs from the standard template.'}
+              {missingForReview.length ? ` ${missingForReview.length} item(s) still require confirmation.` : ' No confirmation flags are pending.'}
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <button onClick={() => rejectQuote(activeQuote.id)} className="btn-secondary text-rose-700">
+                <XCircle className="w-4 h-4"/>Return
+              </button>
+              <button onClick={() => approveQuote(activeQuote.id)} className="btn-primary" disabled={!reviewReady}>
+                <BadgeCheck className="w-4 h-4"/>{reviewReady ? 'Approve Quotation' : 'Confirm Details First'}
+              </button>
+            </div>
           </div>
         )}
       {loadingQuotes && <div className="rounded-xl border bg-white px-4 py-3 text-sm text-slate-500">Loading shared quotation workflow…</div>}
         {activeQuote.versions?.length > 0 && (
           <div className="print:hidden rounded-xl border bg-white p-4 text-xs">
             <b>Version history:</b> {activeQuote.versions.map(v => `Version ${v.version} (${v.status})`).join(' · ')}
-          </div>
-        )}
-
-        {roleCanApprove(currentRole) && (
-          <div className="print:hidden grid xl:grid-cols-[1.15fr_.85fr] gap-4">
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <div className="text-[10px] uppercase tracking-[.15em] font-black text-emerald-700">Quotation Analyzer</div>
-                  <h2 className="mt-1 text-xl font-black text-slate-950">Manager Review Summary</h2>
-                  <p className="mt-1 text-xs text-slate-500">No AI is used. Analysis is calculated only from the approved AKBS template and this quotation's CRM values.</p>
-                </div>
-                <div className={`rounded-xl px-4 py-3 border ${reviewReady ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
-                  <div className="text-[9px] uppercase tracking-wide font-bold text-slate-500">Review Readiness</div>
-                  <div className={`mt-1 text-sm font-black ${reviewReady ? 'text-emerald-800' : 'text-amber-800'}`}>
-                    {reviewReady ? 'Ready for manager decision' : `${missingForReview.length} item(s) need confirmation`}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-5 grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                <div className="rounded-xl border bg-slate-50 p-3">
-                  <div className="text-[9px] uppercase font-bold tracking-wide text-slate-400">Customer</div>
-                  <div className="mt-1 font-black text-slate-900">{activeQuote.customer.customerName || 'Not provided'}</div>
-                  <div className="mt-1 text-xs text-slate-500">{activeQuote.customer.mobile || 'Mobile not provided'}</div>
-                </div>
-                <div className="rounded-xl border bg-slate-50 p-3">
-                  <div className="text-[9px] uppercase font-bold tracking-wide text-slate-400">Site / Location</div>
-                  <div className="mt-1 font-black text-slate-900">{activeQuote.projectLocation || 'Requires Confirmation'}</div>
-                  <div className="mt-1 text-xs text-slate-500">{activeQuote.customer.state || ''}</div>
-                </div>
-                <div className="rounded-xl border bg-slate-50 p-3">
-                  <div className="text-[9px] uppercase font-bold tracking-wide text-slate-400">Capacity</div>
-                  <div className="mt-1 font-black text-slate-900">{Number(activeQuote.projectCapacity || 0).toLocaleString('en-IN')} {activeQuote.projectUnit || 'Birds'}</div>
-                  <div className="mt-1 text-xs text-slate-500">{templateMatched ? 'Matches standard EC template' : 'Different from standard template'}</div>
-                </div>
-                <div className="rounded-xl border bg-slate-50 p-3">
-                  <div className="text-[9px] uppercase font-bold tracking-wide text-slate-400">Approx. Budget</div>
-                  <div className="mt-1 font-black text-emerald-900">{formatMoney(activeQuote.grandTotal)}</div>
-                  <div className="mt-1 text-xs text-slate-500">Planning estimate only</div>
-                </div>
-              </div>
-
-              <div className="mt-4 grid md:grid-cols-2 gap-3">
-                <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4">
-                  <div className="text-xs font-black text-emerald-900">Approved Template Comparison</div>
-                  <div className="mt-3 space-y-2 text-xs">
-                    <div className="flex justify-between gap-4"><span className="text-slate-500">Standard Template</span><span className="font-bold text-slate-900">{AKBS_EC_20000_TEMPLATE.name}</span></div>
-                    <div className="flex justify-between gap-4"><span className="text-slate-500">Template Base Cost</span><span className="font-bold text-slate-900">{formatMoney(templateTotal)}</span></div>
-                    <div className="flex justify-between gap-4"><span className="text-slate-500">Current Soft Quote</span><span className="font-bold text-slate-900">{formatMoney(activeQuote.grandTotal)}</span></div>
-                    <div className="flex justify-between gap-4"><span className="text-slate-500">Difference</span><span className={`font-black ${amountVariance === 0 ? 'text-emerald-800' : amountVariance > 0 ? 'text-amber-800' : 'text-blue-800'}`}>{amountVariance >= 0 ? '+' : ''}{formatMoney(amountVariance)} ({amountVariancePct >= 0 ? '+' : ''}{amountVariancePct}%)</span></div>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-4">
-                  <div className="text-xs font-black text-amber-900">Items Requiring Confirmation</div>
-                  <div className="mt-3 space-y-1.5 text-xs text-slate-700">
-                    {missingForReview.length ? missingForReview.map((item,index)=><div key={`${item}-${index}`}>• {item}</div>) : <div className="text-emerald-800 font-bold">No outstanding confirmation flags.</div>}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 rounded-xl border border-slate-200 p-4">
-                <div className="text-xs font-black text-slate-900">Why this is only an approximate budget</div>
-                <p className="mt-2 text-xs leading-5 text-slate-600">
-                  Final quotation can change after site survey, exact location, civil/site conditions, final engineering design, selected material/equipment specifications,
-                  transportation, taxes and confirmed commercial scope. This soft quotation is intended to give the customer an initial project budget range only.
-                </p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
-              <div className="text-[10px] uppercase tracking-[.15em] font-black text-emerald-700">Terms & Conditions</div>
-              <h3 className="mt-1 text-lg font-black text-slate-950">Commercial Review</h3>
-              <div className="mt-4 space-y-3 text-xs">
-                <div><span className="text-slate-400">Validity</span><div className="font-bold text-slate-900">{activeQuote.quotationValidity || commercial.quotationValidity || 30} days</div></div>
-                <div><span className="text-slate-400">Payment Terms</span><div className="font-bold text-slate-900">{commercial.paymentTerms || 'Requires Confirmation'}</div></div>
-                <div><span className="text-slate-400">Taxes</span><div className="font-bold text-slate-900">{commercial.taxes || 'As applicable'}</div></div>
-                <div><span className="text-slate-400">Transportation</span><div className="font-bold text-slate-900">{commercial.transportation || 'Requires Confirmation'}</div></div>
-                <div><span className="text-slate-400">Warranty</span><div className="font-bold text-slate-900">{commercial.warranty || 'Requires Confirmation'}</div></div>
-                <div><span className="text-slate-400">Installation</span><div className="font-bold text-slate-900">{commercial.installationTerms || 'Requires Confirmation'}</div></div>
-                <div><span className="text-slate-400">Delivery</span><div className="font-bold text-slate-900">{commercial.deliveryTerms || 'Requires Confirmation'}</div></div>
-              </div>
-              <div className="mt-5 rounded-xl bg-[#073323] text-white p-4">
-                <div className="text-xs font-black">Manager Decision</div>
-                <p className="mt-1 text-[11px] text-emerald-100">Approve only after checking site/location assumptions and all commercial confirmation items.</p>
-                {activeQuote.status === 'REVIEW' && (
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <button onClick={() => rejectQuote(activeQuote.id)} className="rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-xs font-bold">Return for Revision</button>
-                    <button onClick={() => approveQuote(activeQuote.id)} className="rounded-lg bg-emerald-300 text-[#073323] px-3 py-2 text-xs font-black">Approve Quotation</button>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         )}
 
@@ -741,8 +652,8 @@ AKBS Poultry Farming Private Limited`;
                   </td>
                   <td className="px-2 py-3 relative">
                     <div className="flex items-center gap-0.5 whitespace-nowrap">
-                      <button title={roleCanApprove(currentRole) && q.status === 'REVIEW' ? 'Open Analyzer Review' : 'View'} onClick={() => navigate(`/soft-quotations/${q.id}`)} className={`${roleCanApprove(currentRole) && q.status === 'REVIEW' ? 'px-2.5 h-8 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-black inline-flex items-center gap-1' : 'icon-btn'}`}>
-                        <Eye className="w-4 h-4"/>{roleCanApprove(currentRole) && q.status === 'REVIEW' ? <span>Analyzer Review</span> : null}
+                      <button title={roleCanApprove(currentRole) && q.status === 'REVIEW' ? 'Review Template' : 'View'} onClick={() => navigate(`/soft-quotations/${q.id}`)} className={`${roleCanApprove(currentRole) && q.status === 'REVIEW' ? 'px-2.5 h-8 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-black inline-flex items-center gap-1' : 'icon-btn'}`}>
+                        <Eye className="w-4 h-4"/>{roleCanApprove(currentRole) && q.status === 'REVIEW' ? <span>Review Template</span> : null}
                       </button>
                       {(currentRole !== 'employee' || ['DRAFT','REJECTED'].includes(q.status)) && (
                         <button title={currentRole === 'employee' ? 'Revise request' : 'Edit quotation'} onClick={() => navigate(`/soft-quotations/${q.id}/edit`)} className="icon-btn"><Edit3 className="w-4 h-4"/></button>

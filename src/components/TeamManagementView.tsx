@@ -2,18 +2,31 @@ import React, { useMemo, useState } from 'react';
 import {
   Users, UserPlus, UserCheck, UserX, Handshake, ShieldCheck, Activity,
   TrendingUp, Search, CheckCircle2, XCircle, Clock3, BriefcaseBusiness,
-  Mail, Phone, MapPin, RefreshCcw
+  Mail, Phone, MapPin, RefreshCcw, Plus, X
 } from 'lucide-react';
 import { useCrm } from '../lib/crm';
 
 type Tab = 'employees' | 'partners' | 'pending-partners';
 
-export const TeamManagementView: React.FC = () => {
+type TeamManagementViewProps = {
+  onAddEmployee?: () => void;
+};
+
+export const TeamManagementView: React.FC<TeamManagementViewProps> = ({ onAddEmployee }) => {
   const crm = useCrm();
   const [tab, setTab] = useState<Tab>('employees');
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState('');
   const [message, setMessage] = useState('');
+  const [showPartnerModal, setShowPartnerModal] = useState(false);
+  const [partnerForm, setPartnerForm] = useState({
+    name: '',
+    contactPerson: '',
+    email: '',
+    phone: '',
+    location: '',
+    category: 'Referral / Business Partner'
+  });
 
   const staff = useMemo(
     () => crm.users.filter(u => ['ADMIN','MANAGER','EMPLOYEE','FINANCE'].includes(u.role)),
@@ -80,6 +93,36 @@ export const TeamManagementView: React.FC = () => {
     } finally { setBusyId(''); }
   };
 
+  const createPartner = async (e:React.FormEvent) => {
+    e.preventDefault();
+    setMessage('');
+    try {
+      await crm.command('record_save',{
+        kind:'partner',
+        data:{
+          ...partnerForm,
+          status:'Active',
+          commissionRate:0,
+          rating:0,
+          source:'ADMIN_CREATED'
+        }
+      });
+      setMessage('Partner added successfully.');
+      setShowPartnerModal(false);
+      setPartnerForm({
+        name:'',
+        contactPerson:'',
+        email:'',
+        phone:'',
+        location:'',
+        category:'Referral / Business Partner'
+      });
+      setTab('partners');
+    } catch(e:any) {
+      setMessage(e.message || 'Unable to add partner.');
+    }
+  };
+
   const pendingCount=partnerRecords.filter(r=>String(r.data?.status||'Pending').toLowerCase()==='pending').length;
   const activePartnerCount=partnerRecords.filter(r=>['active','approved'].includes(String(r.data?.status||'').toLowerCase())).length;
 
@@ -94,6 +137,22 @@ export const TeamManagementView: React.FC = () => {
               <p className="text-xs text-slate-500 mt-0.5">Employees, referral partners, supplier partners and approval workflow in one place.</p>
             </div>
           </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onAddEmployee?.()}
+            className="h-10 px-4 rounded-xl bg-[#0b3824] text-white text-xs font-bold flex items-center gap-2 shadow-sm hover:bg-[#123e27]"
+          >
+            <UserPlus className="w-4 h-4"/> Add Employee
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowPartnerModal(true)}
+            className="h-10 px-4 rounded-xl bg-amber-400 text-[#0b3824] text-xs font-black flex items-center gap-2 shadow-sm hover:bg-amber-300"
+          >
+            <Plus className="w-4 h-4"/> Add Partner
+          </button>
         </div>
         <div className="grid grid-cols-3 gap-2 min-w-[390px] max-w-full">
           <Stat label="Staff" value={staff.length} icon={<Users/>}/>
@@ -212,6 +271,54 @@ export const TeamManagementView: React.FC = () => {
           </div>
         )}
       </div>
+
+      {showPartnerModal && (
+        <div className="fixed inset-0 z-[120] bg-slate-950/55 backdrop-blur-sm grid place-items-center p-4">
+          <div className="w-full max-w-xl rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-700">Team Management</div>
+                <h3 className="text-lg font-black text-slate-900">Add Partner</h3>
+              </div>
+              <button onClick={()=>setShowPartnerModal(false)} className="w-9 h-9 rounded-xl bg-slate-100 grid place-items-center text-slate-600"><X className="w-4 h-4"/></button>
+            </div>
+            <form onSubmit={createPartner} className="p-5 space-y-4">
+              <div className="grid sm:grid-cols-2 gap-3">
+                <label className="text-[11px] font-bold text-slate-600">Partner / Firm Name *
+                  <input required value={partnerForm.name} onChange={e=>setPartnerForm({...partnerForm,name:e.target.value})} className="mt-1.5 w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-emerald-500"/>
+                </label>
+                <label className="text-[11px] font-bold text-slate-600">Contact Person
+                  <input value={partnerForm.contactPerson} onChange={e=>setPartnerForm({...partnerForm,contactPerson:e.target.value})} className="mt-1.5 w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-emerald-500"/>
+                </label>
+                <label className="text-[11px] font-bold text-slate-600">Email
+                  <input type="email" value={partnerForm.email} onChange={e=>setPartnerForm({...partnerForm,email:e.target.value})} className="mt-1.5 w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-emerald-500"/>
+                </label>
+                <label className="text-[11px] font-bold text-slate-600">Phone
+                  <input value={partnerForm.phone} onChange={e=>setPartnerForm({...partnerForm,phone:e.target.value})} className="mt-1.5 w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-emerald-500"/>
+                </label>
+                <label className="text-[11px] font-bold text-slate-600">Location
+                  <input value={partnerForm.location} onChange={e=>setPartnerForm({...partnerForm,location:e.target.value})} className="mt-1.5 w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-emerald-500"/>
+                </label>
+                <label className="text-[11px] font-bold text-slate-600">Partner Type
+                  <select value={partnerForm.category} onChange={e=>setPartnerForm({...partnerForm,category:e.target.value})} className="mt-1.5 w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-emerald-500">
+                    <option>Referral / Business Partner</option>
+                    <option>Feed Supplier</option>
+                    <option>Equipment & Automation</option>
+                    <option>Hatchery / DOC</option>
+                    <option>Veterinary & Pharma</option>
+                    <option>Bank / NBFC Partner</option>
+                    <option>Processing & Off-taker</option>
+                  </select>
+                </label>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={()=>setShowPartnerModal(false)} className="h-10 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600">Cancel</button>
+                <button type="submit" className="h-10 px-5 rounded-xl bg-[#0b3824] text-white text-xs font-bold flex items-center gap-2"><Handshake className="w-4 h-4"/>Add Partner</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

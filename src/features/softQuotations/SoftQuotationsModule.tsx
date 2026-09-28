@@ -180,11 +180,21 @@ export const SoftQuotationsModule: React.FC<SoftQuotationModuleProps> = ({
 
   const activeQuote = route.id ? quotes.find(q => q.id === route.id) || null : null;
 
+  const employeeApprovedQuotes = useMemo(
+    () => quotes.filter(q => ['APPROVED','SENT','VIEWED'].includes(q.status)),
+    [quotes]
+  );
+  const employeePendingRequestCount = useMemo(
+    () => quotes.filter(q => ['DRAFT','REVIEW','REJECTED'].includes(q.status)).length,
+    [quotes]
+  );
+
   const filteredQuotes = useMemo(() => quotes.filter(q => {
+    if (currentRole === 'employee' && !['APPROVED','SENT','VIEWED'].includes(q.status)) return false;
     if (filter !== 'ALL' && q.status !== filter) return false;
     const text = `${q.quotationNo} ${q.customer.customerName} ${q.projectName} ${q.projectType}`.toLowerCase();
     return text.includes(search.toLowerCase());
-  }), [quotes, filter, search]);
+  }), [quotes, filter, search, currentRole]);
 
   const totalValue = quotes.filter(q => q.status !== 'ARCHIVED').reduce((sum, q) => sum + q.grandTotal, 0);
   const metric = (status: SoftQuotationStatus) => quotes.filter(q => q.status === status).length;
@@ -497,6 +507,23 @@ AKBS Poultry Farming Private Limited`;
 
   if (route.mode === 'detail') {
     if (!activeQuote) return <div className="p-8">Quotation not found.</div>;
+    if (currentRole === 'employee' && !['APPROVED','SENT','VIEWED'].includes(activeQuote.status)) {
+      return (
+        <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto">
+          <button onClick={() => navigate('/soft-quotations')} className="text-xs text-emerald-700 font-bold flex items-center gap-1">
+            <ChevronLeft className="w-4 h-4"/>Soft Quotations
+          </button>
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center">
+            <Clock3 className="w-10 h-10 text-amber-700 mx-auto"/>
+            <h2 className="mt-3 text-xl font-black text-slate-900">Manager Approval Pending</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Quotation details, amount, document preview, terms and PDF remain hidden until your manager approves the quotation request.
+            </p>
+          </div>
+          <ModuleStyles/>
+        </div>
+      );
+    }
 
     const missingForReview = [
       !activeQuote.projectLocation ? 'Project / site location' : '',
@@ -584,6 +611,26 @@ AKBS Poultry Farming Private Limited`;
 
       {notice && <Notice>{notice}</Notice>}
 
+      {currentRole === 'employee' ? (
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <div className="text-[10px] uppercase tracking-wide font-bold text-amber-700">Quotation Requests</div>
+            <div className="mt-1 text-lg font-black text-amber-950">
+              {employeePendingRequestCount > 0 ? 'Manager Review Pending' : 'No Pending Request'}
+            </div>
+            <div className="mt-1 text-[11px] text-amber-800/80">
+              Request details stay hidden until approval.
+            </div>
+          </div>
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+            <div className="text-[10px] uppercase tracking-wide font-bold text-emerald-700">Approved Quotations</div>
+            <div className="mt-1 text-2xl font-black text-emerald-950">{employeeApprovedQuotes.length}</div>
+            <div className="mt-1 text-[11px] text-emerald-800/80">
+              Only approved quotations can show Copy Summary.
+            </div>
+          </div>
+        </div>
+      ) : (
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
         <Metric label="Total Quotations" value={quotes.length} onClick={() => setFilter('ALL')}/>
         <Metric label="Draft" value={metric('DRAFT')} onClick={() => setFilter('DRAFT')}/>
@@ -594,11 +641,15 @@ AKBS Poultry Farming Private Limited`;
         <Metric label="Accepted" value={metric('ACCEPTED')} onClick={() => setFilter('ACCEPTED')}/>
         <Metric label="Estimated Value" value={formatMoney(totalValue)} onClick={() => setFilter('ALL')}/>
       </div>
+      )}
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden min-w-0">
         <div className="p-3 sm:p-4 border-b flex flex-col xl:flex-row gap-3 xl:items-center justify-between">
           <div className="flex flex-wrap gap-1.5 sm:gap-2">
-            {(['ALL','DRAFT','REVIEW','APPROVED','SENT','VIEWED','ACCEPTED','EXPIRED'] as const).map(s => (
+            {(currentRole === 'employee'
+              ? (['ALL','APPROVED','SENT','VIEWED'] as const)
+              : (['ALL','DRAFT','REVIEW','APPROVED','SENT','VIEWED','ACCEPTED','EXPIRED'] as const)
+            ).map(s => (
               <button key={s} onClick={() => setFilter(s)} className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-bold ${filter === s ? 'bg-[#073323] text-white' : 'bg-slate-100 text-slate-600'}`}>{s === 'ALL' ? 'All' : s}</button>
             ))}
           </div>
@@ -662,7 +713,7 @@ AKBS Poultry Farming Private Limited`;
                     </div>
                     {actionMenu === q.id && (
                       <div className="absolute right-2 top-11 z-30 w-56 bg-white border rounded-xl shadow-xl p-1 text-xs">
-                        <Action label="Duplicate quotation" icon={<Copy/>} onClick={() => { duplicateQuote(q); setActionMenu(null); }}/>
+                        {currentRole !== 'employee' && <Action label="Duplicate quotation" icon={<Copy/>} onClick={() => { duplicateQuote(q); setActionMenu(null); }}/>}
                         {currentRole === 'employee' ? (
                           ['APPROVED','SENT','VIEWED'].includes(q.status)
                             ? <Action label="Copy Summary" icon={<Copy/>} onClick={() => { void copyEmployeeApprovedSummary(q); setActionMenu(null); }}/>
@@ -681,7 +732,15 @@ AKBS Poultry Farming Private Limited`;
                   </td>
                 </tr>
               ))}
-              {!filteredQuotes.length && <tr><td colSpan={6} className="px-6 py-16 text-center text-slate-400">No soft quotations found.</td></tr>}
+              {!filteredQuotes.length && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-16 text-center text-slate-400">
+                    {currentRole === 'employee'
+                      ? 'No manager-approved quotation is available yet. Create a request from an assigned lead.'
+                      : 'No soft quotations found.'}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

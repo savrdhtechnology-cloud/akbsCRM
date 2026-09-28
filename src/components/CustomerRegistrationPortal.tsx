@@ -4,6 +4,7 @@ import {
   ShieldCheck,
   Headphones,
   TrendingUp,
+  LogOut,
   User,
   Phone,
   Mail,
@@ -953,6 +954,15 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
               className="px-3 py-2 rounded-lg border border-emerald-500/40 bg-white/5 hover:bg-white/10 text-[11px] font-bold text-emerald-100 whitespace-nowrap"
             >
               My Applications
+            </button>
+            <button
+              type="button"
+              onClick={() => void portal.signOut()}
+              className="px-3 py-2 rounded-lg border border-rose-300/30 bg-rose-500/10 hover:bg-rose-500/20 text-[11px] font-bold text-rose-100 whitespace-nowrap flex items-center gap-1.5"
+              title="Logout from Customer Portal"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Logout
             </button>
             <div className="hidden xl:grid grid-cols-4 gap-3 text-center">
               <div className="flex flex-col items-center">

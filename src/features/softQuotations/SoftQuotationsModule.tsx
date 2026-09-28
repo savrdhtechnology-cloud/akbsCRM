@@ -5,6 +5,7 @@ import {
   Bot,
   Check,
   CheckCircle2,
+  Clock3,
   ChevronLeft,
   ChevronRight,
   Copy,

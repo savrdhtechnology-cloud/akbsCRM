@@ -101,6 +101,20 @@ const empty: Snapshot = {
   activities: [],
   total: 0,
 };
+async function quoteRpc(action: string, data: Record<string, any>, token: string) {
+  const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_soft_quotation_workspace`, {
+    method: "POST",
+    headers: { apikey: publishableKey, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_action: action, p_data: data, p_token: token }),
+    signal: AbortSignal.timeout(20000),
+    cache: "no-store",
+  });
+  const out = await response.json();
+  if (!response.ok) throw new Error(out.message || "Unable to reach quotation service.");
+  if (out?.error) throw Object.assign(new Error(out.error), { status: out.status });
+  return out;
+}
+
 async function rpc(action: string, data: Record<string, any>, token: string) {
   const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_crm_workspace`, {
     method: "POST", headers: { apikey: publishableKey, "Content-Type": "application/json" },
@@ -118,6 +132,7 @@ interface Context extends Snapshot {
   refresh: () => Promise<void>;
   command: (a: string, d?: Record<string, any>) => Promise<any>;
   read: (a: string, d: Record<string, any>) => Promise<any>;
+  quotation: (a: string, d?: Record<string, any>) => Promise<any>;
   logout: () => void;
   error: string;
   loading: boolean;
@@ -347,6 +362,7 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
         refresh,
         command,
         read: (a, d) => rpc(a, d, token),
+        quotation: (a, d = {}) => quoteRpc(a, d, token),
         logout: () => {
           void rpc("logout", {}, token)
             .catch(() => {})

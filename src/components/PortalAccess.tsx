@@ -21,6 +21,7 @@ type PortalContextValue = Snapshot & {
   loadDraft: () => Promise<any>;
   saveDraft: (requestId: string, form: Record<string, unknown>, currentStage: number) => Promise<any>;
   deleteDraft: (requestId: string) => Promise<any>;
+  sendPaymentReceipt: (applicationId: string) => Promise<any>;
 };
 
 const PortalContext = createContext<PortalContextValue | null>(null);
@@ -91,6 +92,22 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
       p_session_token: sessionToken,
       p_request_id: requestId
     });
+  }
+
+  async function sendPaymentReceipt(applicationId: string) {
+    if (!sessionToken) throw new Error('Verify your email OTP first.');
+    const response = await fetch(`${URL}/functions/v1/akbs-customer-payment-receipt`, {
+      method: 'POST',
+      headers: {
+        apikey: KEY,
+        Authorization: `Bearer ${KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ sessionToken, applicationId })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result?.error || result?.message || 'Receipt email could not be sent.');
+    return result;
   }
 
   async function timeline(leadId: string) {
@@ -303,7 +320,7 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
 
   if (sessionToken && snapshot?.enrolled) {
     return (
-      <PortalContext.Provider value={{ ...snapshot, rpc: portalRpc, refresh: () => portalRpc('snapshot'), timeline, loadDraft, saveDraft, deleteDraft }}>
+      <PortalContext.Provider value={{ ...snapshot, rpc: portalRpc, refresh: () => portalRpc('snapshot'), timeline, loadDraft, saveDraft, deleteDraft, sendPaymentReceipt }}>
         {error && <p role="alert" className="bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
         {children}
       </PortalContext.Provider>

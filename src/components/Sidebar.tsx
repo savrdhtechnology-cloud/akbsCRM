@@ -66,7 +66,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'leads', label: 'Leads', icon: <Users className="w-[18px] h-[18px]" /> },
         { id: 'followups', label: 'Follow-ups', icon: <PhoneCall className="w-[18px] h-[18px]" /> },
         { id: 'customers', label: 'Customers', icon: <UserCheck className="w-[18px] h-[18px]" /> },
-        { id: 'partners', label: 'Partners', icon: <Handshake className="w-[18px] h-[18px]" /> }
+        { id: 'partners', label: 'Partners', icon: <Handshake className="w-[18px] h-[18px]" /> },
+        { id: 'team-management', label: 'Team Management', icon: <Users className="w-[18px] h-[18px]" /> }
       ]
     },
     {

@@ -61,6 +61,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   onSelectLead,
   onOpenAddLead,
   onUpdateLeadStatus,
+  onConvertLeadToCustomer,
   onDeleteLead,
   onOpenQuickAction,
   onEditLead,
@@ -1101,13 +1102,16 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                   <span>Create Task</span>
                 </button>
 
-                <button
-                  onClick={() => onUpdateLeadStatus(currentLead.id, 'Converted')}
-                  className="p-2.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2 font-bold text-emerald-900"
-                >
-                  <UserCheck className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Convert to Customer</span>
-                </button>
+                {!isEmployeePortal && (
+                  <button
+                    onClick={() => onConvertLeadToCustomer?.(currentLead.id)}
+                    disabled={currentLead.status === 'Converted'}
+                    className="p-2.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-60 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 font-bold text-emerald-900"
+                  >
+                    <UserCheck className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>{currentLead.status === 'Converted' ? 'Customer Converted' : 'Convert to Customer'}</span>
+                  </button>
+                )}
               </div>
             </div>
 

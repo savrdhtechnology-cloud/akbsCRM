@@ -1633,9 +1633,9 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
       {/* MODE 2: INTERACTIVE STEP-BY-STEP FORM (Full size high-fidelity UI) */}
       {/* ========================================================================= */}
       {viewMode === 'wizard' && (
-        <div className="flex-1 max-w-[1440px] w-full mx-auto p-3 sm:p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <div className={`flex-1 max-w-[1440px] w-full mx-auto grid grid-cols-1 lg:grid-cols-12 items-start ${activeSideMenu === 'track' ? 'p-2 sm:p-3 lg:p-3 gap-3' : 'p-3 sm:p-4 lg:p-6 gap-5'}`}>
           {/* Left Sidebar Menu & Visual Card */}
-          <aside className="lg:col-span-3 space-y-4">
+          <aside className={`lg:col-span-3 ${activeSideMenu === 'track' ? 'space-y-2 lg:sticky lg:top-3' : 'space-y-4'}`}>
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
               <div className="p-3 bg-[#0b2818] text-white border-b border-[#123e27] flex items-center justify-between">
                 <div>
@@ -1751,10 +1751,12 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
             </div>
 
             {/* Left Context-Sensitive Image matching active step in mockup */}
-            {renderSidebarImage(currentStep)}
+            <div className={activeSideMenu === 'track' ? 'hidden xl:block' : ''}>
+              {renderSidebarImage(currentStep)}
+            </div>
 
             {/* Quick Helpline Box */}
-            <div className="bg-emerald-50 rounded-2xl p-3.5 border border-emerald-200/80 text-xs text-slate-700 space-y-1.5">
+            <div className={`${activeSideMenu === 'track' ? 'hidden 2xl:block' : 'block'} bg-emerald-50 rounded-2xl p-3.5 border border-emerald-200/80 text-xs text-slate-700 space-y-1.5`}>
               <div className="flex items-center gap-2 font-bold text-emerald-950">
                 <Headphones className="w-4 h-4 text-emerald-700" />
                 <span>Expert Technical Helpline</span>
@@ -1769,11 +1771,11 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
           </aside>
 
           {/* Right Main Content Card */}
-          <main className="lg:col-span-9 bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:p-6 lg:p-7">
+          <main className={`lg:col-span-9 bg-white rounded-2xl border border-slate-200/90 shadow-sm ${activeSideMenu === 'track' ? 'p-3 sm:p-4 lg:p-4' : 'p-4 sm:p-6 lg:p-7'}`}>
             {/* If Sub-view: Track Application */}
             {activeSideMenu === 'track' && (
-              <div className="space-y-6">
-                <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
+              <div className="space-y-3">
+                <div className="border-b border-slate-100 pb-2 flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-bold text-slate-900">
                       Track Your Poultry Farm Application
@@ -1790,7 +1792,7 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                   </button>
                 </div>
 
-                <form onSubmit={handleTrackSearch} className="flex gap-2 max-w-md">
+                <form onSubmit={handleTrackSearch} className="flex gap-2 max-w-lg">
                   <input
                     type="text"
                     value={trackSearchId}
@@ -1847,8 +1849,8 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                 )}
 
                 {trackResult && (
-                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200">
+                  <div className="p-3 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200">
                       <div>
                         <span className="text-[11px] font-mono text-emerald-800 font-bold bg-emerald-100 px-2 py-0.5 rounded">
                           {trackResult.appId}
@@ -1892,7 +1894,7 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
                       <div>
                         <span className="text-slate-400">Assigned Engineer:</span>
                         <div className="font-semibold text-slate-800">{trackResult.assignedTo || 'Not assigned yet'}</div>
@@ -1911,7 +1913,7 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                       </div>
                     </div>
 
-                    <div className="pt-2 space-y-4">
+                    <div className="pt-1 space-y-3">
                       <ApplicationProgressTimeline
                         title="Your Application Progress"
                         subtitle="Stage-wise completion is calculated from the details submitted in this application."
@@ -1926,6 +1928,7 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                           (trackResult.progressStages || []).slice(-1)[0]?.id
                         }
                         readOnly
+                        compact
                       />
 
                       <div className="rounded-2xl border border-slate-200 bg-white p-4">

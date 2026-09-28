@@ -70,6 +70,22 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const crm=useCrm();
+
+  const roleSections: Record<string, NavigationSection[]> = {
+    ADMIN: ['dashboard','registrations','leads','followups','customers','partners','team-management','soft-quotations','proposals','loans','manager-portal','tasks','reports','communication','admin-control','settings'],
+    MANAGER: ['dashboard','leads','followups','customers','soft-quotations','proposals','manager-portal','tasks','reports','communication'],
+    EMPLOYEE: ['dashboard','leads','followups','customers','soft-quotations','employee-portal','tasks','communication'],
+    FINANCE: ['dashboard','loans','reports','communication']
+  };
+
+  const canOpenSection = (section: NavigationSection) =>
+    (roleSections[crm.user.role] || ['dashboard']).includes(section);
+
+  const safeSetSection = (section: NavigationSection) => {
+    if (canOpenSection(section)) setCurrentSection(section);
+    else setSaveError('This module is not available for your staff role.');
+  };
+
   const [saveError,setSaveError]=useState('');
   const [saving,setSaving]=useState(false);
   const run=async(action:string,data:Record<string,any>)=>{setSaving(true);setSaveError('');try{return await crm.command(action,data);}catch(e:any){setSaveError(e.message);await crm.refresh().catch(()=>{});return null;}finally{setSaving(false);}};
@@ -95,7 +111,10 @@ export default function App() {
   const handleAssignLead=(id:string,name:string)=>{const l=crm.leads.find(l=>l.id===id);const u=crm.users.find(u=>u.name===name&&u.role==='EMPLOYEE'&&u.active);if(!l||!u){setSaveError('Choose an active employee from your team.');return;}void run('lead_update',{lead_id:id,version:l.version,assigned_to:u.id});};
   const handleAddSiteVisit=(v:SiteVisitLog)=>{const l=leads.find(l=>l.name===v.farmerName);if(!l){setSaveError('Select an existing lead for this visit.');return;}void run('workflow_create',{lead_id:l.id,kind:'visit',title:'Site visit',status:'SCHEDULED',location:v.location,notes:v.notes,due_at:new Date(v.visitDate).toISOString()});};
   const handleUpdateSupplyOrderStatus=(id:string,status:PartnerSupplyOrder['status'],challan?:string)=>{const r=crm.records.find(r=>r.id===id);if(r)void run('record_save',{id,version:r.version,kind:'supply_order',data:{...r.data,status,dispatchChallanNo:challan||r.data.dispatchChallanNo}});};
-  useEffect(()=>{setCurrentRole(crm.user.role==='FINANCE'?'employee':crm.user.role.toLowerCase() as PortalRole);},[crm.user.role]);
+  useEffect(()=>{
+    setCurrentRole(crm.user.role==='FINANCE'?'employee':crm.user.role.toLowerCase() as PortalRole);
+    setCurrentSection(prev => (roleSections[crm.user.role] || ['dashboard']).includes(prev) ? prev : 'dashboard');
+  },[crm.user.role]);
 
   // Modal State
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
@@ -132,13 +151,25 @@ export default function App() {
         setIsAddCustomerOpen(true);
         break;
       case 'add-partner':
+        if (crm.user.role !== 'ADMIN') {
+          setSaveError('Only Super Admin can add or manage partners.');
+          break;
+        }
         window.open('/partner-registration', '_blank', 'noopener,noreferrer');
         break;
       case 'create-proposal':
+        if (!['ADMIN','MANAGER'].includes(crm.user.role)) {
+          setSaveError('Proposal approval access is restricted for your role.');
+          break;
+        }
         setActionLead(activeLead);
         setIsProposalOpen(true);
         break;
       case 'loan-application':
+        if (!['ADMIN','FINANCE'].includes(crm.user.role)) {
+          setSaveError('Loan & financing access is restricted for your role.');
+          break;
+        }
         setIsLoanOpen(true);
         break;
       case 'add-followup':
@@ -242,6 +273,10 @@ export default function App() {
         currentRole={currentRole}
         onSelectRole={()=>setSaveError('Your access role is set by your staff account.')}
         onSelectSection={(sec) => {
+          if (!canOpenSection(sec)) {
+            setSaveError('This module is not available for your staff role.');
+            return;
+          }
           setCurrentSection(sec);
           if (sec === 'soft-quotations') {
             window.history.pushState({}, '', '/soft-quotations');
@@ -265,6 +300,10 @@ export default function App() {
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           onOpenQuickAction={handleOpenQuickAction}
           onSelectSection={(sec) => {
+            if (!canOpenSection(sec)) {
+              setSaveError('This module is not available for your staff role.');
+              return;
+            }
             setCurrentSection(sec);
             if (sec === 'soft-quotations') {
               window.history.pushState({}, '', '/soft-quotations');
@@ -290,7 +329,7 @@ export default function App() {
               leads={leads}
               tasks={tasks}
               activities={activities}
-              onSelectSection={setCurrentSection}
+              onSelectSection={safeSetSection}
               onOpenQuickAction={handleOpenQuickAction}
               onSelectLead={(lead) => {
                 setSelectedLeadId(lead.id);

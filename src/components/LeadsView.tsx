@@ -731,14 +731,25 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
 
               {/* Action Buttons right */}
               <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setIsQuotationModalOpen(true)}
-                  className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-lg text-xs font-black shadow-xs flex items-center gap-1.5 transition-all"
-                  title="Send Soft Quotation to this Lead"
-                >
-                  <span>📜</span>
-                  <span>Soft Quotation</span>
-                </button>
+                {isEmployeePortal ? (
+                  <button
+                    onClick={() => onOpenQuickAction?.('send-soft-quotation', currentLead)}
+                    className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-lg text-xs font-black shadow-xs flex items-center gap-1.5 transition-all"
+                    title="Request quotation from manager"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Request Quotation</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setIsQuotationModalOpen(true)}
+                    className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-lg text-xs font-black shadow-xs flex items-center gap-1.5 transition-all"
+                    title="Open Soft Quotation"
+                  >
+                    <span>📜</span>
+                    <span>Soft Quotation</span>
+                  </button>
+                )}
                 {!isEmployeePortal && (
                   <>
                     <button
@@ -1000,11 +1011,13 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
                 <button
-                  onClick={() => setIsQuotationModalOpen(true)}
+                  onClick={() => isEmployeePortal
+                    ? onOpenQuickAction?.('send-soft-quotation', currentLead)
+                    : setIsQuotationModalOpen(true)}
                   className="p-2.5 rounded-xl border-2 border-emerald-600 bg-gradient-to-r from-emerald-50 via-emerald-100/60 to-emerald-50 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2 font-black text-emerald-950 shadow-xs col-span-2 sm:col-span-3"
                 >
-                  <span className="text-base">📜</span>
-                  <span>Send Soft Quotation (कच्चा कोटेशन भेजें - WhatsApp / Email / PDF)</span>
+                  <FileText className="w-4 h-4" />
+                  <span>{isEmployeePortal ? 'Request Quotation' : 'Soft Quotation'}</span>
                 </button>
 
                 <button
@@ -1270,7 +1283,14 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                 <div className="flex flex-wrap gap-2 pt-1">
                   <button onClick={() => onOpenQuickAction?.('loan-application', currentLead)} className="px-3 py-2 bg-[#0b2818] text-white rounded-lg font-bold">Create Loan File</button>
                   <button onClick={() => onOpenQuickAction?.('create-proposal', currentLead)} className="px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-bold">Create DPR</button>
-                  <button onClick={() => setIsQuotationModalOpen(true)} className="px-3 py-2 bg-amber-400 text-slate-950 rounded-lg font-bold">Soft Quotation</button>
+                  <button
+                    onClick={() => isEmployeePortal
+                      ? onOpenQuickAction?.('send-soft-quotation', currentLead)
+                      : setIsQuotationModalOpen(true)}
+                    className="px-3 py-2 bg-amber-400 text-slate-950 rounded-lg font-bold"
+                  >
+                    {isEmployeePortal ? 'Request Quotation' : 'Soft Quotation'}
+                  </button>
                 </div>
               </div>
             )}
@@ -1460,30 +1480,32 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
         </div>
       </div>
 
-      {/* Soft Quotation Modal */}
-      <SoftQuotationModal
-        isOpen={isQuotationModalOpen}
-        onClose={() => setIsQuotationModalOpen(false)}
-        initialData={{
-          name: currentLead.name,
-          phone: currentLead.phone,
-          email: currentLead.email,
-          location: currentLead.location,
-          state: currentLead.state,
-          district: currentLead.district,
-          village: currentLead.village,
-          birdCapacity: currentLead.birdCapacity || 20000,
-          poultryType: currentLead.projectType || 'Broiler',
-          shedType: currentLead.shedType || 'EC (Environment Controlled)',
-          leadId: currentLead.id,
-          projectCost: currentLead.estimatedCost || currentLead.budgetEstimate
-        }}
-        onQuotationSent={(leadId) => {
-          if (leadId) {
-            onUpdateLeadStatus(leadId, 'Proposal Sent');
-          }
-        }}
-      />
+      {/* Soft Quotation Modal is never available to employees; employees can only request manager review. */}
+      {!isEmployeePortal && (
+        <SoftQuotationModal
+          isOpen={isQuotationModalOpen}
+          onClose={() => setIsQuotationModalOpen(false)}
+          initialData={{
+            name: currentLead.name,
+            phone: currentLead.phone,
+            email: currentLead.email,
+            location: currentLead.location,
+            state: currentLead.state,
+            district: currentLead.district,
+            village: currentLead.village,
+            birdCapacity: currentLead.birdCapacity || 20000,
+            poultryType: currentLead.projectType || 'Broiler',
+            shedType: currentLead.shedType || 'EC (Environment Controlled)',
+            leadId: currentLead.id,
+            projectCost: currentLead.estimatedCost || currentLead.budgetEstimate
+          }}
+          onQuotationSent={(leadId) => {
+            if (leadId) {
+              onUpdateLeadStatus(leadId, 'Proposal Sent');
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

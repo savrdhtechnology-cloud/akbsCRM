@@ -127,7 +127,7 @@ body { overflow-x: hidden; }
 .crm-header-search input { min-height: 38px; }
 .crm-modal-panel { max-height: calc(100dvh - 2rem); overflow-y: auto; overscroll-behavior: contain; }
 .crm-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.crm-sidebar-panel { width: 248px; }
+.crm-sidebar-panel { width: 100%; }
 
 @media (max-width: 1023px) {
   .crm-sidebar { width: min(88vw, 288px) !important; }

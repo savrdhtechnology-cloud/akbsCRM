@@ -322,8 +322,26 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
   const [paymentSubmitted, setPaymentSubmitted] = useState(false);
   const [receiptEmailStatus, setReceiptEmailStatus] = useState<'idle' | 'sent' | 'failed'>('idle');
+  const [feeConfig, setFeeConfig] = useState({ baseFee: INITIAL_PROJECT_FEE, discountPercent: 0, offerLabel: '', offerActive: false, payableFee: INITIAL_PROJECT_FEE });
   const [receiptEmailMessage, setReceiptEmailMessage] = useState('');
 
+
+  useEffect(() => {
+    let active = true;
+    portal.getFeeConfig()
+      .then((cfg:any) => {
+        if (!active || !cfg) return;
+        setFeeConfig({
+          baseFee: Number(cfg.baseFee || INITIAL_PROJECT_FEE),
+          discountPercent: Number(cfg.discountPercent || 0),
+          offerLabel: String(cfg.offerLabel || ''),
+          offerActive: Boolean(cfg.offerActive),
+          payableFee: Number(cfg.payableFee || cfg.baseFee || INITIAL_PROJECT_FEE)
+        });
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
 
   // Restore latest saved draft for this verified customer account.
   useEffect(() => {
@@ -584,7 +602,7 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
       return;
     }
     if (!feeAccepted) {
-      setFeeReviewError('Please accept the ₹2,999 Initial Project Assessment & Registration Fee.');
+      setFeeReviewError('Please accept the {feeConfig.offerActive && feeConfig.discountPercent > 0 ? `₹${Number(feeConfig.payableFee).toLocaleString('en-IN')}` : '₹2,999'} Initial Project Assessment & Registration Fee.');
       return;
     }
     if (!paymentDeclarationAccepted) {
@@ -2848,12 +2866,12 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <div className="text-sm font-black text-emerald-950">
-                        {paymentSubmitted ? 'Payment details submitted' : 'Next: Initial Service Payment ₹2,999'}
+                        {paymentSubmitted ? 'Payment details submitted' : 'Next: Initial Service Payment {feeConfig.offerActive && feeConfig.discountPercent > 0 ? `₹${Number(feeConfig.payableFee).toLocaleString('en-IN')}` : '₹2,999'}'}
                       </div>
                       <div className="mt-1 text-[11px] leading-5 text-emerald-800">
                         {paymentSubmitted
                           ? 'Your UTR/payment proof has been received and is pending verification by AKBS.'
-                          : 'No advance payment was required before application submission. After reviewing your application confirmation / initial response, you can submit the ₹2,999 payment details here.'}
+                          : 'No advance payment was required before application submission. After reviewing your application confirmation / initial response, you can submit the {feeConfig.offerActive && feeConfig.discountPercent > 0 ? `₹${Number(feeConfig.payableFee).toLocaleString('en-IN')}` : '₹2,999'} payment details here.'}
                       </div>
                     </div>
                     {!paymentSubmitted && (
@@ -2947,7 +2965,7 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
             <div className="px-5 sm:px-6 py-4 bg-[#0b2818] text-white flex items-center justify-between gap-3">
               <div>
                 <div className="text-[10px] uppercase tracking-[0.2em] text-emerald-300 font-black">Application Submitted</div>
-                <h2 className="mt-1 text-lg sm:text-xl font-black">Complete ₹2,999 Initial Service Payment</h2>
+                <h2 className="mt-1 text-lg sm:text-xl font-black">Complete {feeConfig.offerActive && feeConfig.discountPercent > 0 ? `₹${Number(feeConfig.payableFee).toLocaleString('en-IN')}` : '₹2,999'} Initial Service Payment</h2>
                 <p className="mt-1 text-xs text-emerald-100">Application No: <span className="font-mono font-black">{submittedAppId}</span></p>
               </div>
               <button type="button" onClick={() => setIsFeeReviewOpen(false)} className="w-9 h-9 rounded-lg hover:bg-white/10 flex items-center justify-center" aria-label="Close payment">
@@ -2958,11 +2976,18 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
             <div className="p-4 sm:p-6 space-y-4">
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
                 <div className="text-xs font-black text-emerald-900">{INITIAL_PROJECT_FEE_LABEL}</div>
-                <div className="mt-1 text-4xl font-black text-[#0b2818]">₹{INITIAL_PROJECT_FEE.toLocaleString('en-IN')}</div>
+                <div className="mt-1 text-4xl font-black text-[#0b2818]">₹{Number(feeConfig.payableFee).toLocaleString('en-IN')}</div>
                 <p className="mt-2 text-xs sm:text-sm text-slate-600">
                   Your application has already been submitted. Pay only after reviewing your application confirmation / initial response from AKBS.
                   You may enter the UTR/reference number, upload the payment screenshot, or provide both.
                 </p>
+                {feeConfig.offerActive && feeConfig.discountPercent > 0 && (
+                  <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-300 bg-white px-3 py-1.5 text-xs font-black text-emerald-800">
+                    <span>{feeConfig.offerLabel || 'Special Offer'}</span>
+                    <span>{feeConfig.discountPercent}% OFF</span>
+                    <span className="line-through text-slate-400">₹{Number(feeConfig.baseFee).toLocaleString('en-IN')}</span>
+                  </div>
+                )}
               </div>
 
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
@@ -2987,7 +3012,7 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
               <div className="rounded-2xl border border-slate-200 p-4 space-y-4">
                 <label className="flex items-start gap-2.5 text-xs text-slate-700 cursor-pointer">
                   <input type="checkbox" checked={feeAccepted} onChange={e => setFeeAccepted(e.target.checked)} className="mt-0.5 w-4 h-4 accent-emerald-800" />
-                  <span className="font-semibold">I understand the ₹2,999 initial service fee and the stage-wise additional professional charges.</span>
+                  <span className="font-semibold">I understand the {feeConfig.offerActive && feeConfig.discountPercent > 0 ? `₹${Number(feeConfig.payableFee).toLocaleString('en-IN')}` : '₹2,999'} initial service fee and the stage-wise additional professional charges.</span>
                 </label>
 
                 <label className="flex items-start gap-2.5 text-xs text-slate-700 cursor-pointer">

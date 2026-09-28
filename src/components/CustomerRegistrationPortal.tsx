@@ -1917,9 +1917,9 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
 
             {/* If Main View: Registration Form */}
             {activeSideMenu === 'registration' && !isSubmitted && registrationMode === 'form' && (
-              <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-6 items-start">
                 {/* Form Top Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+                <div className="lg:col-span-2 flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
                   <div>
                     <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                       Customer Registration
@@ -1935,7 +1935,7 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                 </div>
 
                 {duplicateApplication && (
-                  <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="lg:col-span-2 rounded-xl border border-amber-300 bg-amber-50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <div className="text-xs font-black text-amber-900">Duplicate application not created</div>
                       <div className="mt-1 text-[11px] text-amber-800 leading-5">
@@ -1956,10 +1956,12 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                   </div>
                 )}
 
+                <div className="order-2 lg:order-none lg:col-start-2 lg:row-start-2 lg:sticky lg:top-5">
                 <ApplicationProgressTimeline
                   title="Your Application Progress"
-                  subtitle="Complete all required details step by step. Progress is calculated automatically from the information you enter."
+                  subtitle="Complete all required details step by step."
                   stages={applicationProgressStages}
+                  orientation="vertical"
                   activeStageId={activeProgressStageId}
                   onStageClick={(stage) => {
                     const targetIndex = applicationProgressStages.findIndex(item => item.id === stage.id);
@@ -1993,7 +1995,9 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                     </div>
                   }
                 />
+                </div>
 
+                <div className="order-1 lg:order-none lg:col-start-1 lg:row-start-2 min-w-0 space-y-6">
                 {/* FORM SECTIONS ACCORDING TO STEP */}
 
                 {/* STEP 1: Basic Details */}
@@ -2768,6 +2772,7 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   ) : null}
+                </div>
                 </div>
               </div>
             )}

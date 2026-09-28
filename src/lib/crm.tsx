@@ -116,15 +116,16 @@ async function quoteEmailRpc(id: string, token: string) {
 }
 
 async function feeReminderEmailRpc(leadId: string, token: string) {
-  const response = await fetch(`${databaseUrl}/functions/v1/akbs-fee-reminder-email`, {
+  const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_send_fee_reminder_email`, {
     method: "POST",
     headers: { apikey: publishableKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ token, leadId }),
+    body: JSON.stringify({ p_lead_id: leadId, p_token: token }),
     signal: AbortSignal.timeout(30000),
     cache: "no-store",
   });
   const out = await response.json();
-  if (!response.ok) throw new Error(out.error || out.message || "Unable to send fee reminder email.");
+  if (!response.ok) throw new Error(out.message || "Unable to send fee reminder email.");
+  if (out?.error) throw Object.assign(new Error(out.error), { status: out.status });
   return out;
 }
 

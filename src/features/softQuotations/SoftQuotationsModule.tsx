@@ -618,7 +618,7 @@ AKBS Poultry Farming Private Limited`;
 
       {notice && <Notice>{notice}</Notice>}
 
-      {currentRole === 'employee' ? (
+      {currentRole === 'employee' && (
         <div className="grid sm:grid-cols-2 gap-3">
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <div className="text-[10px] uppercase tracking-wide font-bold text-amber-700">Quotation Requests</div>

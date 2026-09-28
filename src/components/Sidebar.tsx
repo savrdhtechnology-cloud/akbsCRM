@@ -84,7 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'soft-quotations', label: 'Soft Quotations', icon: <FileSignature className="w-[18px] h-[18px]" /> },
         { id: 'proposals', label: 'DPR & Proposals', icon: <FileText className="w-[18px] h-[18px]" /> },
         { id: 'loans', label: 'Loan & Financing', icon: <BadgeIndianRupee className="w-[18px] h-[18px]" /> },
-        { id: 'fee-management', label: 'Fee Management', icon: <BadgeIndianRupee className="w-[18px] h-[18px]" /> }
+        { id: 'fee-management', label: 'Revenue & Fee Management', icon: <BadgeIndianRupee className="w-[18px] h-[18px]" /> }
       ]
     },
     {

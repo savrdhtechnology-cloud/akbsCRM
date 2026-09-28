@@ -602,7 +602,7 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
       return;
     }
     if (!feeAccepted) {
-      setFeeReviewError('Please accept the {feeConfig.offerActive && feeConfig.discountPercent > 0 ? `₹${Number(feeConfig.payableFee).toLocaleString('en-IN')}` : '₹2,999'} Initial Project Assessment & Registration Fee.');
+      setFeeReviewError(`Please accept the ₹${Number(feeConfig.payableFee).toLocaleString('en-IN')} Initial Project Assessment & Registration Fee.`);
       return;
     }
     if (!paymentDeclarationAccepted) {
@@ -2866,12 +2866,12 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <div className="text-sm font-black text-emerald-950">
-                        {paymentSubmitted ? 'Payment details submitted' : 'Next: Initial Service Payment {feeConfig.offerActive && feeConfig.discountPercent > 0 ? `₹${Number(feeConfig.payableFee).toLocaleString('en-IN')}` : '₹2,999'}'}
+                        {paymentSubmitted ? 'Payment details submitted' : `Next: Initial Service Payment ₹${Number(feeConfig.payableFee).toLocaleString('en-IN')}`}
                       </div>
                       <div className="mt-1 text-[11px] leading-5 text-emerald-800">
                         {paymentSubmitted
                           ? 'Your UTR/payment proof has been received and is pending verification by AKBS.'
-                          : 'No advance payment was required before application submission. After reviewing your application confirmation / initial response, you can submit the {feeConfig.offerActive && feeConfig.discountPercent > 0 ? `₹${Number(feeConfig.payableFee).toLocaleString('en-IN')}` : '₹2,999'} payment details here.'}
+                          : `No advance payment was required before application submission. After reviewing your application confirmation / initial response, you can submit the ₹${Number(feeConfig.payableFee).toLocaleString('en-IN')} payment details here.`}
                       </div>
                     </div>
                     {!paymentSubmitted && (

@@ -660,6 +660,110 @@ const QuotationBuilder: React.FC<BuilderProps> = ({
     setQuotation(recalculateTotals({ ...quotation, costBreakup: quotation.costBreakup.map(i => i.id === id ? { ...i, ...patch } : i) }));
   };
 
+  if (currentRole === 'employee') {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-5">
+          <div>
+            <button onClick={onCancel} className="text-xs text-emerald-700 font-bold flex items-center gap-1">
+              <ChevronLeft className="w-4 h-4"/>Soft Quotations
+            </button>
+            <h1 className="mt-2 text-2xl font-black tracking-tight">Request Standard Soft Quotation</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Select one of your assigned leads. The approved AKBS 20,000 Birds EC template will be sent to your manager for review.
+            </p>
+          </div>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-900">
+            Employee cannot send quotation directly to customer.
+          </div>
+        </div>
+
+        {notice && <Notice>{notice}</Notice>}
+
+        <div className="grid lg:grid-cols-[1.1fr_.9fr] gap-5">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-5">
+            <SectionHead
+              title="1. Select Assigned Lead"
+              subtitle="Only leads visible in your employee portal can be selected."
+            />
+            <label className="field">
+              <span>Assigned Lead / Application *</span>
+              <select
+                value={quotation.customer.leadId || ''}
+                onChange={e => onSelectLead(e.target.value)}
+              >
+                <option value="">Select assigned lead...</option>
+                {leads.map(l => <option key={l.id} value={l.id}>{l.name} — {l.phone}</option>)}
+              </select>
+            </label>
+
+            {quotation.customer.leadId ? (
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="text-[10px] uppercase tracking-wide text-slate-400 font-bold">Customer</div>
+                  <div className="mt-1 font-black text-slate-900">{quotation.customer.customerName || '—'}</div>
+                  <div className="text-xs text-slate-500 mt-1">{quotation.customer.mobile || '—'}</div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="text-[10px] uppercase tracking-wide text-slate-400 font-bold">Location</div>
+                  <div className="mt-1 font-black text-slate-900">{quotation.projectLocation || quotation.customer.city || 'Not provided'}</div>
+                  <div className="text-xs text-slate-500 mt-1">{quotation.customer.state || ''}</div>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
+              <div className="flex items-center gap-2 font-black text-emerald-950">
+                <BadgeCheck className="w-5 h-5"/>Standard AKBS Template Locked
+              </div>
+              <div className="mt-3 grid sm:grid-cols-2 gap-3 text-xs">
+                <div><span className="text-emerald-700">Project:</span><div className="font-bold text-slate-900">{AKBS_EC_20000_TEMPLATE.name}</div></div>
+                <div><span className="text-emerald-700">Capacity:</span><div className="font-bold text-slate-900">20,000 Birds</div></div>
+                <div><span className="text-emerald-700">Shed:</span><div className="font-bold text-slate-900">{AKBS_EC_20000_TEMPLATE.shedSize}</div></div>
+                <div><span className="text-emerald-700">Technology:</span><div className="font-bold text-slate-900">{AKBS_EC_20000_TEMPLATE.technology}</div></div>
+              </div>
+              <p className="mt-3 text-[11px] text-emerald-800/80">
+                Technical scope, costing structure, exclusions and commercial terms come from the approved company template and cannot be changed by an employee.
+              </p>
+            </div>
+
+            <button
+              onClick={onSubmit}
+              disabled={!quotation.customer.leadId}
+              className="w-full h-12 rounded-xl bg-[#073323] hover:bg-[#0a4933] disabled:opacity-40 text-white font-black flex items-center justify-center gap-2"
+            >
+              <Send className="w-4 h-4"/>Request Manager Review
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+              <div className="text-[10px] uppercase tracking-[.14em] font-bold text-emerald-700">Approval Workflow</div>
+              <div className="mt-4 space-y-3">
+                {[
+                  ['1','Employee Request','Standard quotation request created'],
+                  ['2','Manager Review','Manager checks customer, cost and terms with AI analyzer'],
+                  ['3','Manager Approval','Approve or return for revision'],
+                  ['4','Customer Dispatch','Only approved quotation can be sent by Manager/Admin']
+                ].map(([n,title,desc]) => (
+                  <div key={n} className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 grid place-items-center font-black text-xs shrink-0">{n}</div>
+                    <div><div className="font-bold text-slate-900 text-sm">{title}</div><div className="text-xs text-slate-500 mt-0.5">{desc}</div></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
+              <b>Important:</b> WhatsApp, Email, Share Link and customer acceptance controls remain locked until Manager/Admin approval.
+            </div>
+          </div>
+        </div>
+        <ModuleStyles/>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col xl:flex-row gap-5">

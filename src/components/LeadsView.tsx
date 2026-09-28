@@ -76,6 +76,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   const [feeConfig,setFeeConfig]=useState<any>({payableFee:2999});
   const isEmployeePortal = crm.user.role === 'EMPLOYEE';
   const isManagerPortal = crm.user.role === 'MANAGER';
+  const isAdminPortal = crm.user.role === 'ADMIN';
   const [activeTab, setActiveTab] = useState<'all' | 'my' | 'unassigned'>(crm.user.role === 'EMPLOYEE' ? 'my' : 'all');
   useEffect(() => {
     let active=true;
@@ -833,6 +834,16 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                       <UserPlus className="w-3.5 h-3.5 text-slate-500" />
                       <span>Assign</span>
                     </button>
+                    {isAdminPortal && (
+                      <button
+                        onClick={() => currentLead?.id && onDeleteLead(currentLead.id)}
+                        className="px-2.5 py-1.5 border border-rose-200 bg-rose-50 rounded-lg text-xs font-semibold text-rose-700 hover:bg-rose-100 flex items-center gap-1"
+                        title="Permanently delete this lead from all CRM staff portals"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    )}
                   </>
                 )}
                 <button onClick={() => setActiveDetailTab('activities')} className="p-1.5 border border-slate-200 rounded-lg text-slate-400 hover:text-slate-700" title="View activities">

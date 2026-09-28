@@ -73,6 +73,17 @@ export const FeeManagementView: React.FC = () => {
   };
   useEffect(()=>{void load();},[]);
 
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent).detail as Tab | undefined;
+      if (detail && ['dashboard','settings','collections','verification','accounts','receipts','refunds','reports','audit'].includes(detail)) {
+        setTab(detail);
+      }
+    };
+    window.addEventListener('akbs-fee-tab', handler as EventListener);
+    return () => window.removeEventListener('akbs-fee-tab', handler as EventListener);
+  }, []);
+
   const payable=useMemo(()=>{
     const base=Number(initialFee||0),off=offerActive?Number(discount||0):0;
     return Math.max(0,Math.round(base*(1-off/100)));

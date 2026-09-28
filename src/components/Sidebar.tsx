@@ -245,58 +245,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         }
 
                         return (
-                            <div key={item.id} className="rounded-xl overflow-hidden">
-                              <button
-                                aria-current={active ? 'page' : undefined}
-                                onClick={() => {
-                                  if (!feeOpen) setFeeOpen(true);
-                                  navigate('fee-management');
-                                  window.dispatchEvent(new CustomEvent('akbs-fee-tab', { detail: 'dashboard' }));
-                                }}
-                                className={`group relative w-full min-h-[42px] px-3 rounded-xl flex items-center justify-between transition-all duration-200 text-left overflow-hidden
-                                  ${active
-                                    ? 'bg-[linear-gradient(135deg,#0caf72_0%,#08724c_100%)] text-white shadow-[0_9px_20px_rgba(3,104,69,0.25)] ring-1 ring-emerald-300/15'
-                                    : 'text-emerald-50/82 hover:bg-white/[0.07] hover:text-white'}`}
-                              >
-                                {active && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-emerald-200" />}
-                                <div className="flex min-w-0 items-center gap-2.5">
-                                  <span className={`${active ? 'text-white' : 'text-emerald-200/88'} shrink-0`}>{item.icon}</span>
-                                  <span className="truncate text-[13px] font-semibold tracking-normal">{item.label}</span>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); setFeeOpen(v => !v); }}
-                                  className="shrink-0 p-1 rounded-md hover:bg-white/10"
-                                  aria-label={feeOpen ? 'Collapse Revenue & Fee Management' : 'Expand Revenue & Fee Management'}
-                                >
-                                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${feeOpen ? 'rotate-180' : ''}`} />
-                                </button>
-                              </button>
-
-                              {feeOpen && (
-                                <div className="mt-1.5 ml-2.5 pl-2.5 border-l border-emerald-400/35 space-y-1">
-                                  {feeChildren.map(([tabId,label,Icon],idx) => (
-                                    <button
-                                      key={tabId}
-                                      type="button"
-                                      onClick={() => {
-                                        navigate('fee-management');
-                                        window.dispatchEvent(new CustomEvent('akbs-fee-tab', { detail: tabId }));
-                                      }}
-                                      className={`w-full min-h-[36px] px-2.5 rounded-lg flex items-center gap-2 text-left text-[11.5px] transition
-                                        ${active && idx===0 ? 'bg-emerald-700/45 text-white' : 'text-emerald-50/80 hover:bg-white/[0.07] hover:text-white'}`}
-                                    >
-                                      <Icon className="w-3.5 h-3.5 shrink-0 text-emerald-200/90" />
-                                      <span className="truncate">{label}</span>
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        }
-
-                        return (
                           <button
                             key={item.id}
                             aria-current={active ? 'page' : undefined}

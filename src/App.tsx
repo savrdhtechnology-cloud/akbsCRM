@@ -223,6 +223,21 @@ export default function App() {
   const handleToggleTask=(id:string)=>{const w=crm.workflows.find(w=>w.id===id);if(w)void updateWorkflow(id,w.status==='COMPLETED'?'OPEN':'COMPLETED');};
   const handleAddTask=(task:Partial<Task>)=>{const l=actionLead||selectedLeadForDrawer||leads.find(l=>l.id===selectedLeadId);if(!l){setSaveError('Select a lead before adding a task.');return;}const due=new Date();due.setDate(due.getDate()+1);void run('workflow_create',{lead_id:l.id,kind:'task',title:task.title||'Follow up',status:'OPEN',notes:task.subtitle||'',due_at:due.toISOString()});};
   const handleUpdateLeadStatus=(id:string,status:LeadStatus)=>{const l=crm.leads.find(l=>l.id===id);const stage=stageValue(status);if(!l)return;if(!stage){setSaveError('Use a follow-up task for this activity; choose a supported lead stage.');return;}let reason='';if(stage==='LOST'){reason=window.prompt('Reason for closing this lead')||'';if(!reason)return;}void run('lead_update',{lead_id:id,version:l.version,stage,reason});};
+  const handleConvertLeadToCustomer=async(id:string)=>{
+    const l=crm.leads.find(l=>l.id===id);
+    if(!l)return;
+    if(!['ADMIN','MANAGER'].includes(crm.user.role)){
+      setSaveError('Only Admin or Manager can convert a lead to customer.');
+      return;
+    }
+    const out=await run('convert_customer',{lead_id:id});
+    if(out?.ok){
+      await crm.refresh().catch(()=>{});
+      setCurrentSection('customers');
+      setSelectedLeadForDrawer(null);
+      setSaveError('');
+    }
+  };
   const handleDeleteLead=()=>setSaveError('Leads are retained for tracking. Mark a lead Lost with a reason to close it.');
   const handleEditLead=(id:string,patch:Partial<Lead>)=>{const l=crm.leads.find(l=>l.id===id);if(l)void run('lead_update',{lead_id:id,version:l.version,...leadPayload(patch),...(patch.status&&stageValue(patch.status)?{stage:stageValue(patch.status)}:{})});};
   const handleAddFollowUp=(f:FollowUp)=>{const due=new Date(`${f.scheduledDate} ${f.scheduledTime}`);if(!Number.isFinite(due.getTime())){setSaveError('Please choose a valid follow-up date and time.');return;}void run('workflow_create',{lead_id:f.leadId,kind:'followup',title:f.type,status:'SCHEDULED',notes:f.notes,due_at:due.toISOString()});};
@@ -352,6 +367,7 @@ export default function App() {
               }}
               onOpenAddLead={() => setIsAddLeadOpen(true)}
               onUpdateLeadStatus={handleUpdateLeadStatus}
+              onConvertLeadToCustomer={handleConvertLeadToCustomer}
               onDeleteLead={handleDeleteLead}
               onOpenQuickAction={handleOpenQuickAction}
               onEditLead={handleEditLead}

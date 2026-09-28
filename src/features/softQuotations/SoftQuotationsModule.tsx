@@ -185,7 +185,11 @@ export const SoftQuotationsModule: React.FC<SoftQuotationModuleProps> = ({
     [quotes]
   );
   const employeePendingRequestCount = useMemo(
-    () => quotes.filter(q => ['DRAFT','REVIEW','REJECTED'].includes(q.status)).length,
+    () => quotes.filter(q => q.status === 'REVIEW').length,
+    [quotes]
+  );
+  const employeeRevisionCount = useMemo(
+    () => quotes.filter(q => q.status === 'REJECTED').length,
     [quotes]
   );
 
@@ -615,11 +619,17 @@ AKBS Poultry Farming Private Limited`;
         <div className="grid sm:grid-cols-2 gap-3">
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <div className="text-[10px] uppercase tracking-wide font-bold text-amber-700">Quotation Requests</div>
-            <div className="mt-1 text-lg font-black text-amber-950">
-              {employeePendingRequestCount > 0 ? 'Manager Review Pending' : 'No Pending Request'}
+            <div className="mt-1 flex items-end gap-2">
+              <div className="text-3xl font-black text-amber-950">{employeePendingRequestCount}</div>
+              <div className="pb-1 text-sm font-black text-amber-900">
+                {employeePendingRequestCount === 1 ? 'Request Pending' : 'Requests Pending'}
+              </div>
             </div>
             <div className="mt-1 text-[11px] text-amber-800/80">
-              Request details stay hidden until approval.
+              {employeePendingRequestCount > 0
+                ? 'Manager review is pending. Quotation details stay hidden until approval.'
+                : 'No quotation request is waiting for manager review.'}
+              {employeeRevisionCount > 0 ? ` ${employeeRevisionCount} request(s) returned for revision.` : ''}
             </div>
           </div>
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">

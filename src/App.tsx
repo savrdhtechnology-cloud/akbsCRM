@@ -17,6 +17,7 @@ import { ReportsView } from './components/ReportsView';
 import { CommunicationView } from './components/CommunicationView';
 import { SettingsView } from './components/SettingsView';
 import { TeamManagementView } from './components/TeamManagementView';
+import { FeeManagementView } from './components/FeeManagementView';
 import { CustomerRegistrationPortal } from './components/CustomerRegistrationPortal';
 import { PartnerRegistrationPortal } from './components/PartnerRegistrationPortal';
 import { RegistrationHub } from './components/RegistrationHub';
@@ -72,7 +73,7 @@ export default function App() {
   const crm=useCrm();
 
   const roleSections: Record<string, NavigationSection[]> = {
-    ADMIN: ['dashboard','registrations','leads','followups','customers','partners','team-management','soft-quotations','proposals','loans','manager-portal','tasks','reports','communication','admin-control','settings'],
+    ADMIN: ['dashboard','registrations','leads','followups','customers','partners','team-management','soft-quotations','proposals','loans','fee-management','manager-portal','tasks','reports','communication','admin-control','settings'],
     MANAGER: ['dashboard','leads','followups','customers','soft-quotations','proposals','manager-portal','tasks','reports','communication'],
     EMPLOYEE: ['dashboard','leads','followups','customers','soft-quotations','employee-portal','tasks','communication'],
     FINANCE: ['dashboard','loans','reports','communication']
@@ -432,6 +433,10 @@ export default function App() {
               onOpenNewLoan={() => setIsLoanOpen(true)}
               onUpdateLoanStatus={handleUpdateLoanStatus}
             />
+          )}
+
+          {currentSection === 'fee-management' && (
+            <FeeManagementView />
           )}
 
           {currentSection === 'documents' && (

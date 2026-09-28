@@ -531,6 +531,7 @@ export default function App() {
         onClose={() => setSelectedLeadForDrawer(null)}
         onUpdateStatus={handleUpdateLeadStatus}
         onOpenCreateProposal={() => setCurrentSection('proposals')}
+        userRole={crm.user.role}
         onOpenSoftQuotation={() => {
           if (!selectedLeadForDrawer) return;
           setCurrentSection('soft-quotations');

@@ -347,6 +347,26 @@ AKBS Poultry Farming Private Limited`;
     }
   };
 
+  const shareEmployeeApprovedEmail = (quote: SoftQuotation) => {
+    if (currentRole !== 'employee' || !['APPROVED','SENT','VIEWED'].includes(quote.status)) return;
+    const subject = `AKBS Approved Soft Quotation - ${quote.quotationNo}`;
+    const body = `Dear ${quote.customer.customerName},
+
+Please find the manager-approved AKBS Soft Quotation / Preliminary Project Estimate.
+
+Project: ${quote.projectName}
+Capacity: ${quote.projectCapacity.toLocaleString('en-IN')} ${quote.projectUnit}
+Estimated Project Cost: ${formatMoney(quote.grandTotal)}
+Quotation Ref: ${quote.quotationNo}
+
+Review link:
+${shareLink(quote)}
+
+Regards,
+AKBS Poultry Farming Private Limited`;
+    window.location.href = `mailto:${quote.customer.email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
+
   const sendWhatsApp = async (quote: SoftQuotation) => {
     if (currentRole === 'employee') return flash('Employee can only request a quotation. Manager approval is required before customer dispatch.');
     if (!['APPROVED','SENT','VIEWED'].includes(quote.status)) return flash('Manager approval is required before sending.');
@@ -747,12 +767,12 @@ AKBS Poultry Farming Private Limited`;
         <div className="overflow-x-auto">
           <table className="w-full min-w-[780px] table-fixed text-sm">
             <colgroup>
-              <col className="w-[18%]"/>
-              <col className="w-[17%]"/>
-              <col className="w-[29%]"/>
-              <col className="w-[15%]"/>
-              <col className="w-[11%]"/>
+              <col className="w-[16%]"/>
+              <col className="w-[16%]"/>
+              <col className="w-[25%]"/>
+              <col className="w-[14%]"/>
               <col className="w-[10%]"/>
+              <col className="w-[19%]"/>
             </colgroup>
             <thead className="bg-slate-50 text-slate-500 text-[11px] sm:text-xs">
               <tr>
@@ -790,35 +810,70 @@ AKBS Poultry Farming Private Limited`;
                     {currentRole === 'employee' && q.status === 'REJECTED' && <div className="text-[9px] text-rose-700 font-bold mt-1">Revision requested</div>}
                   </td>
                   <td className="px-2 py-3 relative">
-                    <div className="flex items-center gap-0.5 whitespace-nowrap">
-                      <button title={roleCanApprove(currentRole) && q.status === 'REVIEW' ? 'Review Template' : 'View'} onClick={() => navigate(`/soft-quotations/${q.id}`)} className={`${roleCanApprove(currentRole) && q.status === 'REVIEW' ? 'px-2.5 h-8 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-black inline-flex items-center gap-1' : 'icon-btn'}`}>
-                        <Eye className="w-4 h-4"/>{roleCanApprove(currentRole) && q.status === 'REVIEW' ? <span>Review Template</span> : null}
-                      </button>
-                      {(currentRole !== 'employee' || ['DRAFT','REJECTED'].includes(q.status)) && (
-                        <button title={currentRole === 'employee' ? 'Revise request' : 'Edit quotation'} onClick={() => navigate(`/soft-quotations/${q.id}/edit`)} className="icon-btn"><Edit3 className="w-4 h-4"/></button>
-                      )}
-                      <button onClick={() => setActionMenu(actionMenu === q.id ? null : q.id)} className="icon-btn" title="More actions"><MoreHorizontal className="w-4 h-4"/></button>
-                    </div>
-                    {actionMenu === q.id && (
-                      <div className="absolute right-2 top-11 z-30 w-56 bg-white border rounded-xl shadow-xl p-1 text-xs">
-                        {currentRole !== 'employee' && <Action label="Duplicate quotation" icon={<Copy/>} onClick={() => { duplicateQuote(q); setActionMenu(null); }}/>}
-                        {currentRole === 'employee' ? (
-                          ['APPROVED','SENT','VIEWED'].includes(q.status) ? <>
-                            <Action label="Open Approved Quotation" icon={<Eye/>} onClick={() => { navigate(`/soft-quotations/${q.id}`); setActionMenu(null); }}/>
-                            <Action label="Download PDF" icon={<Download/>} onClick={() => { navigate(`/soft-quotations/${q.id}`); setActionMenu(null); }}/>
-                            <Action label="Share (WhatsApp / Email)" icon={<Share2/>} onClick={() => { void shareQuote(q); setActionMenu(null); }}/>
-                            <Action label="Copy Summary" icon={<Copy/>} onClick={() => { void copyEmployeeApprovedSummary(q); setActionMenu(null); }}/>
-                          </> : null
-                        ) : <>
-                          <Action label="Generate / Print PDF" icon={<Printer/>} onClick={() => { navigate(`/soft-quotations/${q.id}`); setActionMenu(null); }}/>
-                          <Action label="Share secure link" icon={<Share2/>} onClick={() => shareQuote(q)}/>
-                          <Action label="Send via WhatsApp" icon={<Send/>} onClick={() => sendWhatsApp(q)}/>
-                          <Action label="Send via Email" icon={<Mail/>} onClick={() => sendEmail(q)}/>
-                          {roleCanApprove(currentRole) && q.status !== 'ACCEPTED' && <Action label="Record Customer Acceptance" icon={<CheckCircle2/>} onClick={() => recordAcceptance(q)}/>}
-                          {q.status === 'ACCEPTED' && onConvertToProject && <Action label="Convert to Project / Deal" icon={<RefreshCcw/>} onClick={() => onConvertToProject(q)}/>}
-                          <Action label="Archive" icon={<Archive/>} onClick={() => archiveQuote(q.id)} danger/>
-                        </>}
+                    {currentRole === 'employee' && ['APPROVED','SENT','VIEWED'].includes(q.status) ? (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <button
+                          title="Open approved quotation"
+                          onClick={() => navigate(`/soft-quotations/${q.id}`)}
+                          className="w-9 h-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 inline-flex items-center justify-center shadow-sm"
+                        >
+                          <Eye className="w-4 h-4"/>
+                        </button>
+                        <button
+                          title="Download PDF"
+                          onClick={() => navigate(`/soft-quotations/${q.id}`)}
+                          className="w-9 h-9 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 inline-flex items-center justify-center shadow-sm"
+                        >
+                          <Download className="w-4 h-4"/>
+                        </button>
+                        <button
+                          title="Copy summary"
+                          onClick={() => void copyEmployeeApprovedSummary(q)}
+                          className="w-9 h-9 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 inline-flex items-center justify-center shadow-sm"
+                        >
+                          <Copy className="w-4 h-4"/>
+                        </button>
+                        <button
+                          title="Share quotation"
+                          onClick={() => void shareQuote(q)}
+                          className="w-9 h-9 rounded-xl border border-violet-200 bg-violet-50 hover:bg-violet-100 text-violet-700 inline-flex items-center justify-center shadow-sm"
+                        >
+                          <Share2 className="w-4 h-4"/>
+                        </button>
+                        <button
+                          title="Email approved quotation"
+                          onClick={() => shareEmployeeApprovedEmail(q)}
+                          className="w-9 h-9 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 inline-flex items-center justify-center shadow-sm"
+                        >
+                          <Mail className="w-4 h-4"/>
+                        </button>
                       </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-0.5 whitespace-nowrap">
+                          <button title={roleCanApprove(currentRole) && q.status === 'REVIEW' ? 'Review Template' : 'View'} onClick={() => navigate(`/soft-quotations/${q.id}`)} className={`${roleCanApprove(currentRole) && q.status === 'REVIEW' ? 'px-2.5 h-8 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-black inline-flex items-center gap-1' : 'icon-btn'}`}>
+                            <Eye className="w-4 h-4"/>{roleCanApprove(currentRole) && q.status === 'REVIEW' ? <span>Review Template</span> : null}
+                          </button>
+                          {(currentRole !== 'employee' || ['DRAFT','REJECTED'].includes(q.status)) && (
+                            <button title={currentRole === 'employee' ? 'Revise request' : 'Edit quotation'} onClick={() => navigate(`/soft-quotations/${q.id}/edit`)} className="icon-btn"><Edit3 className="w-4 h-4"/></button>
+                          )}
+                          <button onClick={() => setActionMenu(actionMenu === q.id ? null : q.id)} className="icon-btn" title="More actions"><MoreHorizontal className="w-4 h-4"/></button>
+                        </div>
+                        {actionMenu === q.id && (
+                          <div className="absolute right-2 top-11 z-30 w-56 bg-white border rounded-xl shadow-xl p-1 text-xs">
+                            {currentRole !== 'employee' && <Action label="Duplicate quotation" icon={<Copy/>} onClick={() => { duplicateQuote(q); setActionMenu(null); }}/>}
+                            {currentRole === 'employee' ? null : <>
+                              <Action label="Generate / Print PDF" icon={<Printer/>} onClick={() => { navigate(`/soft-quotations/${q.id}`); setActionMenu(null); }}/>
+                              <Action label="Share secure link" icon={<Share2/>} onClick={() => shareQuote(q)}/>
+                              <Action label="Send via WhatsApp" icon={<Send/>} onClick={() => sendWhatsApp(q)}/>
+                              <Action label="Send via Email" icon={<Mail/>} onClick={() => sendEmail(q)}/>
+                              {roleCanApprove(currentRole) && q.status !== 'ACCEPTED' && <Action label="Record Customer Acceptance" icon={<CheckCircle2/>} onClick={() => recordAcceptance(q)}/>}
+                              {q.status === 'ACCEPTED' && onConvertToProject && <Action label="Convert to Project / Deal" icon={<RefreshCcw/>} onClick={() => onConvertToProject(q)}/>}
+                              <Action label="Archive" icon={<Archive/>} onClick={() => archiveQuote(q.id)} danger/>
+                            </>}
+                          </div>
+                        )}
+                      </>
                     )}
                   </td>
                 </tr>

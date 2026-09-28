@@ -14,7 +14,9 @@ import {
   MapPin,
   Clock,
   Calendar,
-  CheckCircle2
+  CheckCircle2,
+  Copy,
+  MessageCircle
 } from 'lucide-react';
 import { Lead, Customer, Partner, ProposalDPR, LoanApplication, DocumentRecord, FollowUp, LeadStatus, LeadSource } from '../types';
 
@@ -339,8 +341,91 @@ export const LeadDetailDrawer: React.FC<{
   onUpdateStatus: (id: string, s: LeadStatus) => void;
   onOpenCreateProposal: () => void;
   onOpenSoftQuotation?: () => void;
-}> = ({ lead, onClose, onUpdateStatus, onOpenCreateProposal, onOpenSoftQuotation }) => {
+  userRole?: 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'FINANCE';
+}> = ({ lead, onClose, onUpdateStatus, onOpenCreateProposal, onOpenSoftQuotation, userRole }) => {
+  const [copiedTemplate,setCopiedTemplate]=useState<number | null>(null);
   if (!lead) return null;
+
+  const isEmployee = userRole === 'EMPLOYEE';
+  const applyNowUrl = 'https://crm.akbspoultry.com/customer-registration';
+  const firstName = (lead.name || 'Sir/Madam').trim().split(/\s+/)[0];
+  const templates = [
+    {
+      id: 1,
+      title: 'Initial Contact',
+      status: 'Contacted' as LeadStatus,
+      message: `Namaste ${firstName} ji,
+
+Main AKBS Poultry Farming team se baat kar raha/rahi hoon. Aapki poultry farm enquiry hume receive hui hai.
+
+Aap poultry farm setup, project planning, EC shed, equipment, DPR ya bank loan assistance ke baare me kis type ki help chahte hain?
+
+Aap apni requirement reply kar sakte hain, hum aapko next process guide karenge.
+
+AKBS Poultry Farming Private Limited`
+    },
+    {
+      id: 2,
+      title: 'Customer Interested – Apply Now',
+      status: 'Qualified' as LeadStatus,
+      message: `Namaste ${firstName} ji,
+
+Aapki poultry farm requirement ke liye next step me complete project details register karna zaroori hai, jisse AKBS team aapki capacity, location, land, finance aur support requirement properly analyze kar sake.
+
+*Apply / Register Here:*
+${applyNowUrl}
+
+Portal par email OTP verify karke form complete karein. Form submit hone ke baad aapki application CRM me process ke liye aa jayegi.
+
+AKBS Poultry Farming Private Limited`
+    },
+    {
+      id: 3,
+      title: 'Registration Follow-up',
+      status: 'Follow Up' as LeadStatus,
+      message: `Namaste ${firstName} ji,
+
+Aapki AKBS poultry project enquiry ke regarding follow-up hai. Agar aap project process continue karna chahte hain to customer registration form complete kar dein:
+
+*Complete Registration:*
+${applyNowUrl}
+
+Form me project capacity, farm location, land details, finance requirement aur required support fill karna hai. Iske baad hamari team aapko proper next step batayegi.
+
+AKBS Poultry Farming Private Limited`
+    },
+    {
+      id: 4,
+      title: 'Need Discussion / Call Back',
+      status: 'In Discussion' as LeadStatus,
+      message: `Namaste ${firstName} ji,
+
+Aapki poultry farm enquiry AKBS team ke paas active hai. Agar aapko project cost, farm size, EC shed, loan/DPR ya setup process samajhna hai to hum aapke saath discussion schedule kar sakte hain.
+
+Aap apna convenient call time WhatsApp par reply kar dein.
+
+Agar aap ready hain to application yahan complete kar sakte hain:
+${applyNowUrl}
+
+AKBS Poultry Farming Private Limited`
+    }
+  ];
+
+  const copyTemplate = async (template: typeof templates[number]) => {
+    try {
+      await navigator.clipboard.writeText(template.message);
+      onUpdateStatus(lead.id, template.status);
+      setCopiedTemplate(template.id);
+      window.setTimeout(()=>setCopiedTemplate(null),1800);
+    } catch {}
+  };
+
+  const openTemplateWhatsApp = (template: typeof templates[number]) => {
+    const phone=(lead.phone || '').replace(/\D/g,'');
+    const normalized=phone.length===10?`91${phone}`:phone;
+    onUpdateStatus(lead.id, template.status);
+    window.open(`https://wa.me/${normalized}?text=${encodeURIComponent(template.message)}`,'_blank','noopener,noreferrer');
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto bg-black/60 backdrop-blur-xs">
@@ -414,6 +499,51 @@ export const LeadDetailDrawer: React.FC<{
           </p>
         </div>
 
+        {isEmployee && (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-3">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div>
+                <div className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                  <MessageCircle className="w-4 h-4 text-emerald-700"/>
+                  WhatsApp Contact Templates
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5">
+                  Template use karte hi lead stage bhi automatically update hoga.
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {templates.map(template=>(
+                <div key={template.id} className="rounded-xl border border-slate-200 bg-white p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="text-[10px] text-emerald-700 font-black">TEMPLATE {template.id}</div>
+                      <div className="text-xs font-black text-slate-900 mt-0.5">{template.title}</div>
+                      <div className="text-[10px] text-slate-500 mt-1">Status → {template.status}</div>
+                    </div>
+                    {copiedTemplate===template.id && <span className="text-[9px] px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 font-black">Copied</span>}
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      onClick={()=>void copyTemplate(template)}
+                      className="flex-1 h-8 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-[10px] font-black text-slate-700 flex items-center justify-center gap-1.5"
+                    >
+                      <Copy className="w-3.5 h-3.5"/>Copy
+                    </button>
+                    <button
+                      onClick={()=>openTemplateWhatsApp(template)}
+                      className="flex-1 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black flex items-center justify-center gap-1.5"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5"/>WhatsApp
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="pt-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -427,7 +557,7 @@ export const LeadDetailDrawer: React.FC<{
           </div>
 
           <div className="flex items-center gap-2">
-            {onOpenSoftQuotation && (
+            {onOpenSoftQuotation && !isEmployee && (
               <button
                 onClick={() => {
                   onClose();

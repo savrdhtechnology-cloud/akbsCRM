@@ -313,21 +313,13 @@ AKBS Poultry Farming Private Limited`;
   const sendEmail = async (quote: SoftQuotation) => {
     if (currentRole === 'employee') return flash('Employee can only request a quotation. Manager approval is required before customer dispatch.');
     if (!['APPROVED','SENT','VIEWED'].includes(quote.status)) return flash('Manager approval is required before sending.');
-    const subject = `Soft Quotation – ${quote.projectName} | ${quote.quotationNo}`;
-    const body = `Dear ${quote.customer.customerName},
-
-Please find the Soft Quotation / Preliminary Project Estimate for your proposed ${quote.projectName}.
-
-Project Capacity: ${quote.projectCapacity.toLocaleString('en-IN')} ${quote.projectUnit}
-Estimated Project Cost: ${formatMoney(quote.grandTotal)}
-
-Review / acceptance link:
-${shareLink(quote)}
-
-Regards,
-AKBS Poultry Farming Private Limited`;
-    await sendQuote(quote);
-    window.location.href = `mailto:${quote.customer.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    try {
+      const result = await crm.sendQuotationEmail(quote.id);
+      await refreshQuotes();
+      flash(`Approved quotation emailed to ${result?.sent_to || quote.customer.email}.`);
+    } catch(e:any) {
+      flash(e.message || 'Could not send quotation email.');
+    }
   };
 
   const downloadPdf = async (quote: SoftQuotation) => {

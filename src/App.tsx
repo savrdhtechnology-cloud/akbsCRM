@@ -239,7 +239,23 @@ export default function App() {
       setSaveError('');
     }
   };
-  const handleDeleteLead=()=>setSaveError('Leads are retained for tracking. Mark a lead Lost with a reason to close it.');
+  const handleDeleteLead=async(id:string)=>{
+    if(crm.user.role!=='ADMIN'){
+      setSaveError('Only Admin can permanently delete a lead.');
+      return;
+    }
+    const lead=leads.find(l=>l.id===id);
+    if(!lead)return;
+    const ok=window.confirm(`Delete ${lead.name} permanently? This will remove the lead and its linked CRM records from Admin, Manager and Employee portals.`);
+    if(!ok)return;
+    const out=await run('lead_delete',{lead_id:id});
+    if(out?.ok){
+      setSelectedLeadId(undefined);
+      setSelectedLeadForDrawer(null);
+      await crm.refresh().catch(()=>{});
+      setSaveError('');
+    }
+  };
   const handleEditLead=(id:string,patch:Partial<Lead>)=>{const l=crm.leads.find(l=>l.id===id);if(l)void run('lead_update',{lead_id:id,version:l.version,...leadPayload(patch),...(patch.status&&stageValue(patch.status)?{stage:stageValue(patch.status)}:{})});};
   const handleAddFollowUp=(f:FollowUp)=>{const due=new Date(`${f.scheduledDate} ${f.scheduledTime}`);if(!Number.isFinite(due.getTime())){setSaveError('Please choose a valid follow-up date and time.');return;}void run('workflow_create',{lead_id:f.leadId,kind:'followup',title:f.type,status:'SCHEDULED',notes:f.notes,due_at:due.toISOString()});};
   const handleAddProposal=(p:ProposalDPR)=>{const l=leads.find(l=>l.name===p.leadName&&l.phone===p.leadPhone);if(!l){setSaveError('Select an existing lead.');return;}void run('workflow_create',{lead_id:l.id,kind:'proposal',title:p.projectTitle,status:'DRAFT',amount:p.totalCost});};

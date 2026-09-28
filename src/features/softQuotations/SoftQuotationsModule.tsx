@@ -418,7 +418,7 @@ AKBS Poultry Farming Private Limited`;
 
   const runAi = async (action: AiAction) => {
     if (!draft) return;
-    if (currentRole === 'employee') return flash('AI analysis is available to Manager/Admin during review.');
+    if (currentRole === 'employee') return flash('Quotation Analyzer is available to Manager/Admin during review.');
     setAiBusy(action);
     const result = await generateAiContent(action, recalculateTotals(draft));
     setAiBusy(null);
@@ -440,7 +440,7 @@ AKBS Poultry Farming Private Limited`;
     } else if (action === 'exclusions' && result.text) {
       setDraft(prev => prev ? { ...prev, exclusions: String(result.text).split('\n').filter(Boolean) } : prev);
     }
-    flash('AI assistant updated the draft using approved quotation data.');
+    flash('Quotation Analyzer updated the draft using approved template and CRM quotation data.');
   };
 
   if (route.mode === 'builder') {
@@ -469,6 +469,22 @@ AKBS Poultry Farming Private Limited`;
 
   if (route.mode === 'detail') {
     if (!activeQuote) return <div className="p-8">Quotation not found.</div>;
+
+    const templateTotal = AKBS_EC_20000_TEMPLATE.costBreakup.reduce((sum,item)=>sum+Number(item.estimatedAmount||0),0);
+    const amountVariance = activeQuote.grandTotal - templateTotal;
+    const amountVariancePct = templateTotal ? Math.round((amountVariance / templateTotal) * 1000) / 10 : 0;
+    const missingForReview = [
+      !activeQuote.projectLocation ? 'Project / site location' : '',
+      !activeQuote.customer?.mobile ? 'Customer mobile' : '',
+      !activeQuote.projectCapacity ? 'Bird capacity' : '',
+      ...(activeQuote.requiresConfirmation || [])
+    ].filter(Boolean);
+    const templateMatched =
+      activeQuote.projectType === AKBS_EC_20000_TEMPLATE.projectType &&
+      Number(activeQuote.projectCapacity) === Number(AKBS_EC_20000_TEMPLATE.capacity);
+    const reviewReady = missingForReview.length === 0;
+    const commercial = activeQuote.commercialTerms || ({} as any);
+
     return (
       <div className="p-4 sm:p-6 lg:p-8 space-y-5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 print:hidden">
@@ -501,7 +517,7 @@ AKBS Poultry Farming Private Limited`;
         {notice && <Notice>{notice}</Notice>}
         {activeQuote.status === 'REVIEW' && roleCanApprove(currentRole) && (
           <div className="print:hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            <b>Manager Review Required:</b> Check the quotation content, use the AI Content Assistant from Edit/Review if needed, then Approve or Reject. Customer sending stays locked until approval.
+            <b>Manager Review Required:</b> Check the quotation content, use the Quotation Analyzer from Edit/Review if needed, then Approve or Reject. Customer sending stays locked until approval.
           </div>
         )}
       {loadingQuotes && <div className="rounded-xl border bg-white px-4 py-3 text-sm text-slate-500">Loading shared quotation workflow…</div>}
@@ -510,6 +526,101 @@ AKBS Poultry Farming Private Limited`;
             <b>Version history:</b> {activeQuote.versions.map(v => `Version ${v.version} (${v.status})`).join(' · ')}
           </div>
         )}
+
+        {roleCanApprove(currentRole) && (
+          <div className="print:hidden grid xl:grid-cols-[1.15fr_.85fr] gap-4">
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[.15em] font-black text-emerald-700">Quotation Analyzer</div>
+                  <h2 className="mt-1 text-xl font-black text-slate-950">Manager Review Summary</h2>
+                  <p className="mt-1 text-xs text-slate-500">No AI is used. Analysis is calculated only from the approved AKBS template and this quotation's CRM values.</p>
+                </div>
+                <div className={`rounded-xl px-4 py-3 border ${reviewReady ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+                  <div className="text-[9px] uppercase tracking-wide font-bold text-slate-500">Review Readiness</div>
+                  <div className={`mt-1 text-sm font-black ${reviewReady ? 'text-emerald-800' : 'text-amber-800'}`}>
+                    {reviewReady ? 'Ready for manager decision' : `${missingForReview.length} item(s) need confirmation`}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                <div className="rounded-xl border bg-slate-50 p-3">
+                  <div className="text-[9px] uppercase font-bold tracking-wide text-slate-400">Customer</div>
+                  <div className="mt-1 font-black text-slate-900">{activeQuote.customer.customerName || 'Not provided'}</div>
+                  <div className="mt-1 text-xs text-slate-500">{activeQuote.customer.mobile || 'Mobile not provided'}</div>
+                </div>
+                <div className="rounded-xl border bg-slate-50 p-3">
+                  <div className="text-[9px] uppercase font-bold tracking-wide text-slate-400">Site / Location</div>
+                  <div className="mt-1 font-black text-slate-900">{activeQuote.projectLocation || 'Requires Confirmation'}</div>
+                  <div className="mt-1 text-xs text-slate-500">{activeQuote.customer.state || ''}</div>
+                </div>
+                <div className="rounded-xl border bg-slate-50 p-3">
+                  <div className="text-[9px] uppercase font-bold tracking-wide text-slate-400">Capacity</div>
+                  <div className="mt-1 font-black text-slate-900">{Number(activeQuote.projectCapacity || 0).toLocaleString('en-IN')} {activeQuote.projectUnit || 'Birds'}</div>
+                  <div className="mt-1 text-xs text-slate-500">{templateMatched ? 'Matches standard EC template' : 'Different from standard template'}</div>
+                </div>
+                <div className="rounded-xl border bg-slate-50 p-3">
+                  <div className="text-[9px] uppercase font-bold tracking-wide text-slate-400">Approx. Budget</div>
+                  <div className="mt-1 font-black text-emerald-900">{formatMoney(activeQuote.grandTotal)}</div>
+                  <div className="mt-1 text-xs text-slate-500">Planning estimate only</div>
+                </div>
+              </div>
+
+              <div className="mt-4 grid md:grid-cols-2 gap-3">
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4">
+                  <div className="text-xs font-black text-emerald-900">Approved Template Comparison</div>
+                  <div className="mt-3 space-y-2 text-xs">
+                    <div className="flex justify-between gap-4"><span className="text-slate-500">Standard Template</span><span className="font-bold text-slate-900">{AKBS_EC_20000_TEMPLATE.name}</span></div>
+                    <div className="flex justify-between gap-4"><span className="text-slate-500">Template Base Cost</span><span className="font-bold text-slate-900">{formatMoney(templateTotal)}</span></div>
+                    <div className="flex justify-between gap-4"><span className="text-slate-500">Current Soft Quote</span><span className="font-bold text-slate-900">{formatMoney(activeQuote.grandTotal)}</span></div>
+                    <div className="flex justify-between gap-4"><span className="text-slate-500">Difference</span><span className={`font-black ${amountVariance === 0 ? 'text-emerald-800' : amountVariance > 0 ? 'text-amber-800' : 'text-blue-800'}`}>{amountVariance >= 0 ? '+' : ''}{formatMoney(amountVariance)} ({amountVariancePct >= 0 ? '+' : ''}{amountVariancePct}%)</span></div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-4">
+                  <div className="text-xs font-black text-amber-900">Items Requiring Confirmation</div>
+                  <div className="mt-3 space-y-1.5 text-xs text-slate-700">
+                    {missingForReview.length ? missingForReview.map((item,index)=><div key={`${item}-${index}`}>• {item}</div>) : <div className="text-emerald-800 font-bold">No outstanding confirmation flags.</div>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-xl border border-slate-200 p-4">
+                <div className="text-xs font-black text-slate-900">Why this is only an approximate budget</div>
+                <p className="mt-2 text-xs leading-5 text-slate-600">
+                  Final quotation can change after site survey, exact location, civil/site conditions, final engineering design, selected material/equipment specifications,
+                  transportation, taxes and confirmed commercial scope. This soft quotation is intended to give the customer an initial project budget range only.
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
+              <div className="text-[10px] uppercase tracking-[.15em] font-black text-emerald-700">Terms & Conditions</div>
+              <h3 className="mt-1 text-lg font-black text-slate-950">Commercial Review</h3>
+              <div className="mt-4 space-y-3 text-xs">
+                <div><span className="text-slate-400">Validity</span><div className="font-bold text-slate-900">{activeQuote.quotationValidity || commercial.quotationValidity || 30} days</div></div>
+                <div><span className="text-slate-400">Payment Terms</span><div className="font-bold text-slate-900">{commercial.paymentTerms || 'Requires Confirmation'}</div></div>
+                <div><span className="text-slate-400">Taxes</span><div className="font-bold text-slate-900">{commercial.taxes || 'As applicable'}</div></div>
+                <div><span className="text-slate-400">Transportation</span><div className="font-bold text-slate-900">{commercial.transportation || 'Requires Confirmation'}</div></div>
+                <div><span className="text-slate-400">Warranty</span><div className="font-bold text-slate-900">{commercial.warranty || 'Requires Confirmation'}</div></div>
+                <div><span className="text-slate-400">Installation</span><div className="font-bold text-slate-900">{commercial.installationTerms || 'Requires Confirmation'}</div></div>
+                <div><span className="text-slate-400">Delivery</span><div className="font-bold text-slate-900">{commercial.deliveryTerms || 'Requires Confirmation'}</div></div>
+              </div>
+              <div className="mt-5 rounded-xl bg-[#073323] text-white p-4">
+                <div className="text-xs font-black">Manager Decision</div>
+                <p className="mt-1 text-[11px] text-emerald-100">Approve only after checking site/location assumptions and all commercial confirmation items.</p>
+                {activeQuote.status === 'REVIEW' && (
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <button onClick={() => rejectQuote(activeQuote.id)} className="rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-xs font-bold">Return for Revision</button>
+                    <button onClick={() => approveQuote(activeQuote.id)} className="rounded-lg bg-emerald-300 text-[#073323] px-3 py-2 text-xs font-black">Approve Quotation</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <SoftQuotationDocument quotation={activeQuote}/>
       </div>
     );
@@ -521,7 +632,7 @@ AKBS Poultry Farming Private Limited`;
         <div>
           <div className="text-xs uppercase tracking-[.16em] font-black text-emerald-700">Sales / Projects</div>
           <h1 className="mt-1 text-2xl sm:text-3xl font-black tracking-[-.04em] text-slate-950">Soft Quotations</h1>
-          <p className="text-sm text-slate-500 mt-1">{currentRole === 'employee' ? 'Request the standard AKBS soft quotation for an assigned lead. Customer sending requires manager approval.' : 'AI-assisted preliminary project estimates with approval, versioning and customer acceptance.'}</p>
+          <p className="text-sm text-slate-500 mt-1">{currentRole === 'employee' ? 'Request the standard AKBS soft quotation for an assigned lead. Customer sending requires manager approval.' : 'Template-based preliminary project estimates with manager review, approval and customer acceptance.'}</p>
         </div>
         <button onClick={() => navigate('/soft-quotations/new')} className="btn-primary"><Plus className="w-4 h-4"/>{currentRole === 'employee' ? 'Request Standard Quotation' : 'New Soft Quotation'}</button>
       </div>
@@ -596,9 +707,11 @@ AKBS Poultry Farming Private Limited`;
                   </td>
                   <td className="px-2 py-3 relative">
                     <div className="flex items-center gap-0.5 whitespace-nowrap">
-                      <button title="View" onClick={() => navigate(`/soft-quotations/${q.id}`)} className="icon-btn"><Eye className="w-4 h-4"/></button>
+                      <button title={roleCanApprove(currentRole) && q.status === 'REVIEW' ? 'Open Analyzer Review' : 'View'} onClick={() => navigate(`/soft-quotations/${q.id}`)} className={`${roleCanApprove(currentRole) && q.status === 'REVIEW' ? 'px-2.5 h-8 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-black inline-flex items-center gap-1' : 'icon-btn'}`}>
+                        <Eye className="w-4 h-4"/>{roleCanApprove(currentRole) && q.status === 'REVIEW' ? <span>Analyzer Review</span> : null}
+                      </button>
                       {(currentRole !== 'employee' || ['DRAFT','REJECTED'].includes(q.status)) && (
-                        <button title={currentRole === 'employee' ? 'Revise request' : 'Review / Edit'} onClick={() => navigate(`/soft-quotations/${q.id}/edit`)} className="icon-btn"><Edit3 className="w-4 h-4"/></button>
+                        <button title={currentRole === 'employee' ? 'Revise request' : 'Edit quotation'} onClick={() => navigate(`/soft-quotations/${q.id}/edit`)} className="icon-btn"><Edit3 className="w-4 h-4"/></button>
                       )}
                       <button onClick={() => setActionMenu(actionMenu === q.id ? null : q.id)} className="icon-btn" title="More actions"><MoreHorizontal className="w-4 h-4"/></button>
                     </div>
@@ -747,7 +860,7 @@ const QuotationBuilder: React.FC<BuilderProps> = ({
               <div className="mt-4 space-y-3">
                 {[
                   ['1','Employee Request','Standard quotation request created'],
-                  ['2','Manager Review','Manager checks customer, cost and terms with AI analyzer'],
+                  ['2','Manager Review','Manager checks customer, cost and terms with the Quotation Analyzer'],
                   ['3','Manager Approval','Approve or return for revision'],
                   ['4','Customer Dispatch','Only approved quotation can be sent by Manager/Admin']
                 ].map(([n,title,desc]) => (
@@ -837,13 +950,13 @@ const QuotationBuilder: React.FC<BuilderProps> = ({
                     <NumberField label="Quotation Validity (days)" value={quotation.quotationValidity} onChange={v => { update('quotationValidity', v); updateCommercial('quotationValidity', v); }}/>
                     <Field label="Expected Completion Timeline" value={quotation.expectedCompletionTimeline} onChange={v => update('expectedCompletionTimeline', v)}/>
                   </div>
-                  <button onClick={() => onAi('project-details')} disabled={!!aiBusy} className="w-full p-4 rounded-xl bg-gradient-to-r from-[#073323] to-emerald-700 text-white font-black flex items-center justify-center gap-2 disabled:opacity-60"><Sparkles className="w-5 h-5"/>{aiBusy === 'project-details' ? 'Generating...' : 'Generate Project Details with AI'}</button>
+                  <button onClick={() => onAi('project-details')} disabled={!!aiBusy} className="w-full p-4 rounded-xl bg-gradient-to-r from-[#073323] to-emerald-700 text-white font-black flex items-center justify-center gap-2 disabled:opacity-60"><Sparkles className="w-5 h-5"/>{aiBusy === 'project-details' ? 'Generating...' : 'Analyze Project Details'}</button>
                 </div>
               )}
 
               {step === 3 && (
                 <div className="space-y-5">
-                  <SectionHead title="Technical Specifications & AI Content" subtitle="AI only uses approved template data and information entered in this quotation."/>
+                  <SectionHead title="Technical Specifications & Analyzer" subtitle="Analyzer uses only the approved AKBS template and information already entered in this quotation."/>
                   <label className="field"><span>Project Overview</span><textarea rows={6} value={quotation.projectOverview} onChange={e => update('projectOverview', e.target.value)}/></label>
                   <ListEditor title="Civil & Structural Specifications" items={quotation.technicalSpecifications.shed} onChange={items => update('technicalSpecifications', { ...quotation.technicalSpecifications, shed: items })}/>
                   <ListEditor title="Environment Control System" items={quotation.technicalSpecifications.environmentControl} onChange={items => update('technicalSpecifications', { ...quotation.technicalSpecifications, environmentControl: items })}/>
@@ -926,17 +1039,17 @@ const QuotationBuilder: React.FC<BuilderProps> = ({
 
         {currentRole !== 'employee' && <aside className="xl:w-80 shrink-0">
           <div className="xl:sticky xl:top-4 bg-[#071d12] text-white rounded-2xl p-4 shadow-lg">
-            <div className="flex items-center gap-2"><Bot className="w-5 h-5 text-emerald-300"/><div><div className="font-black">AI Content Assistant</div><div className="text-[10px] text-emerald-200/70">Approved CRM/template data only</div></div></div>
+            <div className="flex items-center gap-2"><Bot className="w-5 h-5 text-emerald-300"/><div><div className="font-black">Quotation Analyzer</div><div className="text-[10px] text-emerald-200/70">Approved CRM + template data only</div></div></div>
             <div className="mt-4 space-y-2">
               {([
-                ['overview','Generate Project Overview'],
-                ['scope','Generate Scope of Work'],
-                ['technical','Generate Technical Description'],
-                ['cost-explanation','Generate Cost Explanation'],
-                ['exclusions','Generate Exclusions'],
-                ['commercial-notes','Generate Commercial Notes'],
-                ['customer-summary','Generate Customer-Friendly Summary'],
-                ['improve-language','Improve Professional Language']
+                ['overview','Analyze Project Overview'],
+                ['scope','Analyze Scope of Work'],
+                ['technical','Analyze Technical Description'],
+                ['cost-explanation','Analyze Cost Explanation'],
+                ['exclusions','Review Exclusions'],
+                ['commercial-notes','Analyze Commercial Terms'],
+                ['customer-summary','Prepare Customer Summary'],
+                ['improve-language','Standardize Professional Language']
               ] as [AiAction,string][]).map(([action,label]) => <button key={action} disabled={!!aiBusy} onClick={()=>onAi(action)} className="w-full text-left px-3 py-2.5 rounded-xl bg-white/6 hover:bg-white/10 border border-white/10 text-xs font-semibold disabled:opacity-50 flex items-center justify-between"><span>{label}</span>{aiBusy===action?<span className="animate-pulse">...</span>:<Sparkles className="w-3.5 h-3.5 text-emerald-300"/>}</button>)}
             </div>
             {!!quotation.requiresConfirmation.length && <div className="mt-4 rounded-xl bg-amber-400/10 border border-amber-300/20 p-3"><div className="text-xs font-black text-amber-300">Requires Confirmation</div><div className="mt-2 space-y-1 text-[11px] text-amber-50/80">{quotation.requiresConfirmation.map(x=><div key={x}>• {x}</div>)}</div></div>}

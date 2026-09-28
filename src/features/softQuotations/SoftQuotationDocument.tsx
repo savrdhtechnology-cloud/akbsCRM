@@ -15,6 +15,41 @@ const money = (value: number | null | undefined) =>
 const valueOrConfirm = (value: string | number | null | undefined, suffix = '') =>
   value === null || value === undefined || value === '' ? 'Requires Confirmation' : `${value}${suffix}`;
 
+const calculateContractFarmingReturn = (q: SoftQuotation) => {
+  const capacity = Number(q.projectCapacity || 0);
+  const investment = Number(q.grandTotal || 0);
+  if (!capacity || !investment) return null;
+
+  // AKBS soft-estimate assumptions for contract farming only.
+  // These are planning assumptions, not guaranteed commercial terms.
+  const lotsLow = 6;
+  const lotsHigh = 7;
+  const avgWeightLow = 2.25;
+  const avgWeightHigh = 2.5;
+  const payoutLow = 13;
+  const payoutHigh = 15;
+
+  const annualPayoutLow = capacity * avgWeightLow * payoutLow * lotsLow;
+  const annualPayoutHigh = capacity * avgWeightHigh * payoutHigh * lotsHigh;
+  const roiLow = (annualPayoutLow / investment) * 100;
+  const roiHigh = (annualPayoutHigh / investment) * 100;
+
+  return {
+    capacity,
+    investment,
+    lotsLow,
+    lotsHigh,
+    avgWeightLow,
+    avgWeightHigh,
+    payoutLow,
+    payoutHigh,
+    annualPayoutLow,
+    annualPayoutHigh,
+    roiLow,
+    roiHigh
+  };
+};
+
 const calculateEconomics = (q: SoftQuotation) => {
   const e = q.projectEconomics;
   const required = [
@@ -53,6 +88,7 @@ const calculateEconomics = (q: SoftQuotation) => {
 
 export const SoftQuotationDocument: React.FC<Props> = ({ quotation, compact = false }) => {
   const economics = calculateEconomics(quotation);
+  const contractReturn = calculateContractFarmingReturn(quotation);
   return (
     <article
       id="soft-quotation-pdf"
@@ -173,6 +209,41 @@ export const SoftQuotationDocument: React.FC<Props> = ({ quotation, compact = fa
 
         <SectionTitle>Cost Explanation</SectionTitle>
         <p className="text-sm leading-7 text-slate-600">{quotation.commercialNotes || 'Cost components are indicative and editable. Final commercial pricing requires confirmation by an authorized AKBS manager.'}</p>
+
+        {contractReturn && (
+          <>
+            <SectionTitle>Indicative Contract Farming Return</SectionTitle>
+            <div className="rounded-2xl border border-emerald-200 bg-[#073323] text-white p-5">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="rounded-xl border border-white/15 bg-white/5 p-4">
+                  <div className="text-[10px] uppercase tracking-wide text-emerald-200 font-bold">Project Investment</div>
+                  <div className="mt-1 text-lg font-black">{money(contractReturn.investment)}</div>
+                </div>
+                <div className="rounded-xl border border-white/15 bg-white/5 p-4">
+                  <div className="text-[10px] uppercase tracking-wide text-emerald-200 font-bold">Lots / Year</div>
+                  <div className="mt-1 text-lg font-black">{contractReturn.lotsLow}–{contractReturn.lotsHigh} Lots</div>
+                </div>
+                <div className="rounded-xl border border-white/15 bg-white/5 p-4">
+                  <div className="text-[10px] uppercase tracking-wide text-emerald-200 font-bold">Indicative Annual Earnings</div>
+                  <div className="mt-1 text-lg font-black">{money(contractReturn.annualPayoutLow)} – {money(contractReturn.annualPayoutHigh)}</div>
+                </div>
+                <div className="rounded-xl border border-amber-300/40 bg-amber-300/10 p-4">
+                  <div className="text-[10px] uppercase tracking-wide text-amber-200 font-bold">Indicative Gross ROI</div>
+                  <div className="mt-1 text-lg font-black text-amber-200">{contractReturn.roiLow.toFixed(1)}% – {contractReturn.roiHigh.toFixed(1)}%</div>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-xl border border-white/10 bg-black/10 p-4 text-xs leading-5 text-emerald-50">
+                <b>Calculation basis:</b> {contractReturn.capacity.toLocaleString('en-IN')} birds × average live weight {contractReturn.avgWeightLow}–{contractReturn.avgWeightHigh} kg × contract payout ₹{contractReturn.payoutLow}–₹{contractReturn.payoutHigh}/kg × {contractReturn.lotsLow}–{contractReturn.lotsHigh} lots/year.
+                This gives an indicative annual contract-farming payout range before farm-level operating expenses.
+              </div>
+
+              <div className="mt-3 rounded-xl border border-amber-300/30 bg-amber-50/10 p-4 text-[11px] leading-5 text-amber-50">
+                <b>Important:</b> This is not guaranteed net profit. Actual net profit / ROI will depend on mortality, achieved body weight, integrator settlement rate, batch utilization, electricity, labour, litter, maintenance, downtime, taxes and other farm operating costs. Final project economics should be confirmed after site assessment and commercial agreement.
+              </div>
+            </div>
+          </>
+        )}
       </section>
 
       {quotation.projectEconomics.enabled && (
@@ -203,7 +274,8 @@ export const SoftQuotationDocument: React.FC<Props> = ({ quotation, compact = fa
               ['Indicative Operating Surplus', economics ? money(economics.surplus) : 'To be confirmed'],
               ['Annual Revenue', economics ? money(economics.annualRevenue) : 'To be confirmed'],
               ['Annual Operating Cost', economics ? money(economics.annualOperating) : 'To be confirmed'],
-              ['Indicative Annual Surplus', economics ? money(economics.annualSurplus) : 'To be confirmed']
+              ['Indicative Annual Surplus', economics ? money(economics.annualSurplus) : 'To be confirmed'],
+              ['Annual ROI on Project Cost', economics && economics.annualSurplus != null && quotation.grandTotal > 0 ? `${((economics.annualSurplus / quotation.grandTotal) * 100).toFixed(1)}%` : 'To be confirmed']
             ].map(([label, value]) => <div key={label} className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4"><div className="text-xs text-slate-500">{label}</div><div className="mt-1 font-black text-emerald-900">{value}</div></div>)}
           </div>
           <p className="mt-8 text-xs leading-6 text-slate-500">{ECONOMICS_DISCLAIMER}</p>

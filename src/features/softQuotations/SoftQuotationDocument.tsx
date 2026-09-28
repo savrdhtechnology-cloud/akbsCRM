@@ -21,6 +21,39 @@ const formatQuoteDate = (value: string | null | undefined) => {
   return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString('en-IN');
 };
 
+const STANDARD_COST_DETAILS: Record<string,{qty:string;amount:number;description:string}> = {
+  'Civil Work & Flooring': {
+    qty: '12,000 sq.ft',
+    amount: 1700000,
+    description: 'Civil foundations and PCC/RCC flooring as per the approved AKBS 20,000 Birds EC preliminary template.'
+  },
+  'Steel Structural Work': {
+    qty: 'Structural Package',
+    amount: 2700000,
+    description: 'Main columns, trusses, purlins, bracing and associated structural steel work as per approved AKBS specification.'
+  },
+  'Roofing & GI Sheets': {
+    qty: 'Roofing Package',
+    amount: 800000,
+    description: '0.50 mm TCT colour-coated GI roofing sheets and associated roofing components.'
+  },
+  'Environment Control Equipment': {
+    qty: 'EC Package',
+    amount: 2000000,
+    description: 'Tunnel ventilation, C-type cooling pad, 6 × 50-inch exhaust fans and digital climate-control equipment.'
+  },
+  'Utilities & Infrastructure': {
+    qty: 'Project Utilities',
+    amount: 2800000,
+    description: 'Utilities and internal infrastructure included in the approved preliminary AKBS project estimate.'
+  },
+  'Contingency & Pre-operative Expenses': {
+    qty: 'Lump Sum',
+    amount: 2000000,
+    description: 'Indicative contingency and pre-operative expenses included in the approved AKBS template.'
+  }
+};
+
 const calculateContractFarmingReturn = (q: SoftQuotation) => {
   const capacity = Number(q.projectCapacity || 0);
   const investment = Number(q.grandTotal || 0);
@@ -148,17 +181,24 @@ export const SoftQuotationDocument: React.FC<Props> = ({ quotation, compact = fa
               </tr>
             </thead>
             <tbody>
-              {quotation.costBreakup.map((item,index)=>(
-                <tr key={item.id} className="border-b last:border-b-0">
-                  <td className="p-3 font-mono text-slate-400">{String(index+1).padStart(2,'0')}</td>
-                  <td className="p-3">
-                    <div className="font-bold">{item.component}</div>
-                    <div className="mt-1 text-xs text-slate-500">{item.description || 'As per approved AKBS preliminary template and final site requirements.'}</div>
-                  </td>
-                  <td className="p-3 text-center font-mono text-slate-600">{item.quantity || item.unit || 'Lump Sum'}</td>
-                  <td className="p-3 text-right font-mono font-black">{money(item.estimatedAmount)}</td>
-                </tr>
-              ))}
+              {quotation.costBreakup.map((item,index)=>{
+                const standard = STANDARD_COST_DETAILS[item.component];
+                const raw = item as any;
+                const amount = Number(raw.estimatedAmount ?? raw.amount ?? standard?.amount ?? 0);
+                const qty = raw.quantity || raw.unit || standard?.qty || 'Lump Sum';
+                const description = item.description || standard?.description || 'As per approved AKBS preliminary template and final site requirements.';
+                return (
+                  <tr key={item.id || `${item.component}-${index}`} className="border-b last:border-b-0">
+                    <td className="p-3 font-mono text-slate-400">{String(index+1).padStart(2,'0')}</td>
+                    <td className="p-3">
+                      <div className="font-bold">{item.component}</div>
+                      <div className="mt-1 text-xs text-slate-500">{description}</div>
+                    </td>
+                    <td className="p-3 text-center font-mono text-slate-600">{qty}</td>
+                    <td className="p-3 text-right font-mono font-black">{money(amount)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
             <tfoot>
               <tr className="bg-emerald-50">
@@ -199,39 +239,12 @@ export const SoftQuotationDocument: React.FC<Props> = ({ quotation, compact = fa
           )}
         </div>
 
-        <SectionTitle>Project Scope & Technical Specifications</SectionTitle>
-        <div className="grid md:grid-cols-2 gap-4">
-          <SpecCard title="Civil & Structural" items={quotation.technicalSpecifications.shed}/>
-          <SpecCard title="Environment Control" items={quotation.technicalSpecifications.environmentControl}/>
-          <SpecCard title="Automation & Equipment" items={quotation.technicalSpecifications.automation}/>
-          <SpecCard title="AKBS Support Scope" items={quotation.scopeOfWork}/>
-        </div>
-
-        <SectionTitle>Commercial Terms & Conditions</SectionTitle>
-        <div className="grid md:grid-cols-2 gap-4">
-          <InfoCard rows={[
-            ['Quotation Validity', `${quotation.commercialTerms.quotationValidity || quotation.quotationValidity || 30} days`],
-            ['Payment Terms', quotation.commercialTerms.paymentTerms],
-            ['Advance', quotation.commercialTerms.advancePercent == null ? 'Requires Confirmation' : `${quotation.commercialTerms.advancePercent}%`],
-            ['Milestone Payment', quotation.commercialTerms.milestonePaymentPercent == null ? 'Requires Confirmation' : `${quotation.commercialTerms.milestonePaymentPercent}%`],
-            ['Final Payment', quotation.commercialTerms.finalPaymentPercent == null ? 'Requires Confirmation' : `${quotation.commercialTerms.finalPaymentPercent}%`],
-            ['Taxes', quotation.commercialTerms.taxes]
-          ]}/>
-          <InfoCard rows={[
-            ['Transportation', quotation.commercialTerms.transportation],
-            ['Warranty', quotation.commercialTerms.warranty],
-            ['Installation', quotation.commercialTerms.installationTerms],
-            ['Delivery', quotation.commercialTerms.deliveryTerms],
-            ['Expected Timeline', quotation.expectedCompletionTimeline],
-            ['Site Location', quotation.projectLocation || customerLocation]
-          ]}/>
-        </div>
-
         <SectionTitle>Important Notes</SectionTitle>
         <div className="space-y-2 text-xs leading-6 text-slate-600">
-          <p>{DISCLAIMER_ONE}</p>
-          <p>{DISCLAIMER_TWO}</p>
-          <p>Final commercial quotation may vary after site survey, exact location, civil/site conditions, engineering design, selected equipment/material specifications, transportation, taxes and confirmed scope.</p>
+          <p>1. <b>Nature of Document:</b> This is a preliminary soft quotation / rough budget estimate for project planning, farmer discussions and initial bank feasibility. Final detailed project report (DPR) and final commercial quotation will be prepared after detailed site verification.</p>
+          <p>2. <b>Validity:</b> The quoted prices are tentative and valid for the configured validity period from the date of issue.</p>
+          <p>3. <b>Civil Land & Utilities:</b> Site-specific civil requirements, electricity, water connection and external infrastructure may change after physical site assessment.</p>
+          <p>4. <b>Loan / Subsidy Support:</b> AKBS may assist with DPR preparation and bank-loan documentation under applicable schemes; eligibility and sanction remain subject to the concerned authority / lender.</p>
         </div>
 
         <div className="mt-8 border-t pt-5 flex flex-col sm:flex-row justify-between gap-4 text-xs text-slate-500">

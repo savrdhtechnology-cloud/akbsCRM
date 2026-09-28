@@ -288,30 +288,31 @@ export const SoftQuotationsModule: React.FC<SoftQuotationModuleProps> = ({
     } catch {}
   };
 
-  const copyEmployeeWhatsAppText = async (quote: SoftQuotation) => {
+  const copyEmployeeApprovedSummary = async (quote: SoftQuotation) => {
     if (currentRole !== 'employee') return;
-    if (!['APPROVED','SENT','VIEWED'].includes(quote.status)) {
-      return flash('Manager approval is required before you can copy the customer message.');
-    }
-    const message = `Dear ${quote.customer.customerName},
+    if (!['APPROVED','SENT','VIEWED'].includes(quote.status)) return;
 
-Your AKBS Poultry Farming soft quotation has been reviewed and approved by the manager.
+    const summary = `AKBS Poultry Farming – Approved Soft Project Estimate
 
+Customer: ${quote.customer.customerName}
 Project: ${quote.projectName}
 Capacity: ${quote.projectCapacity.toLocaleString('en-IN')} ${quote.projectUnit}
+Location: ${quote.projectLocation || quote.customer.city || 'To be confirmed'}
 Approx. Project Budget: ${formatMoney(quote.grandTotal)}
+Quotation Ref: ${quote.quotationNo}
 
-Please review the approved quotation here:
+This preliminary estimate has been reviewed and approved by the AKBS manager. Final commercial quotation is subject to site survey, location/site conditions, final engineering scope, specifications, taxes, transportation and confirmed terms.
+
+Review link:
 ${shareLink(quote)}
 
-Regards,
 AKBS Poultry Farming Private Limited`;
 
     try {
-      await navigator.clipboard.writeText(message);
-      flash('Approved WhatsApp message copied. Paste it into WhatsApp manually.');
+      await navigator.clipboard.writeText(summary);
+      flash('Approved quotation summary copied. You can paste it into WhatsApp.');
     } catch {
-      flash('Could not copy automatically. Please copy the approved quotation message manually.');
+      flash('Could not copy automatically. Please try again.');
     }
   };
 
@@ -534,14 +535,10 @@ AKBS Poultry Farming Private Limited`;
             </>}
             {currentRole === 'employee' ? (
               ['APPROVED','SENT','VIEWED'].includes(activeQuote.status) ? (
-                <button onClick={() => copyEmployeeWhatsAppText(activeQuote)} className="btn-primary">
-                  <Copy className="w-4 h-4"/>Copy WhatsApp Message
+                <button onClick={() => copyEmployeeApprovedSummary(activeQuote)} className="btn-primary">
+                  <Copy className="w-4 h-4"/>Copy Summary
                 </button>
-              ) : (
-                <span className="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
-                  Waiting for manager approval
-                </span>
-              )
+              ) : null
             ) : <>
               <button onClick={() => window.print()} className="btn-secondary"><Printer className="w-4 h-4"/>Generate PDF</button>
               <button onClick={() => downloadPdf(activeQuote)} className="btn-secondary"><Download className="w-4 h-4"/>Download PDF</button>
@@ -757,8 +754,8 @@ AKBS Poultry Farming Private Limited`;
                         <Action label="Duplicate quotation" icon={<Copy/>} onClick={() => { duplicateQuote(q); setActionMenu(null); }}/>
                         {currentRole === 'employee' ? (
                           ['APPROVED','SENT','VIEWED'].includes(q.status)
-                            ? <Action label="Copy WhatsApp Message" icon={<Copy/>} onClick={() => { void copyEmployeeWhatsAppText(q); setActionMenu(null); }}/>
-                            : <div className="px-3 py-2 text-[11px] font-bold text-amber-700">Manager approval required before customer message is available.</div>
+                            ? <Action label="Copy Summary" icon={<Copy/>} onClick={() => { void copyEmployeeApprovedSummary(q); setActionMenu(null); }}/>
+                            : null
                         ) : <>
                           <Action label="Generate / Print PDF" icon={<Printer/>} onClick={() => { navigate(`/soft-quotations/${q.id}`); setActionMenu(null); }}/>
                           <Action label="Share secure link" icon={<Share2/>} onClick={() => shareQuote(q)}/>
@@ -833,7 +830,7 @@ const QuotationBuilder: React.FC<BuilderProps> = ({
             </p>
           </div>
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-900">
-            Employee can only copy the approved WhatsApp message after manager approval. PDF/email/direct sending remain locked.
+            After manager approval, employee will only get a Copy Summary option. PDF, email, direct WhatsApp and share controls remain locked.
           </div>
         </div>
 

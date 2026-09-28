@@ -166,8 +166,22 @@ export const FeeManagementView: React.FC = () => {
   };
 
   const verifyPortal=async(leadId:string,status:'VERIFIED'|'REJECTED')=>{
-    setSaving(true);setError('');
-    try{await crm.fee('verify',{leadId,status});await load();}catch(e:any){setError(e.message||'Unable to update payment.');}finally{setSaving(false);}
+    setSaving(true);setError('');setEmailNotice('');
+    try{
+      await crm.fee('verify',{leadId,status});
+      if(status==='VERIFIED'){
+        try{
+          const receipt=await crm.sendVerifiedPaymentReceipt(leadId);
+          setEmailNotice(`Payment verified. Receipt PDF emailed to ${receipt?.email||'customer'}.`);
+          window.setTimeout(()=>setEmailNotice(''),7000);
+        }catch(mailError:any){
+          setError(`Payment verified, but receipt email failed: ${mailError?.message||'Unable to send receipt email.'}`);
+        }
+      }
+      await load();
+    }catch(e:any){
+      setError(e.message||'Unable to update payment.');
+    }finally{setSaving(false);}
   };
   const verifyManual=async(id:string,status:string)=>{
     setSaving(true);setError('');

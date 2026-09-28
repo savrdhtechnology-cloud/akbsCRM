@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BadgeIndianRupee, CheckCircle2, Clock3, Percent, RefreshCw, ShieldCheck, XCircle } from 'lucide-react';
+import { BadgeIndianRupee, CheckCircle2, Clock3, Percent, RefreshCw, ShieldCheck, XCircle, Building2, Star, Trash2, Plus } from 'lucide-react';
 import { useCrm } from '../lib/crm';
 
 const money=(value:number)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(Number(value||0));
@@ -14,12 +14,30 @@ export const FeeManagementView: React.FC = () => {
   const [discount,setDiscount]=useState('0');
   const [offerLabel,setOfferLabel]=useState('');
   const [offerActive,setOfferActive]=useState(false);
+  const [accounts,setAccounts]=useState<any[]>([]);
+  const [accountSaving,setAccountSaving]=useState(false);
+  const [accountForm,setAccountForm]=useState({
+    id:'',
+    label:'AKBS Company Account',
+    accountHolder:'AKBS Poultry Farming Pvt. Ltd.',
+    bankName:'',
+    accountNumber:'',
+    ifsc:'',
+    branch:'',
+    upiId:'',
+    qrImageUrl:'',
+    active:true
+  });
 
   const load=async()=>{
     setLoading(true); setError('');
     try{
-      const out=await crm.fee('snapshot',{});
+      const [out,accountsOut]=await Promise.all([
+        crm.fee('snapshot',{}),
+        crm.paymentAccounts('snapshot',{})
+      ]);
       setData(out);
+      setAccounts(accountsOut?.accounts || []);
       setInitialFee(String(out?.config?.baseFee ?? 2999));
       setDiscount(String(out?.config?.discountPercent ?? 0));
       setOfferLabel(out?.config?.offerLabel || '');
@@ -48,6 +66,62 @@ export const FeeManagementView: React.FC = () => {
     }catch(e:any){setError(e.message||'Unable to update fee settings.');}
     finally{setSaving(false);}
   };
+
+
+  const resetAccountForm=()=>setAccountForm({
+    id:'',
+    label:'AKBS Company Account',
+    accountHolder:'AKBS Poultry Farming Pvt. Ltd.',
+    bankName:'',
+    accountNumber:'',
+    ifsc:'',
+    branch:'',
+    upiId:'',
+    qrImageUrl:'',
+    active:true
+  });
+
+  const saveAccount=async()=>{
+    setAccountSaving(true); setError('');
+    try{
+      const out=await crm.paymentAccounts('save',accountForm);
+      setAccounts(out?.accounts||[]);
+      resetAccountForm();
+    }catch(e:any){setError(e.message||'Unable to save company account.');}
+    finally{setAccountSaving(false);}
+  };
+
+  const setDefaultAccount=async(id:string)=>{
+    setAccountSaving(true); setError('');
+    try{
+      const out=await crm.paymentAccounts('set_default',{id});
+      setAccounts(out?.accounts||[]);
+    }catch(e:any){setError(e.message||'Unable to set default account.');}
+    finally{setAccountSaving(false);}
+  };
+
+  const deactivateAccount=async(id:string)=>{
+    setAccountSaving(true); setError('');
+    try{
+      const out=await crm.paymentAccounts('delete',{id});
+      setAccounts(out?.accounts||[]);
+      if(accountForm.id===id) resetAccountForm();
+    }catch(e:any){setError(e.message||'Unable to remove account.');}
+    finally{setAccountSaving(false);}
+  };
+
+  const editAccount=(a:any)=>setAccountForm({
+    id:a.id||'',
+    label:a.label||'AKBS Company Account',
+    accountHolder:a.accountHolder||'AKBS Poultry Farming Pvt. Ltd.',
+    bankName:a.bankName||'',
+    accountNumber:a.accountNumber||'',
+    ifsc:a.ifsc||'',
+    branch:a.branch||'',
+    upiId:a.upiId||'',
+    qrImageUrl:a.qrImageUrl||'',
+    active:a.active!==false
+  });
 
   const verify=async(leadId:string,status:'VERIFIED'|'REJECTED')=>{
     setSaving(true); setError('');
@@ -85,6 +159,75 @@ export const FeeManagementView: React.FC = () => {
         <div className="mt-2 text-xl font-black text-slate-950">{value}</div>
       </div>)}
     </div>
+
+    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
+      <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-5">
+        <div>
+          <div className="flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-emerald-700"/>
+            <h2 className="font-black text-slate-950">Company Payment Accounts</h2>
+          </div>
+          <p className="mt-1 text-xs text-slate-500">Add one or more official company bank/UPI accounts. Set one account as Default; customer payment screen will automatically use that account.</p>
+        </div>
+        <button type="button" onClick={resetAccountForm} className="h-9 px-3 rounded-lg border border-slate-200 text-xs font-bold flex items-center gap-1.5">
+          <Plus className="w-3.5 h-3.5"/> New Account
+        </button>
+      </div>
+
+      <div className="mt-5 grid xl:grid-cols-[380px_minmax(0,1fr)] gap-5">
+        <div className="rounded-2xl border border-slate-200 p-4 space-y-3">
+          <div className="text-xs font-black text-slate-900">{accountForm.id?'Edit Company Account':'Add Company Account'}</div>
+          <input value={accountForm.label} onChange={e=>setAccountForm(p=>({...p,label:e.target.value}))} placeholder="Account label" className="h-10 w-full rounded-xl border border-slate-300 px-3 text-xs"/>
+          <input value={accountForm.accountHolder} onChange={e=>setAccountForm(p=>({...p,accountHolder:e.target.value}))} placeholder="Account holder name" className="h-10 w-full rounded-xl border border-slate-300 px-3 text-xs"/>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <input value={accountForm.bankName} onChange={e=>setAccountForm(p=>({...p,bankName:e.target.value}))} placeholder="Bank name" className="h-10 rounded-xl border border-slate-300 px-3 text-xs"/>
+            <input value={accountForm.accountNumber} onChange={e=>setAccountForm(p=>({...p,accountNumber:e.target.value}))} placeholder="Account number" className="h-10 rounded-xl border border-slate-300 px-3 text-xs"/>
+            <input value={accountForm.ifsc} onChange={e=>setAccountForm(p=>({...p,ifsc:e.target.value.toUpperCase()}))} placeholder="IFSC" className="h-10 rounded-xl border border-slate-300 px-3 text-xs"/>
+            <input value={accountForm.branch} onChange={e=>setAccountForm(p=>({...p,branch:e.target.value}))} placeholder="Branch" className="h-10 rounded-xl border border-slate-300 px-3 text-xs"/>
+          </div>
+          <input value={accountForm.upiId} onChange={e=>setAccountForm(p=>({...p,upiId:e.target.value}))} placeholder="UPI ID (optional)" className="h-10 w-full rounded-xl border border-slate-300 px-3 text-xs"/>
+          <input value={accountForm.qrImageUrl} onChange={e=>setAccountForm(p=>({...p,qrImageUrl:e.target.value}))} placeholder="QR / barcode image URL (optional)" className="h-10 w-full rounded-xl border border-slate-300 px-3 text-xs"/>
+          {accountForm.qrImageUrl && <div className="rounded-xl border border-slate-200 p-3 bg-slate-50">
+            <div className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-2">QR / Barcode Preview</div>
+            <img src={accountForm.qrImageUrl} alt="Payment QR preview" className="max-h-36 mx-auto object-contain rounded-lg"/>
+          </div>}
+          <button disabled={accountSaving} onClick={saveAccount} className="w-full h-10 rounded-xl bg-[#0b2818] text-white text-xs font-black disabled:opacity-50">
+            {accountSaving?'Saving…':accountForm.id?'Update Account':'Save Account'}
+          </button>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-3 content-start">
+          {accounts.map((a:any)=><div key={a.id} className={`rounded-2xl border p-4 ${a.isDefault?'border-emerald-300 bg-emerald-50/60':'border-slate-200 bg-white'}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="font-black text-slate-900">{a.label}</div>
+                  {a.isDefault && <span className="px-2 py-0.5 rounded-full bg-emerald-700 text-white text-[9px] font-black">DEFAULT</span>}
+                </div>
+                <div className="mt-1 text-[11px] text-slate-500">{a.accountHolder}</div>
+              </div>
+              <button onClick={()=>editAccount(a)} className="text-[10px] font-bold text-emerald-700">Edit</button>
+            </div>
+            <div className="mt-3 space-y-1.5 text-xs">
+              {a.bankName && <div><span className="text-slate-400">Bank:</span> <b>{a.bankName}</b></div>}
+              {a.accountNumber && <div><span className="text-slate-400">A/C:</span> <b className="font-mono">{a.accountNumber}</b></div>}
+              {a.ifsc && <div><span className="text-slate-400">IFSC:</span> <b className="font-mono">{a.ifsc}</b></div>}
+              {a.upiId && <div><span className="text-slate-400">UPI:</span> <b>{a.upiId}</b></div>}
+            </div>
+            {a.qrImageUrl && <img src={a.qrImageUrl} alt="Payment QR" className="mt-3 h-28 w-28 object-contain rounded-xl border border-slate-200 bg-white p-2"/>}
+            <div className="mt-4 flex flex-wrap gap-2">
+              {!a.isDefault && <button disabled={accountSaving} onClick={()=>void setDefaultAccount(a.id)} className="h-8 px-3 rounded-lg bg-emerald-700 text-white text-[10px] font-black flex items-center gap-1">
+                <Star className="w-3 h-3"/> Set Default
+              </button>}
+              <button disabled={accountSaving} onClick={()=>void deactivateAccount(a.id)} className="h-8 px-3 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-[10px] font-black flex items-center gap-1">
+                <Trash2 className="w-3 h-3"/> Remove
+              </button>
+            </div>
+          </div>)}
+          {!accounts.length && <div className="md:col-span-2 rounded-2xl border border-dashed border-slate-300 p-8 text-center text-xs text-slate-400">No company payment account added yet.</div>}
+        </div>
+      </div>
+    </section>
 
     <div className="grid xl:grid-cols-[360px_minmax(0,1fr)] gap-5 items-start">
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 xl:sticky xl:top-5">

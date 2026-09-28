@@ -13,6 +13,7 @@ export type NavigationSection =
   | 'soft-quotations'
   | 'proposals'
   | 'loans'
+  | 'fee-management'
   | 'documents'
   | 'tasks'
   | 'reports'

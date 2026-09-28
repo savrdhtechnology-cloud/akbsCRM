@@ -19,7 +19,6 @@ export const TeamManagementView: React.FC = () => {
   const [employeeForm, setEmployeeForm] = useState({
     name: '',
     login: '',
-    password: '',
     jobProfile: 'SALES_EXECUTIVE',
     managerId: ''
   });
@@ -128,22 +127,25 @@ export const TeamManagementView: React.FC = () => {
     e.preventDefault();
     setMessage('');
     const preset=accessPresets[employeeForm.jobProfile];
-    if(!employeeForm.name.trim() || !employeeForm.login.trim() || employeeForm.password.length<12) {
-      setMessage('Name, Login ID and a temporary password of at least 12 characters are required.');
+    if(!employeeForm.name.trim() || !employeeForm.login.trim()) {
+      setMessage('Employee name and Login ID / Email are required.');
       return;
     }
     setBusyId('new-employee');
     try {
-      await crm.command('user_create',{
+      const result = await crm.command('user_create',{
         name:employeeForm.name.trim(),
         login:employeeForm.login.trim(),
-        password:employeeForm.password,
         role:preset.role,
         manager_id:preset.role==='EMPLOYEE' ? employeeForm.managerId || null : null
       });
-      setMessage(`${preset.label} account created successfully. Data access is restricted by role and assignment.`);
+      setMessage(
+        result?.email_sent
+          ? `${preset.label} account created. Login ID, temporary password, CRM link and first-login password-change instruction were sent by email.`
+          : `${preset.label} account created. Email delivery could not be confirmed; please verify the employee email setup.`
+      );
       setShowEmployeeModal(false);
-      setEmployeeForm({name:'',login:'',password:'',jobProfile:'SALES_EXECUTIVE',managerId:''});
+      setEmployeeForm({name:'',login:'',jobProfile:'SALES_EXECUTIVE',managerId:''});
     } catch(e:any) {
       setMessage(e.message || 'Unable to add employee.');
     } finally { setBusyId(''); }
@@ -347,9 +349,14 @@ export const TeamManagementView: React.FC = () => {
                 <label className="text-[11px] font-bold text-slate-600">Login ID / Email *
                   <input required type="text" value={employeeForm.login} onChange={e=>setEmployeeForm({...employeeForm,login:e.target.value})} placeholder="employee@akbspoultry.com" className="mt-1.5 w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-emerald-500"/>
                 </label>
-                <label className="text-[11px] font-bold text-slate-600">Temporary Password *
-                  <input required minLength={12} maxLength={72} type="text" value={employeeForm.password} onChange={e=>setEmployeeForm({...employeeForm,password:e.target.value})} placeholder="Minimum 12 characters" className="mt-1.5 w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono outline-none focus:border-emerald-500"/>
-                </label>
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3">
+                  <div className="flex items-center gap-2 text-[11px] font-black text-emerald-900">
+                    <KeyRound className="w-4 h-4"/> Temporary Password
+                  </div>
+                  <p className="mt-1 text-[10px] leading-relaxed text-emerald-800/80">
+                    A secure temporary password is generated automatically when you create the employee. Login ID, temporary password and CRM login link are sent to the employee by email. The employee must change the temporary password on first login.
+                  </p>
+                </div>
                 <label className="text-[11px] font-bold text-slate-600">Employee Type / Access Profile *
                   <select value={employeeForm.jobProfile} onChange={e=>setEmployeeForm({...employeeForm,jobProfile:e.target.value})} className="mt-1.5 w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs outline-none focus:border-emerald-500">
                     <option value="SALES_EXECUTIVE">Sales Executive</option>

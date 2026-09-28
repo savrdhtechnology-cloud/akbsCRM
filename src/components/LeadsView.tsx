@@ -169,7 +169,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
     loggedInManager?.name ||
     crm.user.profile?.manager_name ||
     (isManagerPortal ? crm.user.name : '') ||
-    'Not assigned';
+    (isEmployeePortal ? 'Reporting manager unavailable' : 'Not assigned');
   const managerDisplayLogin =
     leadManager?.login ||
     loggedInManager?.login ||
@@ -369,10 +369,10 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <span>Leads Management</span>
+            <span>{isEmployeePortal ? 'My Lead Workspace' : 'Leads Management'}</span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Manage, track and convert your poultry project leads into successful customers.
+            {isEmployeePortal ? 'Work only on leads assigned to you and update every customer interaction.' : 'Manage, track and convert your poultry project leads into successful customers.'}
           </p>
         </div>
 
@@ -383,8 +383,8 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
               <Users className="w-3.5 h-3.5" />
             </div>
             <div>
-              <div className="text-[10px] text-slate-500 font-medium leading-none">Total Leads</div>
-              <div className="text-sm font-extrabold text-blue-950 font-mono mt-0.5">{leads.length}</div>
+              <div className="text-[10px] text-slate-500 font-medium leading-none">{isEmployeePortal ? 'My Leads' : 'Total Leads'}</div>
+              <div className="text-sm font-extrabold text-blue-950 font-mono mt-0.5">{isEmployeePortal ? leads.filter(l => crm.leads.find(row=>row.id===l.id)?.assigned_to===crm.user.id).length : leads.length}</div>
             </div>
           </div>
 
@@ -448,7 +448,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
       {/* Main 3-Column Grid Layout matching Image 3 */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         {/* ================= COLUMN 1: Leads List (4 cols) ================= */}
-        <div className={`${isEmployeePortal ? 'lg:col-span-4' : 'lg:col-span-4'} bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col h-[820px]`}>
+        <div className={`${isEmployeePortal ? 'lg:col-span-4' : 'lg:col-span-4'} bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col ${isEmployeePortal ? 'h-[760px]' : 'h-[820px]'}`}>
           {/* Top Sub-tabs */}
           <div className="p-3 border-b border-slate-100 flex items-center justify-between">
             {isEmployeePortal ? (
@@ -649,7 +649,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
         {/* ================= COLUMN 2: Lead Details & Requirements (5 cols) ================= */}
         <div className={`${isEmployeePortal ? 'lg:col-span-8' : 'lg:col-span-5'} space-y-4`}>
           {/* Main Card Header */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5 space-y-4">
+          <div className={`bg-white rounded-2xl border border-slate-200/90 shadow-xs ${isEmployeePortal ? 'p-4 sm:p-4 space-y-3' : 'p-4 sm:p-5 space-y-4'}`}>
             <div className="flex items-start justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm shadow-sm ${getAvatarColor(currentLead.name)}`}>
@@ -695,6 +695,22 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                       Source: {currentLead.source} {currentLead.source === 'Website' ? '(Customer Portal)' : ''}
                     </span>
                   </div>
+                  {isEmployeePortal ? (
+                    <div className="mt-2 grid sm:grid-cols-3 gap-2">
+                      <div className="rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2">
+                        <div className="text-[9px] uppercase tracking-wide font-bold text-amber-700">Reporting Manager</div>
+                        <div className="mt-0.5 text-[11px] font-black text-amber-950">{managerDisplayName}</div>
+                      </div>
+                      <div className="rounded-xl border border-blue-200 bg-blue-50/80 px-3 py-2">
+                        <div className="text-[9px] uppercase tracking-wide font-bold text-blue-700">Your Role</div>
+                        <div className="mt-0.5 text-[11px] font-black text-blue-950">{crm.user.profile?.role_title || 'Employee'}</div>
+                      </div>
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-2">
+                        <div className="text-[9px] uppercase tracking-wide font-bold text-emerald-700">Lead Status</div>
+                        <div className="mt-0.5 text-[11px] font-black text-emerald-950">{currentLead.status}</div>
+                      </div>
+                    </div>
+                  ) : (
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-900">
                       <Shield className="w-3 h-3" />
@@ -709,6 +725,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                       Lead Status: {currentLead.status}
                     </span>
                   </div>
+                  )}
                 </div>
               </div>
 
@@ -747,7 +764,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             </div>
 
             {/* Sub-tabs bar */}
-            <div className="flex items-center gap-2 border-b border-slate-100 pb-2 overflow-x-auto text-xs font-semibold">
+            <div className={`flex items-center ${isEmployeePortal ? 'gap-1.5' : 'gap-2'} border-b border-slate-100 pb-2 overflow-x-auto text-xs font-semibold`}>
               {[
                 { id: 'overview', label: 'Overview' },
                 { id: 'project', label: 'Project Details' },
@@ -782,7 +799,24 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
 
             {activeDetailTab === 'overview' && (
               <>
-            {currentLeadProgress.length > 0 && (
+            {isEmployeePortal ? (
+              <div className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-white to-emerald-50/50 p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.14em] font-bold text-emerald-700">Your Current Work</div>
+                    <div className="mt-1 text-base font-black text-slate-900">{currentWorkItem?.title || 'Customer follow-up'}</div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      Manager: <span className="font-bold text-slate-700">{managerDisplayName}</span>
+                      {currentWorkItem ? ` · ${currentWorkItem.kind}` : ''}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-emerald-200 bg-white px-4 py-3 min-w-[150px]">
+                    <div className="text-[9px] uppercase tracking-wide text-slate-400 font-bold">CRM Stage</div>
+                    <div className="mt-1 text-sm font-black text-emerald-800">{currentLead.status}</div>
+                  </div>
+                </div>
+              </div>
+            ) : currentLeadProgress.length > 0 && (
               <ApplicationProgressTimeline
                 title="Lead / Application Progress"
                 subtitle="Live progress calculated from the application data and current CRM stage."

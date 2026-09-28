@@ -144,10 +144,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         className={`crm-sidebar fixed inset-y-0 left-0 z-50 text-white transition-all duration-300 ease-out
           lg:sticky lg:top-0 lg:h-screen lg:shrink-0
           ${isOpen
-            ? 'translate-x-0 w-[248px] xl:w-[256px]'
+            ? 'translate-x-0 w-[276px] xl:w-[288px]'
             : '-translate-x-full lg:translate-x-0 lg:w-0 lg:overflow-hidden lg:border-r-0'}`}
       >
-        <div className="w-[248px] xl:w-[256px] h-full crm-sidebar-panel bg-[#031d14] border-r border-emerald-950/70 shadow-[10px_0_28px_rgba(1,25,17,0.16)] flex flex-col overflow-hidden">
+        <div className="w-[276px] xl:w-[288px] h-full crm-sidebar-panel bg-[#031d14] border-r border-emerald-950/70 shadow-[10px_0_28px_rgba(1,25,17,0.16)] flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto premium-sidebar-scroll bg-[radial-gradient(circle_at_45%_12%,rgba(16,185,129,0.10),transparent_22%),linear-gradient(180deg,#073323_0%,#04271b_38%,#031d14_100%)]">
             <div className="p-3 pb-3.5">
               <div className="sidebar-brand">
@@ -181,7 +181,70 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             ['reports','Fee Reports',FileBarChart2],
                             ['audit','Payment Audit Log',History]
                           ] as const;
+
                           return (
+                            <div key={item.id} className="rounded-xl">
+                              <div
+                                className={`group relative w-full min-h-[44px] rounded-xl flex items-center transition-all duration-200 overflow-hidden
+                                  ${active
+                                    ? 'bg-[linear-gradient(135deg,#0caf72_0%,#08724c_100%)] text-white shadow-[0_9px_20px_rgba(3,104,69,0.25)] ring-1 ring-emerald-300/15'
+                                    : 'text-emerald-50/82 hover:bg-white/[0.07] hover:text-white'}`}
+                              >
+                                {active && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-emerald-200" />}
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFeeOpen(true);
+                                    setFeeTab('dashboard');
+                                    navigate('fee-management');
+                                    window.dispatchEvent(new CustomEvent('akbs-fee-tab', { detail: 'dashboard' }));
+                                  }}
+                                  className="flex-1 min-w-0 h-[44px] pl-3 pr-2 flex items-center gap-2.5 text-left"
+                                >
+                                  <span className={`${active ? 'text-white' : 'text-emerald-200/88'} shrink-0`}>{item.icon}</span>
+                                  <span className="text-[12.5px] font-semibold leading-tight whitespace-nowrap">
+                                    Revenue &amp; Fee Management
+                                  </span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setFeeOpen(v => !v)}
+                                  className="w-9 h-[44px] shrink-0 grid place-items-center hover:bg-white/10"
+                                  aria-label={feeOpen ? 'Collapse Revenue & Fee Management' : 'Expand Revenue & Fee Management'}
+                                >
+                                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${feeOpen ? 'rotate-180' : ''}`} />
+                                </button>
+                              </div>
+
+                              {feeOpen && (
+                                <div className="mt-1.5 ml-3 pl-2.5 border-l border-emerald-400/35 space-y-1">
+                                  {feeChildren.map(([tabId,label,Icon]) => (
+                                    <button
+                                      key={tabId}
+                                      type="button"
+                                      onClick={() => {
+                                        setFeeTab(tabId);
+                                        navigate('fee-management');
+                                        window.dispatchEvent(new CustomEvent('akbs-fee-tab', { detail: tabId }));
+                                      }}
+                                      className={`w-full min-h-[38px] px-2.5 rounded-lg flex items-center gap-2 text-left transition
+                                        ${active && feeTab===tabId
+                                          ? 'bg-emerald-700/55 text-white'
+                                          : 'text-emerald-50/82 hover:bg-white/[0.07] hover:text-white'}`}
+                                    >
+                                      <Icon className="w-3.5 h-3.5 shrink-0 text-emerald-200/90" />
+                                      <span className="text-[11px] leading-[1.2] font-medium whitespace-normal break-words">{label}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+
+                        return (
                             <div key={item.id} className="rounded-xl overflow-hidden">
                               <button
                                 aria-current={active ? 'page' : undefined}

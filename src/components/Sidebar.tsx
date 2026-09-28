@@ -183,60 +183,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           ] as const;
                           return (
                             <div key={item.id} className="rounded-xl overflow-hidden">
-                              <div className={`group relative w-full min-h-[42px] rounded-xl flex items-center transition-all duration-200 overflow-hidden
-                                ${active
-                                  ? 'bg-[linear-gradient(135deg,#0caf72_0%,#08724c_100%)] text-white shadow-[0_9px_20px_rgba(3,104,69,0.25)] ring-1 ring-emerald-300/15'
-                                  : 'text-emerald-50/82 hover:bg-white/[0.07] hover:text-white'}`}>
-                                {active && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-emerald-200" />}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setFeeOpen(true);
-                                    setFeeTab('dashboard');
-                                    navigate('fee-management');
-                                    window.dispatchEvent(new CustomEvent('akbs-fee-tab', { detail: 'dashboard' }));
-                                  }}
-                                  className="flex-1 min-w-0 min-h-[42px] px-3 flex items-center gap-2.5 text-left"
-                                >
-                                  <span className={`${active ? 'text-white' : 'text-emerald-200/88'} shrink-0`}>{item.icon}</span>
-                                  <span className="truncate text-[13px] font-semibold tracking-normal">{item.label}</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setFeeOpen(v => !v)}
-                                  className="shrink-0 w-9 h-[42px] grid place-items-center hover:bg-white/10"
-                                  aria-label={feeOpen ? 'Collapse Revenue & Fee Management' : 'Expand Revenue & Fee Management'}
-                                >
-                                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${feeOpen ? 'rotate-180' : ''}`} />
-                                </button>
-                              </div>
-
-                              {feeOpen && (
-                                <div className="mt-1.5 ml-2.5 pl-2.5 border-l border-emerald-400/35 space-y-1">
-                                  {feeChildren.map(([tabId,label,Icon]) => (
-                                    <button
-                                      key={tabId}
-                                      type="button"
-                                      onClick={() => {
-                                        setFeeTab(tabId);
-                                        navigate('fee-management');
-                                        window.dispatchEvent(new CustomEvent('akbs-fee-tab', { detail: tabId }));
-                                      }}
-                                      className={`w-full min-h-[36px] px-2.5 rounded-lg flex items-center gap-2 text-left text-[11.5px] transition
-                                        ${active && feeTab===tabId ? 'bg-emerald-700/55 text-white' : 'text-emerald-50/80 hover:bg-white/[0.07] hover:text-white'}`}
-                                    >
-                                      <Icon className="w-3.5 h-3.5 shrink-0 text-emerald-200/90" />
-                                      <span className="truncate">{label}</span>
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        }
-
-                        return (
-                            <div key={item.id} className="rounded-xl overflow-hidden">
                               <button
                                 aria-current={active ? 'page' : undefined}
                                 onClick={() => {

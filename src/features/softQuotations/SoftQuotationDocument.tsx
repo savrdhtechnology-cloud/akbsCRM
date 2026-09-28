@@ -89,289 +89,190 @@ const calculateEconomics = (q: SoftQuotation) => {
 export const SoftQuotationDocument: React.FC<Props> = ({ quotation, compact = false }) => {
   const economics = calculateEconomics(quotation);
   const contractReturn = calculateContractFarmingReturn(quotation);
+  const totalCost = quotation.grandTotal || quotation.costBreakup.reduce((s,i)=>s+Number(i.estimatedAmount||0),0);
+  const customerLocation = [quotation.customer.address, quotation.customer.city, quotation.customer.state, quotation.customer.country].filter(Boolean).join(', ') || quotation.projectLocation || 'Requires Confirmation';
+
   return (
     <article
       id="soft-quotation-pdf"
-      className={`sq-document bg-white text-slate-900 mx-auto shadow-[0_18px_50px_rgba(15,23,42,.10)] print:shadow-none ${compact ? 'max-w-[860px]' : 'max-w-[900px]'}`}
+      className={`sq-document bg-white text-slate-900 mx-auto shadow-[0_18px_50px_rgba(15,23,42,.10)] print:shadow-none ${compact ? 'max-w-[980px]' : 'max-w-[1080px]'}`}
     >
-      <section className="sq-page min-h-[1120px] p-10 sm:p-14 flex flex-col justify-between">
-        <div>
-          <div className="flex items-start justify-between gap-8 border-b-4 border-[#073323] pb-6">
-            <div>
-              <div className="text-[11px] uppercase tracking-[.22em] font-black text-emerald-800">AKBS Poultry Farming Private Limited</div>
-              <h1 className="mt-8 text-5xl font-black tracking-[-.045em] text-slate-950 leading-[1.02]">SOFT QUOTATION</h1>
-              <div className="mt-2 text-xl font-bold text-slate-500 tracking-[.02em]">PRELIMINARY PROJECT ESTIMATE</div>
-            </div>
-            <div className="text-right text-xs leading-6">
-              <div className="font-mono font-black text-emerald-900">{quotation.quotationNo}</div>
-              <div>Version {quotation.version}</div>
-              <div>Status: <b>{quotation.status}</b></div>
-              <div>Valid until: <b>{quotation.validUntil || 'Requires Confirmation'}</b></div>
-            </div>
+      <section className="sq-page p-8 sm:p-10">
+        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6 border-b-2 border-[#073323] pb-5">
+          <div>
+            <div className="text-2xl font-black text-[#073323]">AKBS Poultry Farming Private Limited</div>
+            <div className="mt-1 text-[11px] uppercase tracking-[.14em] font-bold text-emerald-700">Healthy Birds | Better Tomorrow</div>
+            <div className="mt-2 text-xs text-slate-500">01 Rajaram House, Bamhori, Raisen (M.P.) – 464551</div>
+            <div className="text-xs text-slate-500">akbspoultryfarming@gmail.com · www.akbspoultry.com</div>
           </div>
+          <div className="text-left lg:text-right text-xs leading-6">
+            <div className="text-[10px] uppercase tracking-[.12em] font-black text-emerald-700">Soft Project Estimate</div>
+            <div className="font-mono font-black text-slate-900">Ref: {quotation.quotationNo}</div>
+            <div>Date: {formatDate(quotation.createdAt)} · Valid: {quotation.validUntil || 'Requires Confirmation'}</div>
+          </div>
+        </div>
 
-          <div className="mt-20">
-            <div className="text-xs uppercase tracking-[.2em] font-black text-slate-400">Project</div>
-            <h2 className="mt-3 text-3xl font-black tracking-[-.035em] text-[#073323]">{quotation.projectName}</h2>
-            <div className="mt-6 grid grid-cols-2 gap-8 text-sm">
-              <div>
-                <div className="text-slate-400">Prepared for</div>
-                <div className="mt-1 text-xl font-bold">{quotation.customer.customerName || 'Requires Confirmation'}</div>
-                <div className="mt-1 text-slate-600">{quotation.customer.companyName}</div>
-                <div className="text-slate-500">{quotation.customer.city}{quotation.customer.state ? `, ${quotation.customer.state}` : ''}</div>
-              </div>
-              <div className="rounded-2xl bg-[#f1f7f4] border border-emerald-100 p-6">
-                <div className="text-slate-500">Project Capacity</div>
-                <div className="mt-1 text-2xl font-black text-[#073323]">{quotation.projectCapacity.toLocaleString('en-IN')} {quotation.projectUnit}</div>
-                <div className="mt-4 text-slate-500">Estimated Project Cost</div>
-                <div className="mt-1 text-2xl font-black text-[#073323]">{money(quotation.grandTotal)}</div>
-                <div className="mt-1 text-[10px] font-bold uppercase tracking-[.12em] text-amber-700">Indicative estimate — not final price</div>
-              </div>
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-5 grid lg:grid-cols-2 gap-6">
+          <div>
+            <div className="text-[10px] uppercase tracking-wide font-black text-slate-400">Quotation Prepared For</div>
+            <div className="mt-2 text-xl font-black">{quotation.customer.customerName || 'Requires Confirmation'}</div>
+            <div className="mt-2 text-sm text-slate-600">{quotation.customer.mobile || 'Mobile not provided'}</div>
+            <div className="text-sm text-slate-500">{customerLocation}</div>
+          </div>
+          <div className="lg:border-l lg:pl-6">
+            <div className="text-[10px] uppercase tracking-wide font-black text-slate-400">Technical Configuration</div>
+            <div className="mt-2 grid grid-cols-[1fr_auto] gap-y-2 text-sm">
+              <span className="text-slate-500">Flock Capacity</span><b>{quotation.projectCapacity.toLocaleString('en-IN')} {quotation.projectUnit}</b>
+              <span className="text-slate-500">Poultry Segment</span><b>{quotation.projectType || 'Broiler'}</b>
+              <span className="text-slate-500">Shed Type & Covered Area</span><b>{quotation.shedSize || 'Requires Confirmation'} · {quotation.coveredArea || 'Requires Confirmation'}</b>
+              <span className="text-slate-500">Technology</span><b>{quotation.technology || 'Requires Confirmation'}</b>
             </div>
           </div>
         </div>
 
-        <div>
-          <div className="grid grid-cols-3 gap-4 text-[11px] text-slate-500">
-            <div><b className="text-slate-700">Office:</b><br/>01 Rajaram House, Bamhori, Raisen (M.P.) – 464551</div>
-            <div><b className="text-slate-700">Email:</b><br/>akbspoultryfarming@gmail.com</div>
-            <div><b className="text-slate-700">Website:</b><br/>www.Akbspoultry.com</div>
-          </div>
-          <div className="mt-8 text-xs leading-6 text-slate-500 border-t pt-6">{DISCLAIMER_ONE}</div>
-        </div>
-      </section>
-
-      <section className="sq-page p-10 sm:p-14">
-        <DocHeader title="Customer Details & Project Overview" quotation={quotation} />
-        <div className="grid grid-cols-2 gap-6">
-          <InfoCard title="Customer Details" rows={[
-            ['Customer', quotation.customer.customerName],
-            ['Company', quotation.customer.companyName],
-            ['Mobile', quotation.customer.mobile],
-            ['Email', quotation.customer.email],
-            ['Contact Person', quotation.customer.contactPerson],
-            ['Address', [quotation.customer.address, quotation.customer.city, quotation.customer.state, quotation.customer.country].filter(Boolean).join(', ')],
-            ['GSTIN', quotation.customer.gstin],
-            ['Customer Type', quotation.customer.customerType]
-          ]}/>
-          <InfoCard title="Project Overview" rows={[
-            ['Project Type', quotation.projectType],
-            ['Location', quotation.projectLocation],
-            ['Capacity', `${quotation.projectCapacity.toLocaleString('en-IN')} ${quotation.projectUnit}`],
-            ['Shed Size', quotation.shedSize],
-            ['Covered Area', quotation.coveredArea],
-            ['Technology', quotation.technology],
-            ['Timeline', quotation.expectedCompletionTimeline]
-          ]}/>
-        </div>
-        <SectionTitle>Project Overview</SectionTitle>
-        <p className="text-sm leading-7 text-slate-600 whitespace-pre-wrap">{quotation.projectOverview || 'Requires Confirmation'}</p>
-
-        <SectionTitle>AKBS Scope of Services / Project Support</SectionTitle>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-2">
-          {quotation.scopeOfWork.map((item, index) => <CheckLine key={index}>{item}</CheckLine>)}
-        </div>
-      </section>
-
-      <section className="sq-page p-10 sm:p-14">
-        <DocHeader title="Technical Specifications" quotation={quotation} />
-        <SpecBlock title="Civil & Structural Specifications" items={quotation.technicalSpecifications.shed}/>
-        <SpecBlock title="Environment Control System" items={quotation.technicalSpecifications.environmentControl}/>
-        <SpecBlock title="Automation & Equipment" items={quotation.technicalSpecifications.automation}/>
-      </section>
-
-      <section className="sq-page p-10 sm:p-14">
-        <DocHeader title="Cost Estimate" quotation={quotation} />
+        <SectionTitle>Itemized Scope & Cost Breakdown</SectionTitle>
         <div className="rounded-xl overflow-hidden border border-slate-200">
           <table className="w-full text-sm border-collapse">
             <thead className="bg-[#073323] text-white">
-              <tr><th className="p-3 text-left w-12">#</th><th className="p-3 text-left">Component</th><th className="p-3 text-right w-44">Estimated Amount</th></tr>
+              <tr>
+                <th className="p-3 text-left w-12">#</th>
+                <th className="p-3 text-left">Scope of Work & Technical Specification</th>
+                <th className="p-3 text-center w-40">Qty / Dim</th>
+                <th className="p-3 text-right w-44">Estimated Amount</th>
+              </tr>
             </thead>
             <tbody>
-              {quotation.costBreakup.map((item, index) => (
+              {quotation.costBreakup.map((item,index)=>(
                 <tr key={item.id} className="border-b last:border-b-0">
-                  <td className="p-3 font-mono text-slate-400">{String(index + 1).padStart(2, '0')}</td>
-                  <td className="p-3"><div className="font-bold">{item.component}</div>{item.description && <div className="text-xs text-slate-500 mt-1">{item.description}</div>}</td>
-                  <td className="p-3 text-right font-mono font-bold">{money(item.estimatedAmount)}</td>
+                  <td className="p-3 font-mono text-slate-400">{String(index+1).padStart(2,'0')}</td>
+                  <td className="p-3">
+                    <div className="font-bold">{item.component}</div>
+                    <div className="mt-1 text-xs text-slate-500">{item.description || 'As per approved AKBS preliminary template and final site requirements.'}</div>
+                  </td>
+                  <td className="p-3 text-center font-mono text-slate-600">{item.quantity || item.unit || 'Lump Sum'}</td>
+                  <td className="p-3 text-right font-mono font-black">{money(item.estimatedAmount)}</td>
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr className="bg-emerald-50">
+                <td colSpan={3} className="p-4 text-right font-black text-[#073323]">TOTAL ESTIMATED PROJECT OUTLAY</td>
+                <td className="p-4 text-right font-mono text-xl font-black text-[#073323]">{money(totalCost)}</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
-        <div className="mt-5 ml-auto max-w-md text-sm">
-          <TotalLine label="Subtotal" value={quotation.subtotal}/>
-          <TotalLine label={`Tax / GST (${quotation.gstPercent || 0}%)`} value={quotation.taxAmount}/>
-          <TotalLine label="Other Charges" value={quotation.otherCharges}/>
-          <TotalLine label="Discount" value={-quotation.discount}/>
-          <div className="mt-2 flex justify-between rounded-xl bg-[#073323] text-white p-4 text-lg font-black"><span>Estimated Project Cost</span><span>{money(quotation.grandTotal)}</span></div>
-          <div className="mt-2 text-[10px] text-right font-bold uppercase tracking-[.12em] text-amber-700">Estimated Project Cost — not a final price</div>
-        </div>
 
-        <SectionTitle>Cost Explanation</SectionTitle>
-        <p className="text-sm leading-7 text-slate-600">{quotation.commercialNotes || 'Cost components are indicative and editable. Final commercial pricing requires confirmation by an authorized AKBS manager.'}</p>
+        <div className="mt-6 rounded-2xl bg-[#073323] text-white p-5">
+          <div className="flex items-center justify-between gap-4 border-b border-emerald-700 pb-3">
+            <div className="font-black">Bank Loan Structuring & Feasibility</div>
+            <div className="text-[10px] rounded-md bg-emerald-700 px-2 py-1 font-mono">General (25%)</div>
+          </div>
+          <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <DarkMetric label="Total Project Cost" value={money(totalCost)}/>
+            <DarkMetric label="Indicative Margin (25%)" value={money(totalCost*0.25)}/>
+            <DarkMetric label="Indicative Loan (75%)" value={money(totalCost*0.75)}/>
+            <DarkMetric label="Project Capacity" value={`${quotation.projectCapacity.toLocaleString('en-IN')} ${quotation.projectUnit}`}/>
+          </div>
+        </div>
 
         {contractReturn && (
-          <>
-            <SectionTitle>Indicative Contract Farming Return</SectionTitle>
-            <div className="rounded-2xl border border-emerald-200 bg-[#073323] text-white p-5">
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="rounded-xl border border-white/15 bg-white/5 p-4">
-                  <div className="text-[10px] uppercase tracking-wide text-emerald-200 font-bold">Project Investment</div>
-                  <div className="mt-1 text-lg font-black">{money(contractReturn.investment)}</div>
-                </div>
-                <div className="rounded-xl border border-white/15 bg-white/5 p-4">
-                  <div className="text-[10px] uppercase tracking-wide text-emerald-200 font-bold">Lots / Year</div>
-                  <div className="mt-1 text-lg font-black">{contractReturn.lotsLow}–{contractReturn.lotsHigh} Lots</div>
-                </div>
-                <div className="rounded-xl border border-white/15 bg-white/5 p-4">
-                  <div className="text-[10px] uppercase tracking-wide text-emerald-200 font-bold">Indicative Annual Earnings</div>
-                  <div className="mt-1 text-lg font-black">{money(contractReturn.annualPayoutLow)} – {money(contractReturn.annualPayoutHigh)}</div>
-                </div>
-                <div className="rounded-xl border border-amber-300/40 bg-amber-300/10 p-4">
-                  <div className="text-[10px] uppercase tracking-wide text-amber-200 font-bold">Indicative Gross ROI</div>
-                  <div className="mt-1 text-lg font-black text-amber-200">{contractReturn.roiLow.toFixed(1)}% – {contractReturn.roiHigh.toFixed(1)}%</div>
-                </div>
-              </div>
-
-              <div className="mt-4 rounded-xl border border-white/10 bg-black/10 p-4 text-xs leading-5 text-emerald-50">
-                <b>Calculation basis:</b> {contractReturn.capacity.toLocaleString('en-IN')} birds × average live weight {contractReturn.avgWeightLow}–{contractReturn.avgWeightHigh} kg × contract payout ₹{contractReturn.payoutLow}–₹{contractReturn.payoutHigh}/kg × {contractReturn.lotsLow}–{contractReturn.lotsHigh} lots/year.
-                This gives an indicative annual contract-farming payout range before farm-level operating expenses.
-              </div>
-
-              <div className="mt-3 rounded-xl border border-amber-300/30 bg-amber-50/10 p-4 text-[11px] leading-5 text-amber-50">
-                <b>Important:</b> This is not guaranteed net profit. Actual net profit / ROI will depend on mortality, achieved body weight, integrator settlement rate, batch utilization, electricity, labour, litter, maintenance, downtime, taxes and other farm operating costs. Final project economics should be confirmed after site assessment and commercial agreement.
-              </div>
+          <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5">
+            <div className="font-black text-[#073323]">Indicative Contract Farming Return</div>
+            <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <LightMetric label="Lots / Year" value={`${contractReturn.lotsLow}–${contractReturn.lotsHigh} Lots`}/>
+              <LightMetric label="Payout Assumption" value={`₹${contractReturn.payoutLow}–₹${contractReturn.payoutHigh}/kg`}/>
+              <LightMetric label="Approx. Annual Earnings" value={`${money(contractReturn.annualPayoutLow)} – ${money(contractReturn.annualPayoutHigh)}`}/>
+              <LightMetric label="Indicative Gross ROI" value={`${contractReturn.roiLow.toFixed(1)}% – ${contractReturn.roiHigh.toFixed(1)}%`}/>
             </div>
-          </>
+            <div className="mt-3 text-[11px] leading-5 text-slate-600">
+              Basis: {contractReturn.capacity.toLocaleString('en-IN')} birds × {contractReturn.avgWeightLow}–{contractReturn.avgWeightHigh} kg average live weight × ₹{contractReturn.payoutLow}–₹{contractReturn.payoutHigh}/kg × {contractReturn.lotsLow}–{contractReturn.lotsHigh} lots/year. This is a planning estimate, not guaranteed net profit.
+            </div>
+          </div>
         )}
-      </section>
 
-      {quotation.projectEconomics.enabled && (
-        <section className="sq-page p-10 sm:p-14">
-          <DocHeader title="Indicative Project Economics" quotation={quotation} />
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              ['Bird Capacity', valueOrConfirm(quotation.projectEconomics.birdCapacity, ' Birds')],
-              ['Batches / Year', valueOrConfirm(quotation.projectEconomics.batchesPerYear)],
-              ['Average Placement', valueOrConfirm(quotation.projectEconomics.averagePlacement)],
-              ['Mortality', valueOrConfirm(quotation.projectEconomics.mortalityPercent, '%')],
-              ['Avg. Sale Weight', valueOrConfirm(quotation.projectEconomics.averageSaleWeight, ' kg')],
-              ['Expected FCR', valueOrConfirm(quotation.projectEconomics.expectedFcr)],
-              ['Feed Consumption', valueOrConfirm(quotation.projectEconomics.feedConsumption, ' kg')],
-              ['Chick Cost', money(quotation.projectEconomics.chickCost)],
-              ['Feed Cost / kg', money(quotation.projectEconomics.feedCost)],
-              ['Medicine / Vaccine', money(quotation.projectEconomics.medicineVaccine)],
-              ['Electricity', money(quotation.projectEconomics.electricity)],
-              ['Labour', money(quotation.projectEconomics.labour)],
-              ['Expected Sale Price / kg', money(quotation.projectEconomics.expectedSalePrice)]
-            ].map(([label, value]) => <div key={label} className="rounded-xl bg-slate-50 border p-4"><div className="text-xs text-slate-400">{label}</div><div className="mt-1 font-bold">{value}</div></div>)}
-          </div>
-          <SectionTitle>Calculated Indicators</SectionTitle>
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              ['Revenue / Batch', economics ? money(economics.revenue) : 'To be confirmed'],
-              ['Operating Cost / Batch', economics ? money(economics.operating) : 'To be confirmed'],
-              ['Indicative Operating Surplus', economics ? money(economics.surplus) : 'To be confirmed'],
-              ['Annual Revenue', economics ? money(economics.annualRevenue) : 'To be confirmed'],
-              ['Annual Operating Cost', economics ? money(economics.annualOperating) : 'To be confirmed'],
-              ['Indicative Annual Surplus', economics ? money(economics.annualSurplus) : 'To be confirmed'],
-              ['Annual ROI on Project Cost', economics && economics.annualSurplus != null && quotation.grandTotal > 0 ? `${((economics.annualSurplus / quotation.grandTotal) * 100).toFixed(1)}%` : 'To be confirmed']
-            ].map(([label, value]) => <div key={label} className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4"><div className="text-xs text-slate-500">{label}</div><div className="mt-1 font-black text-emerald-900">{value}</div></div>)}
-          </div>
-          <p className="mt-8 text-xs leading-6 text-slate-500">{ECONOMICS_DISCLAIMER}</p>
-        </section>
-      )}
-
-      <section className="sq-page p-10 sm:p-14">
-        <DocHeader title="Execution, Exclusions & Commercial Terms" quotation={quotation} />
-        <SectionTitle>Execution Timeline</SectionTitle>
-        <div className="space-y-2">
-          {quotation.executionTimeline.map((stage, index) => (
-            <div key={stage.id} className="flex items-center justify-between rounded-lg border px-4 py-3 text-sm">
-              <div><span className="font-mono text-slate-400 mr-3">{String(index + 1).padStart(2, '0')}</span><b>{stage.stage}</b></div>
-              <span className="text-slate-500">{stage.estimatedDays == null ? 'Requires Confirmation' : `${stage.estimatedDays} days`}</span>
-            </div>
-          ))}
+        <SectionTitle>Project Scope & Technical Specifications</SectionTitle>
+        <div className="grid md:grid-cols-2 gap-4">
+          <SpecCard title="Civil & Structural" items={quotation.technicalSpecifications.shed}/>
+          <SpecCard title="Environment Control" items={quotation.technicalSpecifications.environmentControl}/>
+          <SpecCard title="Automation & Equipment" items={quotation.technicalSpecifications.automation}/>
+          <SpecCard title="AKBS Support Scope" items={quotation.scopeOfWork}/>
         </div>
 
-        <SectionTitle>Exclusions</SectionTitle>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-2">
-          {quotation.exclusions.map((item, index) => <div key={index} className="text-sm text-slate-600 flex gap-2"><span className="text-rose-500">—</span>{item}</div>)}
+        <SectionTitle>Commercial Terms & Conditions</SectionTitle>
+        <div className="grid md:grid-cols-2 gap-4">
+          <InfoCard rows={[
+            ['Quotation Validity', `${quotation.commercialTerms.quotationValidity || quotation.quotationValidity || 30} days`],
+            ['Payment Terms', quotation.commercialTerms.paymentTerms],
+            ['Advance', quotation.commercialTerms.advancePercent == null ? 'Requires Confirmation' : `${quotation.commercialTerms.advancePercent}%`],
+            ['Milestone Payment', quotation.commercialTerms.milestonePaymentPercent == null ? 'Requires Confirmation' : `${quotation.commercialTerms.milestonePaymentPercent}%`],
+            ['Final Payment', quotation.commercialTerms.finalPaymentPercent == null ? 'Requires Confirmation' : `${quotation.commercialTerms.finalPaymentPercent}%`],
+            ['Taxes', quotation.commercialTerms.taxes]
+          ]}/>
+          <InfoCard rows={[
+            ['Transportation', quotation.commercialTerms.transportation],
+            ['Warranty', quotation.commercialTerms.warranty],
+            ['Installation', quotation.commercialTerms.installationTerms],
+            ['Delivery', quotation.commercialTerms.deliveryTerms],
+            ['Expected Timeline', quotation.expectedCompletionTimeline],
+            ['Site Location', quotation.projectLocation || customerLocation]
+          ]}/>
         </div>
 
-        <SectionTitle>Commercial Terms</SectionTitle>
-        <InfoCard rows={[
-          ['Quotation Validity', `${quotation.commercialTerms.quotationValidity} days`],
-          ['Payment Terms', quotation.commercialTerms.paymentTerms],
-          ['Advance', quotation.commercialTerms.advancePercent == null ? 'Requires Confirmation' : `${quotation.commercialTerms.advancePercent}%`],
-          ['Milestone Payment', quotation.commercialTerms.milestonePaymentPercent == null ? 'Requires Confirmation' : `${quotation.commercialTerms.milestonePaymentPercent}%`],
-          ['Final Payment', quotation.commercialTerms.finalPaymentPercent == null ? 'Requires Confirmation' : `${quotation.commercialTerms.finalPaymentPercent}%`],
-          ['Taxes', quotation.commercialTerms.taxes],
-          ['Transportation', quotation.commercialTerms.transportation],
-          ['Warranty', quotation.commercialTerms.warranty],
-          ['Installation Terms', quotation.commercialTerms.installationTerms],
-          ['Delivery Terms', quotation.commercialTerms.deliveryTerms]
-        ]}/>
-      </section>
-
-      <section className="sq-page min-h-[1120px] p-10 sm:p-14 flex flex-col justify-between">
-        <div>
-          <DocHeader title="Important Notes, Disclaimer & Acceptance" quotation={quotation} />
-          <div className="space-y-4 text-sm leading-7 text-slate-600">
-            <p>{DISCLAIMER_ONE}</p>
-            <p>{DISCLAIMER_TWO}</p>
-            <p>All items marked “Requires Confirmation” must be confirmed before the quotation is approved or issued as a final customer-facing document.</p>
-          </div>
-
-          <SectionTitle>Customer-Friendly Summary</SectionTitle>
-          <p className="text-sm leading-7 text-slate-600 whitespace-pre-wrap">{quotation.customerFriendlySummary || 'Requires Confirmation'}</p>
-
-          <SectionTitle>Customer Acceptance</SectionTitle>
-          <div className="rounded-2xl border-2 border-dashed border-slate-200 p-6 text-sm">
-            {quotation.acceptance ? (
-              <div className="grid grid-cols-2 gap-4">
-                <div><span className="text-slate-400">Accepted by</span><div className="font-bold">{quotation.acceptance.customerName}</div></div>
-                <div><span className="text-slate-400">Version</span><div className="font-bold">Version {quotation.acceptance.acceptanceVersion}</div></div>
-                <div><span className="text-slate-400">Accepted at</span><div className="font-bold">{new Date(quotation.acceptance.acceptedAt).toLocaleString('en-IN')}</div></div>
-                <div><span className="text-slate-400">Typed Signature</span><div className="font-display text-2xl font-bold italic">{quotation.acceptance.typedSignature}</div></div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-10">
-                <div><div className="h-16 border-b"></div><div className="mt-2 text-slate-400">Customer Name / Signature</div></div>
-                <div><div className="h-16 border-b"></div><div className="mt-2 text-slate-400">Date</div></div>
-              </div>
-            )}
-          </div>
+        <SectionTitle>Important Notes</SectionTitle>
+        <div className="space-y-2 text-xs leading-6 text-slate-600">
+          <p>{DISCLAIMER_ONE}</p>
+          <p>{DISCLAIMER_TWO}</p>
+          <p>Final commercial quotation may vary after site survey, exact location, civil/site conditions, engineering design, selected equipment/material specifications, transportation, taxes and confirmed scope.</p>
         </div>
 
-        <div className="border-t pt-6 grid grid-cols-2 gap-10 text-sm">
+        <div className="mt-8 border-t pt-5 flex flex-col sm:flex-row justify-between gap-4 text-xs text-slate-500">
           <div>
-            <div className="font-bold text-slate-900">Prepared by AKBS</div>
-            <div className="text-slate-500">{quotation.createdBy}</div>
-            <div className="text-slate-400">{quotation.createdByRole}</div>
+            <b className="text-slate-800">Prepared by AKBS Poultry Farming Private Limited</b>
+            <div>{quotation.createdBy || 'AKBS Team'} · {quotation.createdByRole || 'CRM'}</div>
           </div>
-          <div className="text-right">
-            <div className="h-12"></div>
-            <div className="border-t pt-2 font-bold">Authorized Signature</div>
-            <div className="text-slate-400">No stamp is digitally implied by this document</div>
+          <div className="sm:text-right">
+            <b className="text-slate-800">Manager Approval Status</b>
+            <div>{quotation.status}</div>
           </div>
         </div>
       </section>
 
       <style>{`
-        .sq-page { break-after: page; background: white; }
-        .sq-page:last-child { break-after: auto; }
+        .sq-page { background:white; }
         @media print {
-          body * { visibility: hidden !important; }
-          #soft-quotation-pdf, #soft-quotation-pdf * { visibility: visible !important; }
-          #soft-quotation-pdf { position: absolute; inset: 0; width: 210mm; max-width: none; box-shadow: none; }
-          .sq-page { width: 210mm; min-height: 297mm; padding: 14mm 15mm !important; page-break-after: always; }
-          .sq-page:last-child { page-break-after: auto; }
+          body * { visibility:hidden !important; }
+          #soft-quotation-pdf, #soft-quotation-pdf * { visibility:visible !important; }
+          #soft-quotation-pdf { position:absolute; inset:0; width:210mm; max-width:none; box-shadow:none; }
+          .sq-page { width:210mm; padding:12mm 14mm !important; }
         }
       `}</style>
     </article>
   );
 };
+
+const DarkMetric: React.FC<{label:string;value:string}> = ({label,value}) => (
+  <div className="rounded-xl border border-white/15 bg-white/5 p-4">
+    <div className="text-[10px] uppercase tracking-wide text-emerald-200 font-bold">{label}</div>
+    <div className="mt-1 text-base font-black">{value}</div>
+  </div>
+);
+
+const LightMetric: React.FC<{label:string;value:string}> = ({label,value}) => (
+  <div className="rounded-xl border border-emerald-100 bg-white p-4">
+    <div className="text-[10px] uppercase tracking-wide text-emerald-700 font-bold">{label}</div>
+    <div className="mt-1 text-sm font-black text-slate-900">{value}</div>
+  </div>
+);
+
+const SpecCard: React.FC<{title:string;items:string[]}> = ({title,items}) => (
+  <div className="rounded-xl border border-slate-200 p-4">
+    <div className="font-black text-[#073323]">{title}</div>
+    <div className="mt-3 space-y-2">
+      {(items || []).map((item,index)=><div key={index} className="flex gap-2 text-xs text-slate-600"><span className="text-emerald-600 font-black">✓</span><span>{item}</span></div>)}
+    </div>
+  </div>
+);
 
 const DocHeader: React.FC<{ title: string; quotation: SoftQuotation }> = ({ title, quotation }) => (
   <div className="flex items-end justify-between border-b-2 border-[#073323] pb-3 mb-7">

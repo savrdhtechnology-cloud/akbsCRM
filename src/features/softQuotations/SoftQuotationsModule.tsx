@@ -39,6 +39,7 @@ import {
   saveSoftQuotation
 } from './store';
 import { SoftQuotationDocument } from './SoftQuotationDocument';
+import { useCrm } from '../../lib/crm';
 import {
   SoftQuotation,
   SoftQuotationCostItem,
@@ -73,8 +74,10 @@ export const SoftQuotationsModule: React.FC<SoftQuotationModuleProps> = ({
   onCreateCustomer,
   onConvertToProject
 }) => {
+  const crm = useCrm();
   const [route, setRoute] = useState(parseRoute);
-  const [quotes, setQuotes] = useState<SoftQuotation[]>(loadSoftQuotations);
+  const [quotes, setQuotes] = useState<SoftQuotation[]>([]);
+  const [loadingQuotes, setLoadingQuotes] = useState(true);
   const [draft, setDraft] = useState<SoftQuotation | null>(null);
   const [builderStep, setBuilderStep] = useState(1);
   const [filter, setFilter] = useState<SoftQuotationStatus | 'ALL'>('ALL');
@@ -93,9 +96,20 @@ export const SoftQuotationsModule: React.FC<SoftQuotationModuleProps> = ({
     };
   }, []);
 
+  const refreshQuotes = async () => {
+    try {
+      const data = await crm.quotation('list');
+      setQuotes(Array.isArray(data?.quotes) ? data.quotes : []);
+    } finally {
+      setLoadingQuotes(false);
+    }
+  };
+
   useEffect(() => {
-    persistSoftQuotations(quotes);
-  }, [quotes]);
+    void refreshQuotes();
+    const timer = window.setInterval(() => void refreshQuotes(), 2500);
+    return () => window.clearInterval(timer);
+  }, [crm.user.id]);
 
   useEffect(() => {
     if (route.mode !== 'builder') return;
@@ -128,6 +142,26 @@ export const SoftQuotationsModule: React.FC<SoftQuotationModuleProps> = ({
           projectName: `${(lead.birdCapacity || fresh.projectCapacity).toLocaleString('en-IN')} Birds Environment Controlled Broiler Farm`
         };
       }
+      if (currentRole === 'employee') {
+        const t = AKBS_EC_20000_TEMPLATE;
+        fresh = recalculateTotals({
+          ...fresh,
+          projectName: t.name,
+          projectType: t.projectType,
+          projectCapacity: t.capacity,
+          projectUnit: t.capacityUnit,
+          shedSize: t.shedSize,
+          coveredArea: t.coveredArea,
+          technology: t.technology,
+          technicalSpecifications: JSON.parse(JSON.stringify(t.technicalSpecifications)),
+          scopeOfWork: [...t.scopeOfWork],
+          costBreakup: t.costBreakup.map(x => ({ ...x })),
+          exclusions: [...t.exclusions],
+          executionTimeline: t.executionTimeline.map(x => ({ ...x })),
+          commercialTerms: { ...t.commercialTerms },
+          quotationValidity: t.commercialTerms.quotationValidity
+        });
+      }
       setDraft(fresh);
     }
     setBuilderStep(1);
@@ -155,34 +189,59 @@ export const SoftQuotationsModule: React.FC<SoftQuotationModuleProps> = ({
   const totalValue = quotes.filter(q => q.status !== 'ARCHIVED').reduce((sum, q) => sum + q.grandTotal, 0);
   const metric = (status: SoftQuotationStatus) => quotes.filter(q => q.status === status).length;
 
-  const persistDraft = (status?: SoftQuotationStatus) => {
+  const persistDraft = async (status?: SoftQuotationStatus) => {
     if (!draft) return;
-    const updated = status ? { ...draft, status } : draft;
-    const next = saveSoftQuotation(quotes, updated, currentUserName, currentRole);
-    setQuotes(next);
-    const saved = next.find(q => q.id === updated.id)!;
-    setDraft(JSON.parse(JSON.stringify(saved)));
-    flash(status === 'REVIEW' ? 'Quotation submitted for manager review.' : 'Quotation saved.');
+    if (!draft.customer.leadId) return flash('Select an assigned CRM lead first.');
+    try {
+      const result = await crm.quotation(status === 'REVIEW' ? 'submit_review' : 'save_draft', { quote: draft });
+      const saved = {
+        ...draft,
+        id: result.id || draft.id,
+        quotationNo: result.quotation_no || draft.quotationNo,
+        status: (result.status || status || draft.status) as SoftQuotationStatus,
+        version: result.version || draft.version
+      };
+      setDraft(saved);
+      await refreshQuotes();
+      flash(status === 'REVIEW' ? 'Quotation request sent to manager for review.' : 'Draft saved.');
+      if (status === 'REVIEW' && currentRole === 'employee') navigate('/soft-quotations');
+    } catch (e:any) {
+      flash(e.message || 'Could not save quotation.');
+    }
   };
 
-  const approveQuote = (id: string) => {
+  const approveQuote = async (id: string) => {
     if (!roleCanApprove(currentRole)) return flash('Manager or Admin approval is required.');
-    setQuotes(q => changeQuotationStatus(q, id, 'APPROVED', currentUserName, currentRole));
-    flash('Quotation approved.');
+    try {
+      await crm.quotation('approve',{id});
+      await refreshQuotes();
+      flash('Quotation approved. It is now eligible to be sent to the customer.');
+    } catch(e:any) { flash(e.message || 'Could not approve quotation.'); }
   };
 
-  const rejectQuote = (id: string) => {
+  const rejectQuote = async (id: string) => {
     if (!roleCanApprove(currentRole)) return;
-    setQuotes(q => changeQuotationStatus(q, id, 'REJECTED', currentUserName, currentRole, 'Revision requested by manager'));
-    flash('Quotation returned for revision.');
+    try {
+      await crm.quotation('reject',{id,reason:'Revision requested by manager'});
+      await refreshQuotes();
+      flash('Quotation returned to employee for revision.');
+    } catch(e:any) { flash(e.message || 'Could not reject quotation.'); }
   };
 
-  const sendQuote = (quote: SoftQuotation) => {
+  const sendQuote = async (quote: SoftQuotation) => {
+    if (currentRole === 'employee') return flash('Only Manager/Admin can send an approved quotation.');
     if (!['APPROVED', 'SENT', 'VIEWED'].includes(quote.status)) {
       return flash('Manager approval is required before sending.');
     }
-    setQuotes(q => changeQuotationStatus(q, quote.id, 'SENT', currentUserName, currentRole));
-    flash('Quotation marked as sent.');
+    if (quote.status === 'APPROVED') {
+      try {
+        await crm.quotation('mark_sent',{id:quote.id});
+        await refreshQuotes();
+      } catch(e:any) {
+        return flash(e.message || 'Could not mark quotation as sent.');
+      }
+    }
+    flash('Approved quotation ready for customer dispatch.');
   };
 
   const recordAcceptance = (quote: SoftQuotation) => {
@@ -229,7 +288,9 @@ export const SoftQuotationsModule: React.FC<SoftQuotationModuleProps> = ({
     } catch {}
   };
 
-  const sendWhatsApp = (quote: SoftQuotation) => {
+  const sendWhatsApp = async (quote: SoftQuotation) => {
+    if (currentRole === 'employee') return flash('Employee can only request a quotation. Manager approval is required before customer dispatch.');
+    if (!['APPROVED','SENT','VIEWED'].includes(quote.status)) return flash('Manager approval is required before sending.');
     const phone = quote.customer.mobile.replace(/\D/g, '');
     const normalized = phone.length === 10 ? `91${phone}` : phone;
     const message = `Dear ${quote.customer.customerName},
@@ -245,11 +306,13 @@ Acceptance link: ${shareLink(quote)}
 
 Regards,
 AKBS Poultry Farming Private Limited`;
+    await sendQuote(quote);
     window.open(`https://wa.me/${normalized}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
-    sendQuote(quote);
   };
 
-  const sendEmail = (quote: SoftQuotation) => {
+  const sendEmail = async (quote: SoftQuotation) => {
+    if (currentRole === 'employee') return flash('Employee can only request a quotation. Manager approval is required before customer dispatch.');
+    if (!['APPROVED','SENT','VIEWED'].includes(quote.status)) return flash('Manager approval is required before sending.');
     const subject = `Soft Quotation – ${quote.projectName} | ${quote.quotationNo}`;
     const body = `Dear ${quote.customer.customerName},
 
@@ -263,8 +326,8 @@ ${shareLink(quote)}
 
 Regards,
 AKBS Poultry Farming Private Limited`;
+    await sendQuote(quote);
     window.location.href = `mailto:${quote.customer.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    sendQuote(quote);
   };
 
   const downloadPdf = async (quote: SoftQuotation) => {
@@ -363,6 +426,7 @@ AKBS Poultry Farming Private Limited`;
 
   const runAi = async (action: AiAction) => {
     if (!draft) return;
+    if (currentRole === 'employee') return flash('AI analysis is available to Manager/Admin during review.');
     setAiBusy(action);
     const result = await generateAiContent(action, recalculateTotals(draft));
     setAiBusy(null);
@@ -433,14 +497,17 @@ AKBS Poultry Farming Private Limited`;
               <button onClick={() => rejectQuote(activeQuote.id)} className="btn-secondary text-rose-700"><XCircle className="w-4 h-4"/>Reject</button>
               <button onClick={() => approveQuote(activeQuote.id)} className="btn-primary"><BadgeCheck className="w-4 h-4"/>Approve</button>
             </>}
-            <button onClick={() => window.print()} className="btn-secondary"><Printer className="w-4 h-4"/>Generate PDF</button>
-            <button onClick={() => downloadPdf(activeQuote)} className="btn-secondary"><Download className="w-4 h-4"/>Download PDF</button>
-            <button onClick={() => sendWhatsApp(activeQuote)} className="btn-secondary"><Send className="w-4 h-4"/>WhatsApp</button>
-            <button onClick={() => sendEmail(activeQuote)} className="btn-secondary"><Mail className="w-4 h-4"/>Email</button>
-            <button onClick={() => shareQuote(activeQuote)} className="btn-secondary"><Share2 className="w-4 h-4"/>Share</button>
+            {currentRole !== 'employee' && <>
+              <button onClick={() => window.print()} className="btn-secondary"><Printer className="w-4 h-4"/>Generate PDF</button>
+              <button onClick={() => downloadPdf(activeQuote)} className="btn-secondary"><Download className="w-4 h-4"/>Download PDF</button>
+              <button onClick={() => sendWhatsApp(activeQuote)} className="btn-secondary"><Send className="w-4 h-4"/>WhatsApp</button>
+              <button onClick={() => sendEmail(activeQuote)} className="btn-secondary"><Mail className="w-4 h-4"/>Email</button>
+              <button onClick={() => shareQuote(activeQuote)} className="btn-secondary"><Share2 className="w-4 h-4"/>Share</button>
+            </>}
           </div>
         </div>
         {notice && <Notice>{notice}</Notice>}
+      {loadingQuotes && <div className="rounded-xl border bg-white px-4 py-3 text-sm text-slate-500">Loading shared quotation workflow…</div>}
         {activeQuote.versions?.length > 0 && (
           <div className="print:hidden rounded-xl border bg-white p-4 text-xs">
             <b>Version history:</b> {activeQuote.versions.map(v => `Version ${v.version} (${v.status})`).join(' · ')}
@@ -457,9 +524,9 @@ AKBS Poultry Farming Private Limited`;
         <div>
           <div className="text-xs uppercase tracking-[.16em] font-black text-emerald-700">Sales / Projects</div>
           <h1 className="mt-1 text-2xl sm:text-3xl font-black tracking-[-.04em] text-slate-950">Soft Quotations</h1>
-          <p className="text-sm text-slate-500 mt-1">AI-assisted preliminary project estimates with approval, versioning and customer acceptance.</p>
+          <p className="text-sm text-slate-500 mt-1">{currentRole === 'employee' ? 'Request the standard AKBS soft quotation for an assigned lead. Customer sending requires manager approval.' : 'AI-assisted preliminary project estimates with approval, versioning and customer acceptance.'}</p>
         </div>
-        <button onClick={() => navigate('/soft-quotations/new')} className="btn-primary"><Plus className="w-4 h-4"/>New Soft Quotation</button>
+        <button onClick={() => navigate('/soft-quotations/new')} className="btn-primary"><Plus className="w-4 h-4"/>{currentRole === 'employee' ? 'Request Standard Quotation' : 'New Soft Quotation'}</button>
       </div>
 
       {notice && <Notice>{notice}</Notice>}
@@ -533,13 +600,15 @@ AKBS Poultry Farming Private Limited`;
                     {actionMenu === q.id && (
                       <div className="absolute right-2 top-11 z-30 w-56 bg-white border rounded-xl shadow-xl p-1 text-xs">
                         <Action label="Duplicate quotation" icon={<Copy/>} onClick={() => { duplicateQuote(q); setActionMenu(null); }}/>
-                        <Action label="Generate / Print PDF" icon={<Printer/>} onClick={() => { navigate(`/soft-quotations/${q.id}`); setActionMenu(null); }}/>
-                        <Action label="Share secure link" icon={<Share2/>} onClick={() => shareQuote(q)}/>
-                        <Action label="Send via WhatsApp" icon={<Send/>} onClick={() => sendWhatsApp(q)}/>
-                        <Action label="Send via Email" icon={<Mail/>} onClick={() => sendEmail(q)}/>
-                        {roleCanApprove(currentRole) && q.status !== 'ACCEPTED' && <Action label="Record Customer Acceptance" icon={<CheckCircle2/>} onClick={() => recordAcceptance(q)}/>}
-                        {q.status === 'ACCEPTED' && onConvertToProject && <Action label="Convert to Project / Deal" icon={<RefreshCcw/>} onClick={() => onConvertToProject(q)}/>}
-                        <Action label="Archive" icon={<Archive/>} onClick={() => archiveQuote(q.id)} danger/>
+                        {currentRole !== 'employee' && <>
+                          <Action label="Generate / Print PDF" icon={<Printer/>} onClick={() => { navigate(`/soft-quotations/${q.id}`); setActionMenu(null); }}/>
+                          <Action label="Share secure link" icon={<Share2/>} onClick={() => shareQuote(q)}/>
+                          <Action label="Send via WhatsApp" icon={<Send/>} onClick={() => sendWhatsApp(q)}/>
+                          <Action label="Send via Email" icon={<Mail/>} onClick={() => sendEmail(q)}/>
+                          {roleCanApprove(currentRole) && q.status !== 'ACCEPTED' && <Action label="Record Customer Acceptance" icon={<CheckCircle2/>} onClick={() => recordAcceptance(q)}/>}
+                          {q.status === 'ACCEPTED' && onConvertToProject && <Action label="Convert to Project / Deal" icon={<RefreshCcw/>} onClick={() => onConvertToProject(q)}/>}
+                          <Action label="Archive" icon={<Archive/>} onClick={() => archiveQuote(q.id)} danger/>
+                        </>}
                       </div>
                     )}
                   </td>
@@ -579,7 +648,9 @@ const QuotationBuilder: React.FC<BuilderProps> = ({
   quotation, setQuotation, step, setStep, customers, leads, currentRole, aiBusy, onAi,
   onSelectCustomer, onSelectLead, onCreateCustomer, onApplyTemplate, onSave, onSubmit, onCancel, notice
 }) => {
-  const steps = ['Customer','Project','Technical & AI','Cost Estimate','Scope & Terms','Economics','Preview'];
+  const steps = currentRole === 'employee'
+    ? ['Customer','Standard Quotation','Preview']
+    : ['Customer','Project','Technical & AI','Cost Estimate','Scope & Terms','Economics','Preview'];
   const update = <K extends keyof SoftQuotation,>(key: K, value: SoftQuotation[K]) => setQuotation({ ...quotation, [key]: value });
   const updateCustomer = (key: keyof SoftQuotation['customer'], value: string) => setQuotation({ ...quotation, customer: { ...quotation.customer, [key]: value } });
   const updateCommercial = (key: keyof SoftQuotation['commercialTerms'], value: any) => setQuotation({ ...quotation, commercialTerms: { ...quotation.commercialTerms, [key]: value } });
@@ -600,8 +671,8 @@ const QuotationBuilder: React.FC<BuilderProps> = ({
               <div className="text-xs text-slate-500 mt-1 font-mono">{quotation.quotationNo} · Version {quotation.version} · {quotation.status}</div>
             </div>
             <div className="flex gap-2 flex-wrap">
-              <button onClick={onSave} className="btn-secondary"><Save className="w-4 h-4"/>Save Draft</button>
-              <button onClick={onSubmit} className="btn-primary"><Send className="w-4 h-4"/>{currentRole === 'employee' ? 'Submit for Review' : 'Save & Review'}</button>
+              {currentRole !== 'employee' && <button onClick={onSave} className="btn-secondary"><Save className="w-4 h-4"/>Save Draft</button>}
+              <button onClick={onSubmit} className="btn-primary"><Send className="w-4 h-4"/>{currentRole === 'employee' ? 'Request Manager Review' : 'Save & Review'}</button>
             </div>
           </div>
           {notice && <Notice>{notice}</Notice>}
@@ -623,7 +694,7 @@ const QuotationBuilder: React.FC<BuilderProps> = ({
                   <SectionHead title="Customer Details" subtitle="Select an existing CRM customer/lead or enter a new customer."/>
                   <div className="grid md:grid-cols-3 gap-3">
                     <label className="field md:col-span-2"><span>Existing CRM Customer</span><select onChange={e => onSelectCustomer(e.target.value)} defaultValue=""><option value="">Select customer...</option>{customers.map(c => <option key={c.id} value={c.id}>{c.name} — {c.phone}</option>)}</select></label>
-                    <button onClick={onCreateCustomer} className="btn-secondary self-end h-10"><UserPlus className="w-4 h-4"/>Create Customer</button>
+                    {currentRole !== 'employee' && <button onClick={onCreateCustomer} className="btn-secondary self-end h-10"><UserPlus className="w-4 h-4"/>Create Customer</button>}
                     <label className="field md:col-span-2"><span>Existing Lead / Application</span><select onChange={e => onSelectLead(e.target.value)} defaultValue=""><option value="">Select lead...</option>{leads.map(l => <option key={l.id} value={l.id}>{l.name} — {l.phone}</option>)}</select></label>
                   </div>
                   <div className="grid md:grid-cols-2 gap-3">
@@ -744,7 +815,7 @@ const QuotationBuilder: React.FC<BuilderProps> = ({
           </div>
         </div>
 
-        <aside className="xl:w-80 shrink-0">
+        {currentRole !== 'employee' && <aside className="xl:w-80 shrink-0">
           <div className="xl:sticky xl:top-4 bg-[#071d12] text-white rounded-2xl p-4 shadow-lg">
             <div className="flex items-center gap-2"><Bot className="w-5 h-5 text-emerald-300"/><div><div className="font-black">AI Content Assistant</div><div className="text-[10px] text-emerald-200/70">Approved CRM/template data only</div></div></div>
             <div className="mt-4 space-y-2">
@@ -761,7 +832,7 @@ const QuotationBuilder: React.FC<BuilderProps> = ({
             </div>
             {!!quotation.requiresConfirmation.length && <div className="mt-4 rounded-xl bg-amber-400/10 border border-amber-300/20 p-3"><div className="text-xs font-black text-amber-300">Requires Confirmation</div><div className="mt-2 space-y-1 text-[11px] text-amber-50/80">{quotation.requiresConfirmation.map(x=><div key={x}>• {x}</div>)}</div></div>}
           </div>
-        </aside>
+        </aside>}
       </div>
       <ModuleStyles/>
     </div>

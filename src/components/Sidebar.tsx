@@ -46,11 +46,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentSection,
   onSelectSection,
   isOpen,
+  currentRole = 'admin',
   onClose,
   onCloseMobile,
   onLogout
 }) => {
   const handleClose = onClose || onCloseMobile || (() => {});
+
+  const allowedByRole: Record<PortalRole, NavigationSection[]> = {
+    admin: ['dashboard','registrations','leads','followups','customers','partners','team-management','soft-quotations','proposals','loans','manager-portal','tasks','reports','communication','admin-control','settings'],
+    manager: ['dashboard','leads','followups','customers','soft-quotations','proposals','manager-portal','tasks','reports','communication'],
+    employee: ['dashboard','leads','followups','customers','soft-quotations','employee-portal','tasks','communication'],
+    partner: ['partner-portal']
+  };
 
   const groups: { label: string; items: NavItem[] }[] = [
     {
@@ -94,7 +102,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'settings', label: 'Settings', icon: <Settings2 className="w-[18px] h-[18px]" /> }
       ]
     }
-  ];
+  ].map(group => ({
+    ...group,
+    items: group.items.filter(item => allowedByRole[currentRole].includes(item.id))
+  })).filter(group => group.items.length > 0);
 
   const navigate = (section: NavigationSection) => {
     onSelectSection(section);

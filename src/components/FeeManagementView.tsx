@@ -228,16 +228,7 @@ export const FeeManagementView: React.FC = () => {
       </div>
     </div>
 
-    <div className="grid xl:grid-cols-[220px_minmax(0,1fr)] gap-0">
-      <aside className="bg-[#063924] text-white xl:min-h-[calc(100vh-120px)] p-3">
-        <div className="text-[9px] uppercase tracking-[0.18em] text-emerald-200/60 px-2 py-2">Revenue & Collections</div>
-        <div className="space-y-1">
-          {tabs.map(([id,label,Icon])=><button key={id} onClick={()=>setTab(id)} className={`w-full min-h-10 px-3 rounded-lg flex items-center gap-2 text-left text-[11px] font-semibold transition ${tab===id?'bg-emerald-700 text-white':'text-emerald-50/85 hover:bg-white/10'}`}>
-            <Icon className="w-4 h-4"/><span className="flex-1">{label}</span>{id==='verification'&&verificationRows.length>0&&<span className="min-w-5 h-5 px-1 rounded-full bg-rose-500 text-white text-[9px] grid place-items-center">{verificationRows.length}</span>}
-          </button>)}
-        </div>
-      </aside>
-
+    <div className="block">
       <main className="p-4 sm:p-5 space-y-4 min-w-0">
         {error&&<div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">{error}</div>}
         <div className="grid sm:grid-cols-2 xl:grid-cols-6 gap-3">

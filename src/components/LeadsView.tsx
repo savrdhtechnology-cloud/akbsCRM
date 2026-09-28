@@ -159,6 +159,19 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   const pagedLeads = filteredLeads.slice((safePage - 1) * perPage, safePage * perPage);
 
   const currentLead = leads.find(l => l.id === selectedLead.id) || selectedLead || leads[0];
+  const currentLeadRow = crm.leads.find(row => row.id === currentLead?.id);
+  const leadManager = crm.users.find(u => u.id === currentLeadRow?.manager_id);
+  const leadAssignee = crm.users.find(u => u.id === currentLeadRow?.assigned_to);
+  const leadAssigneeTitle =
+    leadAssignee?.profile?.role_title ||
+    (leadAssignee?.profile?.job_profile
+      ? String(leadAssignee.profile.job_profile).replaceAll('_',' ').replace(/w/g, m => m.toUpperCase())
+      : leadAssignee?.role === 'EMPLOYEE' ? 'Employee' : leadAssignee?.role || 'Unassigned');
+  const activeLeadWorkflows = crm.workflows
+    .filter(w => w.lead_id === currentLead?.id && !['COMPLETED','CANCELLED','REJECTED'].includes(w.status))
+    .sort((a,b) => new Date(a.due_at || a.created_at || 0).getTime() - new Date(b.due_at || b.created_at || 0).getTime());
+  const currentWorkItem = activeLeadWorkflows[0];
+  const currentWorkOwner = crm.users.find(u => u.id === currentWorkItem?.assignee_id);
 
   const farmLocationText = [
     currentLead?.village,
@@ -644,7 +657,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                       </span>
                     )}
                   </div>
-                  <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-1">
+                  <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-1 flex-wrap">
                     <span className="flex items-center gap-1">
                       <MapPin className="w-3 h-3 text-slate-400" />
                       {currentLead.location}
@@ -652,6 +665,20 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                     <span>•</span>
                     <span className="text-emerald-800 font-medium">
                       Source: {currentLead.source} {currentLead.source === 'Website' ? '(Customer Portal)' : ''}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-900">
+                      <Shield className="w-3 h-3" />
+                      Manager: {leadManager?.name || 'Not assigned'}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-900">
+                      <UserCheck className="w-3 h-3" />
+                      Current Owner: {leadAssignee?.name || 'Unassigned'}{leadAssignee ? ` · ${leadAssigneeTitle}` : ''}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-900">
+                      <Target className="w-3 h-3" />
+                      Lead Status: {currentLead.status}
                     </span>
                   </div>
                 </div>
@@ -834,8 +861,21 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                   </div>
                 </div>
                 <div>
-                  <span className="text-slate-400 text-[11px]">Assigned To:</span>
-                  <div className="font-semibold text-slate-900">{currentLead.assignedTo || 'Unassigned'}</div>
+                  <span className="text-slate-400 text-[11px]">Manager:</span>
+                  <div className="font-semibold text-slate-900">{leadManager?.name || 'Not assigned'}</div>
+                  <div className="text-[10px] text-slate-400">{leadManager?.profile?.role_title || (leadManager ? 'Manager' : '')}</div>
+                </div>
+                <div>
+                  <span className="text-slate-400 text-[11px]">Current Employee:</span>
+                  <div className="font-semibold text-slate-900">{leadAssignee?.name || currentLead.assignedTo || 'Unassigned'}</div>
+                  <div className="text-[10px] text-slate-400">{leadAssignee ? leadAssigneeTitle : ''}</div>
+                </div>
+                <div>
+                  <span className="text-slate-400 text-[11px]">Current Work:</span>
+                  <div className="font-semibold text-slate-900">{currentWorkItem?.title || 'No active task'}</div>
+                  <div className="text-[10px] text-slate-400">
+                    {currentWorkOwner ? `${currentWorkOwner.name} · ${currentWorkItem?.kind || ''}` : 'No active workflow owner'}
+                  </div>
                 </div>
                 <div>
                   <span className="text-slate-400 text-[11px]">Priority:</span>
@@ -849,6 +889,38 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                   <span className="text-slate-400 text-[11px]">Remarks:</span>
                   <div className="text-slate-700 bg-white p-2 rounded-lg border border-slate-200/80 mt-1">
                     {currentLead.notes || 'No notes recorded.'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Lead Ownership & Routing */}
+            <div className="rounded-xl border border-emerald-200 bg-gradient-to-r from-white via-emerald-50/30 to-white p-3.5">
+              <div className="flex items-center justify-between gap-3 border-b border-emerald-100 pb-2">
+                <div className="flex items-center gap-2 font-bold text-slate-900">
+                  <Users className="w-4 h-4 text-emerald-700" />
+                  <span>Lead Ownership & Routing</span>
+                </div>
+                <span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${getStatusBadgeStyle(currentLead.status)}`}>
+                  {currentLead.status}
+                </span>
+              </div>
+              <div className="grid sm:grid-cols-3 gap-3 mt-3 text-xs">
+                <div className="rounded-lg border border-amber-100 bg-amber-50/70 p-3">
+                  <div className="text-[10px] uppercase tracking-wide text-amber-700 font-bold">Responsible Manager</div>
+                  <div className="mt-1 font-black text-slate-900">{leadManager?.name || 'Not assigned'}</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">{leadManager?.login || ''}</div>
+                </div>
+                <div className="rounded-lg border border-blue-100 bg-blue-50/70 p-3">
+                  <div className="text-[10px] uppercase tracking-wide text-blue-700 font-bold">Current Employee</div>
+                  <div className="mt-1 font-black text-slate-900">{leadAssignee?.name || 'Unassigned'}</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">{leadAssignee ? leadAssigneeTitle : ''}</div>
+                </div>
+                <div className="rounded-lg border border-emerald-100 bg-emerald-50/70 p-3">
+                  <div className="text-[10px] uppercase tracking-wide text-emerald-700 font-bold">Active Work Item</div>
+                  <div className="mt-1 font-black text-slate-900">{currentWorkItem?.title || 'No active task'}</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">
+                    {currentWorkItem ? `${currentWorkItem.kind} · ${currentWorkOwner?.name || 'Unassigned'}` : 'Lead is currently idle'}
                   </div>
                 </div>
               </div>

@@ -23,6 +23,7 @@ type PortalContextValue = Snapshot & {
   deleteDraft: (requestId: string) => Promise<any>;
   sendPaymentReceipt: (applicationId: string) => Promise<any>;
   submitPaymentProof: (applicationId: string, reference: string, file?: { name: string; type: string; data: string } | null) => Promise<any>;
+  getFeeConfig: () => Promise<any>;
 };
 
 const PortalContext = createContext<PortalContextValue | null>(null);
@@ -126,6 +127,10 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
     if (!response.ok) throw new Error(result?.error || result?.message || 'Payment proof could not be submitted.');
     return result;
   }
+  async function getFeeConfig() {
+    return rpcCall('akbs_fee_public_config', {});
+  }
+
 
   async function timeline(leadId: string) {
     if (!sessionToken) throw new Error('Verify your email OTP first.');
@@ -337,7 +342,7 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
 
   if (sessionToken && snapshot?.enrolled) {
     return (
-      <PortalContext.Provider value={{ ...snapshot, rpc: portalRpc, refresh: () => portalRpc('snapshot'), timeline, loadDraft, saveDraft, deleteDraft, sendPaymentReceipt, submitPaymentProof }}>
+      <PortalContext.Provider value={{ ...snapshot, rpc: portalRpc, refresh: () => portalRpc('snapshot'), timeline, loadDraft, saveDraft, deleteDraft, sendPaymentReceipt, submitPaymentProof, getFeeConfig }}>
         {error && <p role="alert" className="bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
         {children}
       </PortalContext.Provider>

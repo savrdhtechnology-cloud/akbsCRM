@@ -14,6 +14,7 @@ export const TeamManagementView: React.FC = () => {
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState('');
   const [message, setMessage] = useState('');
+  const [expandedPerformanceId, setExpandedPerformanceId] = useState('');
   const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
   const [employeeForm, setEmployeeForm] = useState({
@@ -56,19 +57,72 @@ export const TeamManagementView: React.FC = () => {
       .filter(Boolean).some(v=>String(v).toLowerCase().includes(q));
   });
 
-  const employeeMetrics = (userId:string) => {
-    const assigned = crm.leads.filter(l => l.assigned_to===userId);
-    const converted = assigned.filter(l => l.stage==='CONVERTED').length;
-    const tasks = crm.workflows.filter(w => w.assignee_id===userId && w.kind==='task');
+  const employeeMetrics = (user:any) => {
+    const ownedLeads = user.role==='MANAGER'
+      ? crm.leads.filter(l => l.manager_id===user.id)
+      : crm.leads.filter(l => l.assigned_to===user.id);
+
+    const teamIds = user.role==='MANAGER'
+      ? crm.users.filter(member => member.manager_id===user.id).map(member => member.id)
+      : [user.id];
+
+    const workflows = crm.workflows.filter(w =>
+      teamIds.includes(w.assignee_id) &&
+      ownedLeads.some(l => l.id===w.lead_id)
+    );
+
+    const followups = workflows.filter(w => w.kind==='followup');
+    const tasks = workflows.filter(w => w.kind==='task');
+    const visits = workflows.filter(w => w.kind==='visit');
+
+    const completedFollowups = followups.filter(w => w.status==='COMPLETED').length;
     const completedTasks = tasks.filter(w => w.status==='COMPLETED').length;
-    const visits = crm.workflows.filter(w => w.assignee_id===userId && w.kind==='visit');
     const completedVisits = visits.filter(w => w.status==='COMPLETED').length;
-    const scoreParts:number[]=[];
-    if(assigned.length) scoreParts.push((converted/assigned.length)*100);
-    if(tasks.length) scoreParts.push((completedTasks/tasks.length)*100);
-    if(visits.length) scoreParts.push((completedVisits/visits.length)*100);
-    const score=scoreParts.length ? Math.round(scoreParts.reduce((a,b)=>a+b,0)/scoreParts.length) : 0;
-    return {assigned:assigned.length,converted,completedTasks,totalTasks:tasks.length,completedVisits,totalVisits:visits.length,score};
+
+    const converted = ownedLeads.filter(l => l.stage==='CONVERTED').length;
+    const newLeads = ownedLeads.filter(l => l.stage==='NEW').length;
+    const contacted = ownedLeads.filter(l => l.stage==='CONTACTED').length;
+    const qualified = ownedLeads.filter(l => l.stage==='QUALIFIED').length;
+    const siteVisit = ownedLeads.filter(l => l.stage==='SITE_VISIT').length;
+    const proposal = ownedLeads.filter(l => ['DPR','PROPOSAL','LOAN_PROCESSING'].includes(l.stage)).length;
+
+    const conversionScore = ownedLeads.length ? (converted/ownedLeads.length)*100 : 0;
+    const followupScore = followups.length ? (completedFollowups/followups.length)*100 : (ownedLeads.length ? Math.min(100,(contacted+qualified+converted)/ownedLeads.length*100) : 0);
+    const taskScore = tasks.length ? (completedTasks/tasks.length)*100 : 0;
+    const visitScore = visits.length ? (completedVisits/visits.length)*100 : 0;
+
+    const activeWeights = [
+      {value:conversionScore,weight:40,active:ownedLeads.length>0},
+      {value:followupScore,weight:25,active:followups.length>0 || ownedLeads.length>0},
+      {value:taskScore,weight:20,active:tasks.length>0},
+      {value:visitScore,weight:15,active:visits.length>0}
+    ].filter(x=>x.active);
+
+    const score = activeWeights.length
+      ? Math.round(activeWeights.reduce((sum,x)=>sum+(x.value*x.weight),0) / activeWeights.reduce((sum,x)=>sum+x.weight,0))
+      : 0;
+
+    return {
+      assigned:ownedLeads.length,
+      newLeads,
+      contacted,
+      qualified,
+      siteVisit,
+      proposal,
+      converted,
+      completedFollowups,
+      totalFollowups:followups.length,
+      completedTasks,
+      totalTasks:tasks.length,
+      completedVisits,
+      totalVisits:visits.length,
+      score,
+      conversionScore:Math.round(conversionScore),
+      followupScore:Math.round(followupScore),
+      taskScore:Math.round(taskScore),
+      visitScore:Math.round(visitScore),
+      teamSize:user.role==='MANAGER' ? teamIds.length : 0
+    };
   };
 
   const updateStaff = async (u:any, active:boolean) => {
@@ -244,7 +298,7 @@ export const TeamManagementView: React.FC = () => {
         {tab==='employees' ? (
           <div className="p-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
             {visibleStaff.map(u=>{
-              const m=employeeMetrics(u.id);
+              const m=employeeMetrics(u);
               return (
                 <div key={u.id} className="rounded-2xl border border-slate-200 p-4 bg-white hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between gap-3">
@@ -259,11 +313,20 @@ export const TeamManagementView: React.FC = () => {
                     <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${u.active?'bg-emerald-100 text-emerald-800':'bg-rose-100 text-rose-800'}`}>{u.active?'ACTIVE':'TERMINATED'}</span>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-2 mt-4">
-                    <Metric label="Assigned Leads" value={m.assigned}/>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+                    <Metric label={u.role==='MANAGER' ? 'Team Leads' : 'Assigned Leads'} value={m.assigned}/>
                     <Metric label="Converted" value={m.converted}/>
+                    <Metric label="Follow-ups" value={`${m.completedFollowups}/${m.totalFollowups}`}/>
                     <Metric label="Tasks Done" value={`${m.completedTasks}/${m.totalTasks}`}/>
-                    <Metric label="Visits Done" value={`${m.completedVisits}/${m.totalVisits}`}/>
+                  </div>
+
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-2">
+                    <MiniMetric label="New" value={m.newLeads}/>
+                    <MiniMetric label="Contacted" value={m.contacted}/>
+                    <MiniMetric label="Qualified" value={m.qualified}/>
+                    <MiniMetric label="Site Visit" value={m.siteVisit}/>
+                    <MiniMetric label="Proposal/DPR" value={m.proposal}/>
+                    <MiniMetric label="Visits Done" value={`${m.completedVisits}/${m.totalVisits}`}/>
                   </div>
 
                   <div className="mt-4 rounded-xl bg-slate-50 border border-slate-100 p-3">
@@ -272,7 +335,30 @@ export const TeamManagementView: React.FC = () => {
                       <span className="font-black text-emerald-800">{m.score}%</span>
                     </div>
                     <div className="h-2 bg-slate-200 rounded-full overflow-hidden mt-2"><div className="h-full bg-emerald-600 transition-all" style={{width:`${m.score}%`}}/></div>
-                    <p className="text-[9px] text-slate-400 mt-1.5">Calculated from lead conversion, completed tasks and completed site visits.</p>
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <p className="text-[9px] text-slate-400">Weighted from conversion, follow-ups, tasks and site visits.</p>
+                      <button
+                        type="button"
+                        onClick={()=>setExpandedPerformanceId(expandedPerformanceId===u.id?'':u.id)}
+                        className="text-[10px] font-black text-emerald-700 hover:text-emerald-900"
+                      >
+                        {expandedPerformanceId===u.id?'Hide Details':'View Performance'}
+                      </button>
+                    </div>
+
+                    {expandedPerformanceId===u.id && (
+                      <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-200 pt-3">
+                        <ScoreLine label="Lead Conversion" value={m.conversionScore} weight="40%"/>
+                        <ScoreLine label="Follow-up Completion" value={m.followupScore} weight="25%"/>
+                        <ScoreLine label="Task Completion" value={m.taskScore} weight="20%"/>
+                        <ScoreLine label="Site Visit Completion" value={m.visitScore} weight="15%"/>
+                        {u.role==='MANAGER' && (
+                          <div className="col-span-2 rounded-lg bg-white border border-slate-200 px-3 py-2 text-[10px] text-slate-600">
+                            <b>Managed Team:</b> {m.teamSize} employee(s) · <b>Team Leads:</b> {m.assigned} · <b>Converted:</b> {m.converted}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2 justify-end">
@@ -464,4 +550,6 @@ export const TeamManagementView: React.FC = () => {
 
 const Stat=({label,value,icon}:{label:string;value:any;icon:React.ReactNode})=><div className="rounded-xl bg-white border border-slate-200 p-3 shadow-sm"><div className="flex items-center gap-2 text-slate-500 [&>svg]:w-4 [&>svg]:h-4">{icon}<span className="text-[10px] font-bold uppercase tracking-wide">{label}</span></div><div className="mt-1 text-xl font-black text-slate-900">{value}</div></div>;
 const Metric=({label,value}:{label:string;value:any})=><div className="rounded-xl bg-slate-50 border border-slate-100 px-2 py-2 text-center"><div className="text-[9px] text-slate-400">{label}</div><div className="text-sm font-black text-slate-800 mt-0.5">{value}</div></div>;
+const MiniMetric=({label,value}:{label:string;value:any})=><div className="rounded-lg bg-white border border-slate-200 px-2 py-2 text-center"><div className="text-[8px] uppercase tracking-wide text-slate-400">{label}</div><div className="text-xs font-black text-slate-800 mt-0.5">{value}</div></div>;
+const ScoreLine=({label,value,weight}:{label:string;value:number;weight:string})=><div className="rounded-lg bg-white border border-slate-200 p-2.5"><div className="flex items-center justify-between gap-2 text-[9px]"><span className="font-bold text-slate-600">{label}</span><span className="text-slate-400">{weight}</span></div><div className="mt-1 text-sm font-black text-slate-900">{value}%</div></div>;
 const TabButton=({active,onClick,icon,children}:{active:boolean;onClick:()=>void;icon:React.ReactNode;children:React.ReactNode})=><button onClick={onClick} className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors [&>svg]:w-4 [&>svg]:h-4 ${active?'bg-[#0b3824] text-white':'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{icon}{children}</button>;

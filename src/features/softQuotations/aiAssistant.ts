@@ -67,21 +67,8 @@ export const deterministicAi = (action: AiAction, quotation: SoftQuotation) => {
 };
 
 export const generateAiContent = async (action: AiAction, quotation: SoftQuotation) => {
-  try {
-    const response = await fetch('/api/soft-quotation-ai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action,
-        quotation,
-        approvedTemplate: AKBS_EC_20000_TEMPLATE
-      })
-    });
-    if (!response.ok) throw new Error('AI service unavailable');
-    const data = await response.json();
-    if (!data || data.error) throw new Error(data?.error || 'AI service unavailable');
-    return data;
-  } catch {
-    return deterministicAi(action, quotation);
-  }
+  // AKBS Analyzer is intentionally deterministic. It uses only the approved
+  // quotation template and the values already present in the CRM quotation.
+  // No generative AI or external model call is used here.
+  return deterministicAi(action, quotation);
 };

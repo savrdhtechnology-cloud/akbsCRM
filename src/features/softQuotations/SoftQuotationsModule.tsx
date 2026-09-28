@@ -323,22 +323,57 @@ export const SoftQuotationsModule: React.FC<SoftQuotationModuleProps> = ({
     if (currentRole !== 'employee') return;
     if (!['APPROVED','SENT','VIEWED'].includes(quote.status)) return;
 
-    const summary = `AKBS Poultry Farming – Approved Soft Project Estimate
+    const projectCost = Number(quote.grandTotal || 0);
+    const indicativeMargin = projectCost * 0.25;
+    const indicativeLoan = projectCost * 0.75;
+    const lotsLow = 6;
+    const lotsHigh = 7;
+    const weightLow = 2.25;
+    const weightHigh = 2.5;
+    const payoutLow = 13;
+    const payoutHigh = 15;
+    const annualLow = Number(quote.projectCapacity || 0) * weightLow * payoutLow * lotsLow;
+    const annualHigh = Number(quote.projectCapacity || 0) * weightHigh * payoutHigh * lotsHigh;
+    const roiLow = projectCost > 0 ? (annualLow / projectCost) * 100 : 0;
+    const roiHigh = projectCost > 0 ? (annualHigh / projectCost) * 100 : 0;
 
-Customer: ${quote.customer.customerName}
-Project: ${quote.projectName}
-Capacity: ${quote.projectCapacity.toLocaleString('en-IN')} ${quote.projectUnit}
-Location: ${quote.projectLocation || quote.customer.city || 'To be confirmed'}
-Approx. Project Budget: ${formatMoney(quote.grandTotal)}
-Quotation Ref: ${quote.quotationNo}
+    const costLines = (quote.costBreakup || []).map((item:any,index:number)=>{
+      const amount = Number(item.estimatedAmount ?? item.amount ?? 0);
+      return `${String(index+1).padStart(2,'0')}. ${item.component}: ${amount > 0 ? formatMoney(amount) : 'To be confirmed'}`;
+    }).join('\n');
 
-This preliminary estimate has been reviewed and approved by the AKBS manager. Final commercial quotation is subject to site survey, location/site conditions, final engineering scope, specifications, taxes, transportation and confirmed terms.
+    const summary = `*AKBS Poultry Farming – Approved Soft Project Estimate*
 
-AKBS Poultry Farming Private Limited`;
+*Customer:* ${quote.customer.customerName}
+*Quotation Ref:* ${quote.quotationNo}
+*Project:* ${quote.projectName}
+*Capacity:* ${quote.projectCapacity.toLocaleString('en-IN')} ${quote.projectUnit}
+*Location:* ${quote.projectLocation || quote.customer.city || 'To be confirmed'}
+
+*ITEMIZED SCOPE & COST BREAKDOWN*
+${costLines || 'Detailed component costing: To be confirmed'}
+
+*Total Estimated Project Cost:* ${formatMoney(projectCost)}
+
+*FINANCING / FEASIBILITY*
+• Indicative Promoter Margin (25%): ${formatMoney(indicativeMargin)}
+• Indicative Bank Loan (75%): ${formatMoney(indicativeLoan)}
+• Subsidy: Subject to applicable scheme eligibility and approval
+
+*INDICATIVE CONTRACT FARMING RETURNS*
+• Lots per year: ${lotsLow}–${lotsHigh}
+• Avg. live weight assumption: ${weightLow}–${weightHigh} kg/bird
+• Payout assumption: ₹${payoutLow}–₹${payoutHigh}/kg
+• Approx. annual contract earnings: ${formatMoney(annualLow)} – ${formatMoney(annualHigh)}
+• Indicative gross ROI: ${roiLow.toFixed(1)}% – ${roiHigh.toFixed(1)}%
+
+*Important:* This is a preliminary project estimate for planning. Final project cost, subsidy eligibility, bank finance, commercial terms and net profit depend on site survey, engineering scope, lender/scheme approval, taxes, transport, operating costs and confirmed integrator terms.
+
+*AKBS Poultry Farming Private Limited*`;
 
     try {
       await navigator.clipboard.writeText(summary);
-      flash('Approved quotation summary copied. You can paste it into WhatsApp.');
+      flash('Full approved quotation copied in WhatsApp format.');
     } catch {
       flash('Could not copy automatically. Please try again.');
     }

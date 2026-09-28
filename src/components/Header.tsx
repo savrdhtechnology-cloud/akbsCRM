@@ -298,12 +298,12 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500"></span>
         </button>
 
-        {/* Portal Role Switcher */}
+        {/* Logged-in role / Admin portal switcher */}
         <div className="relative" ref={portalMenuRef}>
           <button
-            onClick={() => setIsPortalMenuOpen(!isPortalMenuOpen)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all shadow-xs bg-slate-50 hover:bg-slate-100 border-slate-300 text-slate-800"
-            title="Switch User Portal"
+            onClick={() => { if (crm.user.role === 'ADMIN') setIsPortalMenuOpen(!isPortalMenuOpen); }}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all shadow-xs bg-slate-50 border-slate-300 text-slate-800"
+            title={crm.user.role === 'ADMIN' ? 'Switch User Portal' : 'Your assigned portal'}
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="hidden md:inline text-[11px] text-slate-500 font-normal">Portal:</span>
@@ -313,10 +313,10 @@ export const Header: React.FC<HeaderProps> = ({
               {currentRole === 'employee' && 'Employee'}
               {currentRole === 'partner' && 'Partner'}
             </span>
-            <ChevronDown className="w-3 h-3 text-slate-500" />
+            {crm.user.role === 'ADMIN' && <ChevronDown className="w-3 h-3 text-slate-500" />}
           </button>
 
-          {isPortalMenuOpen && (
+          {isPortalMenuOpen && crm.user.role === 'ADMIN' && (
             <div className="absolute right-0 top-full mt-1.5 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
               <div className="px-3.5 pb-2 border-b border-slate-100">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -434,17 +434,14 @@ export const Header: React.FC<HeaderProps> = ({
             <div className={`w-8 h-8 rounded-full text-white flex items-center justify-center font-bold text-xs shadow-xs ${
               currentRole === 'admin' ? 'bg-[#0b2818]' : currentRole === 'manager' ? 'bg-amber-700' : currentRole === 'employee' ? 'bg-blue-700' : 'bg-purple-700'
             }`}>
-              {currentRole === 'admin' ? 'S' : currentRole === 'manager' ? 'M' : currentRole === 'employee' ? 'V' : 'P'}
+              {(crm.user.name || crm.user.role || 'U').slice(0,1).toUpperCase()}
             </div>
             <div className="hidden md:block">
               <div className="text-xs font-bold text-slate-900 leading-tight">
-                {currentRole === 'admin' && crm.user.name}
-                {currentRole === 'manager' && 'Suresh Verma'}
-                {currentRole === 'employee' && 'Vikash Kumar'}
-                {currentRole === 'partner' && 'Venky\'s / Partner'}
+                {crm.user.name}
               </div>
               <div className="text-[10px] text-emerald-700 font-semibold leading-tight capitalize">
-                {currentRole === 'admin' ? 'Admin • Grow Farmers Grow India' : `${currentRole} Portal`}
+                {crm.user.profile?.role_title || `${crm.user.role.charAt(0)}${crm.user.role.slice(1).toLowerCase()} Portal`}
               </div>
             </div>
             <ChevronDown className="w-3 h-3 text-slate-400 hidden md:block" />
@@ -453,34 +450,34 @@ export const Header: React.FC<HeaderProps> = ({
           {isProfileOpen && (
             <div className="absolute right-0 top-full mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
               <div className="px-3.5 py-2 border-b border-slate-100">
-                <p className="font-bold text-slate-900">AKBS Poultry Farming</p>
-                <p className="text-[10px] text-slate-500 truncate">admin@akbspoultry.com</p>
+                <p className="font-bold text-slate-900">{crm.user.name}</p>
+                <p className="text-[10px] text-slate-500 truncate">{crm.user.login}</p>
               </div>
-              <button
+              {crm.user.role === 'ADMIN' && (              <button
                 onClick={() => { onSelectSection('admin-control'); setIsProfileOpen(false); }}
                 className="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-slate-100 transition-colors flex items-center gap-2 font-medium"
               >
                 <KeyRound className="w-3.5 h-3.5 text-emerald-700" />
                 <span>Admin Portals & Roles</span>
-              </button>
-              <button
+              </button>)}
+              {crm.user.role === 'ADMIN' && (              <button
                 onClick={() => { onSelectSection('settings'); setIsProfileOpen(false); }}
                 className="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-slate-100 transition-colors"
               >
                 Company Profile & Mandi Rates
-              </button>
-              <button
+              </button>)}
+              {crm.user.role === 'ADMIN' && (              <button
                 onClick={() => { onSelectSection('employees'); setIsProfileOpen(false); }}
                 className="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-slate-100 transition-colors"
               >
                 Staff Directory & Sales Team
-              </button>
-              <button
+              </button>)}
+              {crm.user.role === 'ADMIN' && (              <button
                 onClick={() => { onSelectSection('partners'); setIsProfileOpen(false); }}
                 className="w-full px-3.5 py-2 text-left text-slate-700 hover:bg-slate-100 transition-colors"
               >
                 Suppliers & Hatcheries
-              </button>
+              </button>)}
             </div>
           )}
         </div>

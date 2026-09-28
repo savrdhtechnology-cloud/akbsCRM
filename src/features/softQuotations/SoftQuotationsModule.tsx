@@ -577,11 +577,17 @@ AKBS Poultry Farming Private Limited`;
             )}
 
             {currentRole === 'employee' ? (
-              ['APPROVED','SENT','VIEWED'].includes(activeQuote.status) ? (
+              ['APPROVED','SENT','VIEWED'].includes(activeQuote.status) ? <>
+                <button onClick={() => downloadPdf(activeQuote)} className="btn-secondary">
+                  <Download className="w-4 h-4"/>Download PDF
+                </button>
+                <button onClick={() => shareQuote(activeQuote)} className="btn-secondary">
+                  <Share2 className="w-4 h-4"/>Share (WhatsApp / Email)
+                </button>
                 <button onClick={() => copyEmployeeApprovedSummary(activeQuote)} className="btn-primary">
                   <Copy className="w-4 h-4"/>Copy Summary
                 </button>
-              ) : null
+              </> : null
             ) : ['APPROVED','SENT','VIEWED','ACCEPTED'].includes(activeQuote.status) ? <>
               <button onClick={() => window.print()} className="btn-secondary"><Printer className="w-4 h-4"/>Generate PDF</button>
               <button onClick={() => downloadPdf(activeQuote)} className="btn-secondary"><Download className="w-4 h-4"/>Download PDF</button>
@@ -670,7 +676,7 @@ AKBS Poultry Farming Private Limited`;
             <div className="text-[10px] uppercase tracking-wide font-bold text-emerald-700">Approved Quotations</div>
             <div className="mt-1 text-2xl font-black text-emerald-950">{employeeApprovedQuotes.length}</div>
             <div className="mt-1 text-[11px] text-emerald-800/80">
-              Only approved quotations can show Copy Summary.
+              Only manager-approved quotations can be opened, downloaded as PDF and shared.
             </div>
           </div>
         </div>
@@ -797,9 +803,12 @@ AKBS Poultry Farming Private Limited`;
                       <div className="absolute right-2 top-11 z-30 w-56 bg-white border rounded-xl shadow-xl p-1 text-xs">
                         {currentRole !== 'employee' && <Action label="Duplicate quotation" icon={<Copy/>} onClick={() => { duplicateQuote(q); setActionMenu(null); }}/>}
                         {currentRole === 'employee' ? (
-                          ['APPROVED','SENT','VIEWED'].includes(q.status)
-                            ? <Action label="Copy Summary" icon={<Copy/>} onClick={() => { void copyEmployeeApprovedSummary(q); setActionMenu(null); }}/>
-                            : null
+                          ['APPROVED','SENT','VIEWED'].includes(q.status) ? <>
+                            <Action label="Open Approved Quotation" icon={<Eye/>} onClick={() => { navigate(`/soft-quotations/${q.id}`); setActionMenu(null); }}/>
+                            <Action label="Download PDF" icon={<Download/>} onClick={() => { navigate(`/soft-quotations/${q.id}`); setActionMenu(null); }}/>
+                            <Action label="Share (WhatsApp / Email)" icon={<Share2/>} onClick={() => { void shareQuote(q); setActionMenu(null); }}/>
+                            <Action label="Copy Summary" icon={<Copy/>} onClick={() => { void copyEmployeeApprovedSummary(q); setActionMenu(null); }}/>
+                          </> : null
                         ) : <>
                           <Action label="Generate / Print PDF" icon={<Printer/>} onClick={() => { navigate(`/soft-quotations/${q.id}`); setActionMenu(null); }}/>
                           <Action label="Share secure link" icon={<Share2/>} onClick={() => shareQuote(q)}/>
@@ -882,7 +891,7 @@ const QuotationBuilder: React.FC<BuilderProps> = ({
             </p>
           </div>
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-900">
-            After manager approval, employee will only get a Copy Summary option. PDF, email, direct WhatsApp and share controls remain locked.
+            After manager approval, the exact manager-approved quotation becomes available to the employee with PDF download, Share and Copy Summary options.
           </div>
         </div>
 

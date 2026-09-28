@@ -231,9 +231,15 @@ export const FeeManagementView: React.FC = () => {
     <div className="block">
       <main className="p-4 sm:p-5 space-y-4 min-w-0">
         {error&&<div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">{error}</div>}
-        <div className="grid sm:grid-cols-2 xl:grid-cols-6 gap-3">
-          {summaryCards.map(([label,value,Icon,cls])=><div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-            <div className="flex items-center gap-3"><div className={`w-10 h-10 rounded-xl grid place-items-center ${cls}`}><Icon className="w-5 h-5"/></div><div><div className="text-[10px] font-bold text-slate-600">{label}</div><div className="mt-1 text-lg font-black text-slate-950">{value}</div></div></div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3">
+          {summaryCards.map(([label,value,Icon,cls])=><div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm min-h-[96px]">
+            <div className="flex items-center gap-3 h-full">
+              <div className={`w-10 h-10 rounded-xl grid place-items-center ${cls} shrink-0`}><Icon className="w-5 h-5"/></div>
+              <div className="min-w-0">
+                <div className="text-[10px] leading-4 font-bold text-slate-600">{label}</div>
+                <div className="mt-1 text-[16px] 2xl:text-lg leading-tight font-black text-slate-950 whitespace-nowrap">{value}</div>
+              </div>
+            </div>
           </div>)}
         </div>
 

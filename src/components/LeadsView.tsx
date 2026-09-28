@@ -70,6 +70,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
 }) => {
   const crm=useCrm();
   const [noteError,setNoteError]=useState('');
+  const [employeeQuotationRequests,setEmployeeQuotationRequests]=useState<any[]>([]);
   const isEmployeePortal = crm.user.role === 'EMPLOYEE';
   const isManagerPortal = crm.user.role === 'MANAGER';
   const [activeTab, setActiveTab] = useState<'all' | 'my' | 'unassigned'>(crm.user.role === 'EMPLOYEE' ? 'my' : 'all');
@@ -114,6 +115,20 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   const [newNoteText, setNewNoteText] = useState('');
   const [noteType, setNoteType] = useState('Internal Note');
   const notesList=crm.activities.filter(a=>a.lead_id===selectedLead?.id&&['NOTE_ADDED','CALL_LOGGED'].includes(a.action)).map(a=>({id:a.id,text:a.note,author:a.actor_name,time:new Date(a.created_at).toLocaleString('en-IN'),type:a.action==='CALL_LOGGED'?'Call':'Internal Note'}));
+
+  React.useEffect(() => {
+    if (!isEmployeePortal) return;
+    let cancelled=false;
+    const load=async()=>{
+      try{
+        const data=await crm.quotation('list');
+        if(!cancelled) setEmployeeQuotationRequests(Array.isArray(data?.quotes)?data.quotes:[]);
+      }catch{}
+    };
+    void load();
+    const timer=window.setInterval(()=>void load(),2500);
+    return ()=>{cancelled=true;window.clearInterval(timer);};
+  },[isEmployeePortal,crm.user.id]);
 
   // Synchronize when selectedLeadId prop changes
   React.useEffect(() => {
@@ -161,6 +176,11 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   const pagedLeads = filteredLeads.slice((safePage - 1) * perPage, safePage * perPage);
 
   const currentLead = leads.find(l => l.id === selectedLead.id) || selectedLead || leads[0];
+  const currentLeadQuotation = employeeQuotationRequests
+    .filter(q => q?.akbsLeadId === currentLead?.id)
+    .sort((a,b)=>new Date(b?.modifiedAt || b?.createdAt || 0).getTime()-new Date(a?.modifiedAt || a?.createdAt || 0).getTime())[0];
+  const quotationReviewPending = currentLeadQuotation?.status === 'REVIEW';
+  const quotationApproved = ['APPROVED','SENT','VIEWED'].includes(currentLeadQuotation?.status);
   const currentLeadRow = crm.leads.find(row => row.id === currentLead?.id);
   const leadManager = crm.users.find(u => u.id === currentLeadRow?.manager_id);
   const loggedInManager = crm.users.find(u => u.id === crm.user.manager_id);
@@ -732,14 +752,26 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
               {/* Action Buttons right */}
               <div className="flex items-center gap-1.5">
                 {isEmployeePortal ? (
-                  <button
-                    onClick={() => onOpenQuickAction?.('send-soft-quotation', currentLead)}
-                    className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-lg text-xs font-black shadow-xs flex items-center gap-1.5 transition-all"
-                    title="Request quotation from manager — no customer sending before approval"
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                    <span>Request Quotation</span>
-                  </button>
+                  quotationReviewPending ? (
+                    <div className="px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-xs font-black flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Quotation Requested</span>
+                    </div>
+                  ) : quotationApproved ? (
+                    <div className="px-3 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-900 text-xs font-black flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Quotation Approved</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => onOpenQuickAction?.('send-soft-quotation', currentLead)}
+                      className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-lg text-xs font-black shadow-xs flex items-center gap-1.5 transition-all"
+                      title="Request quotation from manager — no customer sending before approval"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Request Quotation</span>
+                    </button>
+                  )
                 ) : (
                   <button
                     onClick={() => setIsQuotationModalOpen(true)}
@@ -820,8 +852,12 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                       Manager: <span className="font-bold text-slate-700">{managerDisplayName}</span>
                       {currentWorkItem ? ` · ${currentWorkItem.kind}` : ''}
                     </div>
-                    <div className="mt-1 text-[10px] text-amber-700 font-semibold">
-                      Quotation requests go to your manager for approval; customer sending is locked.
+                    <div className={`mt-1 text-[10px] font-semibold ${quotationReviewPending ? 'text-amber-700' : quotationApproved ? 'text-emerald-700' : 'text-slate-500'}`}>
+                      {quotationReviewPending
+                        ? 'Quotation requested — waiting for manager review and approval.'
+                        : quotationApproved
+                          ? 'Quotation approved by manager. Approved summary is available in Soft Quotations.'
+                          : 'Quotation requests go to your manager for approval; customer sending is locked.'}
                     </div>
                   </div>
                   <div className="rounded-xl border border-emerald-200 bg-white px-4 py-3 min-w-[150px]">

@@ -112,9 +112,9 @@ export const SoftQuotationDocument: React.FC<Props> = ({ quotation, compact = fa
             <div className="text-xs text-slate-500">akbspoultryfarming@gmail.com · www.akbspoultry.com</div>
           </div>
           <div className="text-left lg:text-right text-xs leading-6">
-            <div className="text-[10px] uppercase tracking-[.12em] font-black text-emerald-700">Soft Project Estimate</div>
-            <div className="font-mono font-black text-slate-900">Ref: {quotation.quotationNo}</div>
-            <div>Date: {formatQuoteDate(quotation.createdAt)} · Valid: {quotation.validUntil || 'Requires Confirmation'}</div>
+            <div className="text-[10px] uppercase tracking-[.12em] font-black text-emerald-700">SOFT PROJECT ESTIMATE</div>
+            <div className="font-mono font-black text-slate-900">Ref : {quotation.quotationNo}</div>
+            <div>Date: {formatQuoteDate(quotation.createdAt)} | Valid: {quotation.validUntil || 'Requires Confirmation'}</div>
           </div>
         </div>
 
@@ -171,31 +171,33 @@ export const SoftQuotationDocument: React.FC<Props> = ({ quotation, compact = fa
 
         <div className="mt-6 rounded-2xl bg-[#073323] text-white p-5">
           <div className="flex items-center justify-between gap-4 border-b border-emerald-700 pb-3">
-            <div className="font-black">Bank Loan Structuring & Feasibility</div>
+            <div className="font-black">NABARD / Bank Loan Structuring & Feasibility</div>
             <div className="text-[10px] rounded-md bg-emerald-700 px-2 py-1 font-mono">General (25%)</div>
           </div>
+
           <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <DarkMetric label="Total Project Cost" value={money(totalCost)}/>
             <DarkMetric label="Indicative Margin (25%)" value={money(totalCost*0.25)}/>
             <DarkMetric label="Indicative Loan (75%)" value={money(totalCost*0.75)}/>
             <DarkMetric label="Project Capacity" value={`${quotation.projectCapacity.toLocaleString('en-IN')} ${quotation.projectUnit}`}/>
           </div>
-        </div>
 
-        {contractReturn && (
-          <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5">
-            <div className="font-black text-[#073323]">Indicative Contract Farming Return</div>
-            <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <LightMetric label="Lots / Year" value={`${contractReturn.lotsLow}–${contractReturn.lotsHigh} Lots`}/>
-              <LightMetric label="Payout Assumption" value={`₹${contractReturn.payoutLow}–₹${contractReturn.payoutHigh}/kg`}/>
-              <LightMetric label="Approx. Annual Earnings" value={`${money(contractReturn.annualPayoutLow)} – ${money(contractReturn.annualPayoutHigh)}`}/>
-              <LightMetric label="Indicative Gross ROI" value={`${contractReturn.roiLow.toFixed(1)}% – ${contractReturn.roiHigh.toFixed(1)}%`}/>
-            </div>
-            <div className="mt-3 text-[11px] leading-5 text-slate-600">
-              Basis: {contractReturn.capacity.toLocaleString('en-IN')} birds × {contractReturn.avgWeightLow}–{contractReturn.avgWeightHigh} kg average live weight × ₹{contractReturn.payoutLow}–₹{contractReturn.payoutHigh}/kg × {contractReturn.lotsLow}–{contractReturn.lotsHigh} lots/year. This is a planning estimate, not guaranteed net profit.
-            </div>
-          </div>
-        )}
+          {contractReturn && (
+            <>
+              <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <DarkMetric label="Standard Lots / Year" value={`${contractReturn.lotsLow}–${contractReturn.lotsHigh}`}/>
+                <DarkMetric label="Payout Assumption" value={`₹${contractReturn.payoutLow}–₹${contractReturn.payoutHigh}/kg`}/>
+                <DarkMetric label="Approx. Annual Earnings" value={`${money(contractReturn.annualPayoutLow)} – ${money(contractReturn.annualPayoutHigh)}`}/>
+                <DarkMetric label="Indicative Gross ROI" value={`${contractReturn.roiLow.toFixed(1)}% – ${contractReturn.roiHigh.toFixed(1)}%`}/>
+              </div>
+
+              <div className="mt-4 rounded-xl border border-emerald-700 bg-black/10 p-4 text-[11px] leading-5 text-emerald-50">
+                <b>Standard calculation basis:</b> {contractReturn.capacity.toLocaleString('en-IN')} birds × average live weight {contractReturn.avgWeightLow}–{contractReturn.avgWeightHigh} kg × payout ₹{contractReturn.payoutLow}–₹{contractReturn.payoutHigh}/kg × {contractReturn.lotsLow}–{contractReturn.lotsHigh} lots/year.
+                This gives the approximate annual contract-farming earning range. It is not guaranteed net profit; final net profit depends on electricity, labour, litter, maintenance, mortality, downtime, taxes and the final integrator settlement.
+              </div>
+            </>
+          )}
+        </div>
 
         <SectionTitle>Project Scope & Technical Specifications</SectionTitle>
         <div className="grid md:grid-cols-2 gap-4">
@@ -234,12 +236,14 @@ export const SoftQuotationDocument: React.FC<Props> = ({ quotation, compact = fa
 
         <div className="mt-8 border-t pt-5 flex flex-col sm:flex-row justify-between gap-4 text-xs text-slate-500">
           <div>
-            <b className="text-slate-800">Prepared by AKBS Poultry Farming Private Limited</b>
-            <div>{quotation.createdBy || 'AKBS Team'} · {quotation.createdByRole || 'CRM'}</div>
+            <b className="text-slate-800">Prepared by:</b>
+            <div className="font-semibold text-slate-700">Technical Sales Engineering Team</div>
+            <div>AKBS Poultry Farming Private Limited</div>
           </div>
           <div className="sm:text-right">
-            <b className="text-slate-800">Manager Approval Status</b>
-            <div>{quotation.status}</div>
+            <b className="text-slate-800">{quotation.status === 'APPROVED' ? 'Verified / Approved by:' : 'Manager Review:'}</b>
+            <div className="font-semibold text-slate-700">{quotation.approvedBy || 'Pending manager approval'}</div>
+            <div>{quotation.status === 'APPROVED' ? 'Authorized Signatory' : quotation.status}</div>
           </div>
         </div>
       </section>

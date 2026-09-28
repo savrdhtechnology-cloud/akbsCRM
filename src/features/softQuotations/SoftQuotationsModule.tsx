@@ -184,10 +184,13 @@ export const SoftQuotationsModule: React.FC<SoftQuotationModuleProps> = ({
     () => quotes.filter(q => ['APPROVED','SENT','VIEWED'].includes(q.status)),
     [quotes]
   );
-  const employeePendingRequestCount = useMemo(
-    () => quotes.filter(q => q.status === 'REVIEW').length,
+  const employeePendingRequests = useMemo(
+    () => quotes
+      .filter(q => q.status === 'REVIEW')
+      .sort((a,b) => new Date(b.modifiedAt || b.createdAt || 0).getTime() - new Date(a.modifiedAt || a.createdAt || 0).getTime()),
     [quotes]
   );
+  const employeePendingRequestCount = employeePendingRequests.length;
   const employeeRevisionCount = useMemo(
     () => quotes.filter(q => q.status === 'REJECTED').length,
     [quotes]
@@ -640,7 +643,45 @@ AKBS Poultry Farming Private Limited`;
             </div>
           </div>
         </div>
-      ) : (
+      )}
+
+      {currentRole === 'employee' && employeePendingRequests.length > 0 && (
+        <div className="rounded-2xl border border-amber-200 bg-white shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-amber-100 bg-amber-50/70 flex items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-black text-slate-900">My Quotation Requests</div>
+              <div className="text-[11px] text-slate-500">Only request status is shown until manager approval.</div>
+            </div>
+            <span className="rounded-full bg-amber-100 border border-amber-200 px-2.5 py-1 text-[10px] font-black text-amber-900">
+              {employeePendingRequests.length} Pending
+            </span>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {employeePendingRequests.map(q => (
+              <div key={q.id} className="px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-black text-slate-900 truncate">
+                    {q.customer?.customerName || 'Customer'}
+                  </div>
+                  <div className="mt-1 text-[11px] text-slate-500">
+                    Request Ref: <span className="font-mono font-bold text-slate-700">{q.quotationNo}</span>
+                    {' · '}
+                    Requested {formatDate(q.createdAt)}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[10px] font-black text-amber-900">
+                    <Clock3 className="w-3.5 h-3.5"/>
+                    Manager Review Pending
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {currentRole !== 'employee' ? (
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
         <Metric label="Total Quotations" value={quotes.length} onClick={() => setFilter('ALL')}/>
         <Metric label="Draft" value={metric('DRAFT')} onClick={() => setFilter('DRAFT')}/>
@@ -651,7 +692,7 @@ AKBS Poultry Farming Private Limited`;
         <Metric label="Accepted" value={metric('ACCEPTED')} onClick={() => setFilter('ACCEPTED')}/>
         <Metric label="Estimated Value" value={formatMoney(totalValue)} onClick={() => setFilter('ALL')}/>
       </div>
-      )}
+      ) : null}
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden min-w-0">
         <div className="p-3 sm:p-4 border-b flex flex-col xl:flex-row gap-3 xl:items-center justify-between">

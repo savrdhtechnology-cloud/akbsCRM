@@ -687,6 +687,14 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
       loanRequirement: data.needsLoan || 'Not provided',
       assignedTo: record.assignedTo || 'Awaiting assignment',
       nextFollowUp: 'Contact AKBS for follow-up',
+      feeStatus: !data?._initialPayment
+        ? 'Pending'
+        : String(data._initialPayment?.verificationStatus || '').toUpperCase() === 'VERIFIED'
+          ? 'Verified'
+          : String(data._initialPayment?.verificationStatus || '').toUpperCase() === 'REJECTED'
+            ? 'Rejected'
+            : 'Proof Submitted',
+      feeAmount: Number(data?._initialPayment?.amount || feeConfig.payableFee || INITIAL_PROJECT_FEE),
       formData: data,
       progressStages: customerApplicationProgress({
         ...createBlankCustomerApplication(),
@@ -719,6 +727,7 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
     const selected = mapSavedApplicationToTrackResult(record);
     setTrackResult(selected);
     setTrackResults(results);
+    setSubmittedAppId(record.appId || '');
     setTrackSearchId(record.appId || '');
     setTrackMessage('');
     setRegistrationMode('gate');
@@ -1840,6 +1849,36 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                       <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
                         {trackResult.status}
                       </span>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-white p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Initial Service Fee</div>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-black text-slate-900">₹{Number(trackResult.feeAmount || feeConfig.payableFee).toLocaleString('en-IN')}</span>
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${
+                            trackResult.feeStatus === 'Verified'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : trackResult.feeStatus === 'Proof Submitted'
+                                ? 'bg-blue-100 text-blue-800'
+                                : trackResult.feeStatus === 'Rejected'
+                                  ? 'bg-rose-100 text-rose-800'
+                                  : 'bg-amber-100 text-amber-800'
+                          }`}>{trackResult.feeStatus}</span>
+                        </div>
+                      </div>
+                      {trackResult.feeStatus !== 'Verified' && trackResult.feeStatus !== 'Proof Submitted' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFeeReviewError('');
+                            setIsFeeReviewOpen(true);
+                          }}
+                          className="h-10 px-4 rounded-xl bg-[#0b2818] text-white text-xs font-black"
+                        >
+                          Proceed to Payment
+                        </button>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">

@@ -38,6 +38,15 @@ export function mapLead(row: any, users: any[] = []): Lead {
 
   const capacity=Number(String(pick(row.capacity,d.proposedCapacity,d.capacity,0)).replace(/[^0-9]/g,''))||0;
   const projectTypeRaw=pick(d.poultryType,d.poultry_type,row.project_type,'Other');
+  const fee=d._initialPayment||root._initialPayment||null;
+  const feeVerification=String(fee?.verificationStatus||'').toUpperCase();
+  const feeStatus: Lead['feeStatus'] = !fee
+    ? 'Pending'
+    : feeVerification==='VERIFIED'
+      ? 'Verified'
+      : feeVerification==='REJECTED'
+        ? 'Rejected'
+        : 'Proof Submitted';
 
   return {
     id:row.id,
@@ -82,7 +91,12 @@ export function mapLead(row: any, users: any[] = []): Lead {
     state,
     district,
     village,
-    googleMapsLink:pick(d.googleMapsLink,'')
+    googleMapsLink:pick(d.googleMapsLink,''),
+    feeStatus,
+    feeAmount:Number(fee?.amount||2999),
+    feeReference:String(fee?.reference||''),
+    feeProofSubmitted:Boolean(fee?.proofPath),
+    feeSubmittedAt:String(fee?.submittedAt||'')
   } as Lead;
 }
 

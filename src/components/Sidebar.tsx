@@ -54,7 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const handleClose = onClose || onCloseMobile || (() => {});
 
   const allowedByRole: Record<PortalRole, NavigationSection[]> = {
-    admin: ['dashboard','registrations','leads','followups','customers','partners','team-management','soft-quotations','proposals','loans','manager-portal','tasks','reports','communication','admin-control','settings'],
+    admin: ['dashboard','registrations','leads','followups','customers','partners','team-management','soft-quotations','proposals','loans','fee-management','manager-portal','tasks','reports','communication','admin-control','settings'],
     manager: ['dashboard','leads','followups','customers','soft-quotations','proposals','manager-portal','tasks','reports','communication'],
     employee: ['dashboard','leads','followups','customers','soft-quotations','employee-portal','tasks','communication'],
     partner: ['partner-portal']
@@ -83,7 +83,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         { id: 'soft-quotations', label: 'Soft Quotations', icon: <FileSignature className="w-[18px] h-[18px]" /> },
         { id: 'proposals', label: 'DPR & Proposals', icon: <FileText className="w-[18px] h-[18px]" /> },
-        { id: 'loans', label: 'Loan & Financing', icon: <BadgeIndianRupee className="w-[18px] h-[18px]" /> }
+        { id: 'loans', label: 'Loan & Financing', icon: <BadgeIndianRupee className="w-[18px] h-[18px]" /> },
+        { id: 'fee-management', label: 'Fee Management', icon: <BadgeIndianRupee className="w-[18px] h-[18px]" /> }
       ]
     },
     {

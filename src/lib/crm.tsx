@@ -115,6 +115,20 @@ async function quoteEmailRpc(id: string, token: string) {
   return out;
 }
 
+async function feeRpc(action: string, data: Record<string, any>, token: string) {
+  const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_fee_staff`, {
+    method: "POST",
+    headers: { apikey: publishableKey, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_action: action, p_token: token, p_data: data }),
+    signal: AbortSignal.timeout(20000),
+    cache: "no-store",
+  });
+  const out = await response.json();
+  if (!response.ok) throw new Error(out.message || "Unable to reach fee management service.");
+  if (out?.error) throw Object.assign(new Error(out.error), { status: out.status });
+  return out;
+}
+
 async function quoteRpc(action: string, data: Record<string, any>, token: string) {
   const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_soft_quotation_workspace`, {
     method: "POST",
@@ -148,6 +162,7 @@ interface Context extends Snapshot {
   read: (a: string, d: Record<string, any>) => Promise<any>;
   quotation: (a: string, d?: Record<string, any>) => Promise<any>;
   sendQuotationEmail: (id: string) => Promise<any>;
+  fee: (action: string, data?: Record<string, any>) => Promise<any>;
   logout: () => void;
   error: string;
   loading: boolean;
@@ -379,6 +394,7 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
         read: (a, d) => rpc(a, d, token),
         quotation: (a, d = {}) => quoteRpc(a, d, token),
         sendQuotationEmail: (id) => quoteEmailRpc(id, token),
+        fee: (a, d = {}) => feeRpc(a, d, token),
         logout: () => {
           void rpc("logout", {}, token)
             .catch(() => {})

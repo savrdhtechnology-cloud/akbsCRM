@@ -115,6 +115,19 @@ async function quoteEmailRpc(id: string, token: string) {
   return out;
 }
 
+async function paymentQrUploadRpc(file: { name: string; type: string; data: string }, token: string) {
+  const response = await fetch(`${databaseUrl}/functions/v1/akbs-admin-payment-qr-upload`, {
+    method: "POST",
+    headers: { apikey: publishableKey, "Content-Type": "application/json" },
+    body: JSON.stringify({ token, file }),
+    signal: AbortSignal.timeout(30000),
+    cache: "no-store",
+  });
+  const out = await response.json();
+  if (!response.ok) throw new Error(out.error || out.message || "Unable to upload payment QR.");
+  return out;
+}
+
 async function paymentAccountsRpc(action: string, data: Record<string, any>, token: string) {
   const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_payment_accounts_staff`, {
     method: "POST",
@@ -178,6 +191,7 @@ interface Context extends Snapshot {
   sendQuotationEmail: (id: string) => Promise<any>;
   fee: (action: string, data?: Record<string, any>) => Promise<any>;
   paymentAccounts: (action: string, data?: Record<string, any>) => Promise<any>;
+  uploadPaymentQr: (file: { name: string; type: string; data: string }) => Promise<any>;
   logout: () => void;
   error: string;
   loading: boolean;
@@ -411,6 +425,7 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
         sendQuotationEmail: (id) => quoteEmailRpc(id, token),
         fee: (a, d = {}) => feeRpc(a, d, token),
         paymentAccounts: (a, d = {}) => paymentAccountsRpc(a, d, token),
+        uploadPaymentQr: (file) => paymentQrUploadRpc(file, token),
         logout: () => {
           void rpc("logout", {}, token)
             .catch(() => {})

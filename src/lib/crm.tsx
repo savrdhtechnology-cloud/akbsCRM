@@ -170,6 +170,19 @@ async function feeEventsRpc(action: string, data: Record<string, any>, token: st
   return out;
 }
 
+async function publicFeeConfigRpc() {
+  const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_fee_public_config`, {
+    method: "POST",
+    headers: { apikey: publishableKey, "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+    signal: AbortSignal.timeout(15000),
+    cache: "no-store",
+  });
+  const out = await response.json();
+  if (!response.ok) throw new Error(out.message || "Unable to load fee configuration.");
+  return out;
+}
+
 async function feeRpc(action: string, data: Record<string, any>, token: string) {
   const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_fee_staff`, {
     method: "POST",
@@ -218,6 +231,7 @@ interface Context extends Snapshot {
   quotation: (a: string, d?: Record<string, any>) => Promise<any>;
   sendQuotationEmail: (id: string) => Promise<any>;
   fee: (action: string, data?: Record<string, any>) => Promise<any>;
+  publicFeeConfig: () => Promise<any>;
   feeEvents: (action: string, data?: Record<string, any>) => Promise<any>;
   feeTransactions: (action: string, data?: Record<string, any>) => Promise<any>;
   paymentAccounts: (action: string, data?: Record<string, any>) => Promise<any>;
@@ -454,6 +468,7 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
         quotation: (a, d = {}) => quoteRpc(a, d, token),
         sendQuotationEmail: (id) => quoteEmailRpc(id, token),
         fee: (a, d = {}) => feeRpc(a, d, token),
+        publicFeeConfig: () => publicFeeConfigRpc(),
         feeEvents: (a, d = {}) => feeEventsRpc(a, d, token),
         feeTransactions: (a, d = {}) => feeTransactionsRpc(a, d, token),
         paymentAccounts: (a, d = {}) => paymentAccountsRpc(a, d, token),

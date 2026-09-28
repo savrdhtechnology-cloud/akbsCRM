@@ -137,7 +137,9 @@ export const TeamManagementView: React.FC = () => {
         name:employeeForm.name.trim(),
         login:employeeForm.login.trim(),
         role:preset.role,
-        manager_id:preset.role==='EMPLOYEE' ? employeeForm.managerId || null : null
+        manager_id:preset.role==='EMPLOYEE' ? employeeForm.managerId || null : null,
+        job_profile: employeeForm.jobProfile,
+        role_title: preset.label
       });
       setMessage(
         result?.email_sent

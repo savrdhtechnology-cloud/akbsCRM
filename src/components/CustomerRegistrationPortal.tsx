@@ -318,6 +318,9 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
   const [paymentReference, setPaymentReference] = useState('');
   const [paymentDeclarationAccepted, setPaymentDeclarationAccepted] = useState(false);
   const [feeReviewError, setFeeReviewError] = useState('');
+  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+  const [paymentSubmitted, setPaymentSubmitted] = useState(false);
   const [receiptEmailStatus, setReceiptEmailStatus] = useState<'idle' | 'sent' | 'failed'>('idle');
   const [receiptEmailMessage, setReceiptEmailMessage] = useState('');
 
@@ -520,56 +523,35 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
       const result = await portal.rpc('submit', {
         request_id: requestId.current,
         form: { ...formData, declarationConfirmed: true },
-        consent: { version: CUSTOMER_CONSENT_VERSION, language: consentLanguage, declarationAccepted: true, communicationConsentAccepted: true },
-        payment: {
-          amount: INITIAL_PROJECT_FEE,
-          feeLabel: INITIAL_PROJECT_FEE_LABEL,
-          reference: paymentReference.trim(),
-          customerDeclaredCompanyAccountOnly: true,
-          status: 'CUSTOMER_DECLARED_PAID_PENDING_VERIFICATION'
+        consent: {
+          version: CUSTOMER_CONSENT_VERSION,
+          language: consentLanguage,
+          declarationAccepted: true,
+          communicationConsentAccepted: true
         }
       });
       if (!result.submittedId) throw new Error('No application confirmation received. Please try again.');
       setSubmittedAppId(result.submittedId);
+      setPaymentReference('');
+      setPaymentProofFile(null);
+      setPaymentDeclarationAccepted(false);
+      setFeeAccepted(false);
+      setFeeReviewError('');
+      setPaymentSubmitted(false);
       setReceiptEmailStatus('idle');
       setReceiptEmailMessage('');
-      try {
-        const receiptResult = await portal.sendPaymentReceipt(result.submittedId);
-        setReceiptEmailStatus('sent');
-        setReceiptEmailMessage(`Payment acknowledgement PDF and application number emailed to ${receiptResult?.email || portal.profile.email}.`);
-      } catch (receiptError: any) {
-        setReceiptEmailStatus('failed');
-        setReceiptEmailMessage(receiptError?.message || 'Application saved, but the receipt email could not be sent automatically.');
-      }
       await portal.deleteDraft(requestId.current).catch(() => undefined);
       setDraftSavedAt('');
-      setRegistrationMode('gate'); setDuplicateApplication(null);
-      setIsSubmitted(true); setIsConsentModalOpen(false);
-    } catch (error: any) { setSubmitError(error.message || 'Application could not be saved. Please retry.'); }
-    finally { submitLock.current = false; setSubmitting(false); }
-  };
-
-  const openConsentAfterFee = () => {
-    if (!feeAccepted) {
-      setFeeReviewError('Please accept the ₹2,999 initial assessment & registration fee.');
-      return;
+      setRegistrationMode('gate');
+      setDuplicateApplication(null);
+      setIsSubmitted(true);
+      setIsConsentModalOpen(false);
+    } catch (error: any) {
+      setSubmitError(error.message || 'Application could not be saved. Please retry.');
+    } finally {
+      submitLock.current = false;
+      setSubmitting(false);
     }
-    if (!paymentDeclarationAccepted) {
-      setFeeReviewError('Please confirm that payment has been made only to the official AKBS company account / authorized payment gateway.');
-      return;
-    }
-    if (paymentReference.trim().length < 6) {
-      setFeeReviewError('Enter the payment transaction / UTR / reference number before continuing.');
-      return;
-    }
-
-    setFeeReviewError('');
-    setIsFeeReviewOpen(false);
-    setConsentLanguage(formData.preferredLanguage);
-    setConsentTermsAccepted(false);
-    setConsentContactAccepted(false);
-    setConsentScrolledToEnd(false);
-    setIsConsentModalOpen(true);
   };
 
   const requestFinalSubmission = () => {
@@ -581,11 +563,68 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
     }
 
     setDuplicateApplication(null);
-    setFeeAccepted(false);
-    setPaymentDeclarationAccepted(false);
-    setPaymentReference('');
+    setConsentLanguage(formData.preferredLanguage);
+    setConsentTermsAccepted(false);
+    setConsentContactAccepted(false);
+    setConsentScrolledToEnd(false);
+    setSubmitError('');
+    setIsConsentModalOpen(true);
+  };
+
+  const fileToDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Payment screenshot could not be read.'));
+    reader.readAsDataURL(file);
+  });
+
+  const handlePostSubmissionPayment = async () => {
+    if (!submittedAppId) {
+      setFeeReviewError('Application number is missing. Please refresh and track your application.');
+      return;
+    }
+    if (!feeAccepted) {
+      setFeeReviewError('Please accept the ₹2,999 Initial Project Assessment & Registration Fee.');
+      return;
+    }
+    if (!paymentDeclarationAccepted) {
+      setFeeReviewError('Please confirm that payment is made only to the official AKBS company payment channel.');
+      return;
+    }
+    if (paymentReference.trim().length < 6 && !paymentProofFile) {
+      setFeeReviewError('Enter the payment UTR/reference or upload payment screenshot/proof.');
+      return;
+    }
+
     setFeeReviewError('');
-    setIsFeeReviewOpen(true);
+    setPaymentSubmitting(true);
+    try {
+      let filePayload: { name: string; type: string; data: string } | null = null;
+      if (paymentProofFile) {
+        filePayload = {
+          name: paymentProofFile.name,
+          type: paymentProofFile.type,
+          data: await fileToDataUrl(paymentProofFile)
+        };
+      }
+
+      await portal.submitPaymentProof(submittedAppId, paymentReference.trim(), filePayload);
+      setPaymentSubmitted(true);
+      setIsFeeReviewOpen(false);
+
+      try {
+        const receiptResult = await portal.sendPaymentReceipt(submittedAppId);
+        setReceiptEmailStatus('sent');
+        setReceiptEmailMessage(`Payment acknowledgement PDF and application number emailed to ${receiptResult?.email || portal.profile.email}.`);
+      } catch (receiptError: any) {
+        setReceiptEmailStatus('failed');
+        setReceiptEmailMessage(receiptError?.message || 'Payment proof was saved, but the acknowledgement email could not be sent automatically.');
+      }
+    } catch (error: any) {
+      setFeeReviewError(error.message || 'Payment proof could not be submitted.');
+    } finally {
+      setPaymentSubmitting(false);
+    }
   };
 
   const handleConsentScroll = (event: React.UIEvent<HTMLDivElement>) => {
@@ -713,6 +752,15 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
     setConsentContactAccepted(false);
     setConsentScrolledToEnd(false);
     setConsentLanguage('Hindi');
+    setIsFeeReviewOpen(false);
+    setFeeAccepted(false);
+    setPaymentReference('');
+    setPaymentDeclarationAccepted(false);
+    setPaymentProofFile(null);
+    setPaymentSubmitted(false);
+    setFeeReviewError('');
+    setReceiptEmailStatus('idle');
+    setReceiptEmailMessage('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -2796,6 +2844,33 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                   </p>
                 </div>
 
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-black text-emerald-950">
+                        {paymentSubmitted ? 'Payment details submitted' : 'Next: Initial Service Payment ₹2,999'}
+                      </div>
+                      <div className="mt-1 text-[11px] leading-5 text-emerald-800">
+                        {paymentSubmitted
+                          ? 'Your UTR/payment proof has been received and is pending verification by AKBS.'
+                          : 'No advance payment was required before application submission. After reviewing your application confirmation / initial response, you can submit the ₹2,999 payment details here.'}
+                      </div>
+                    </div>
+                    {!paymentSubmitted && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFeeReviewError('');
+                          setIsFeeReviewOpen(true);
+                        }}
+                        className="shrink-0 h-10 px-4 rounded-xl bg-[#0b2818] text-white text-xs font-black"
+                      >
+                        Proceed to Payment
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {receiptEmailStatus !== 'idle' && (
                   <div className={`p-4 rounded-xl border text-xs text-left ${receiptEmailStatus === 'sent' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
                     <div className="font-black">{receiptEmailStatus === 'sent' ? 'Receipt Email Sent' : 'Receipt Email Pending'}</div>
@@ -2868,120 +2943,91 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
 
       {isFeeReviewOpen && (
         <div className="fixed inset-0 z-[105] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
-          <div className="w-full max-w-4xl max-h-[95vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-200">
+          <div className="w-full max-w-3xl max-h-[94vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-200">
             <div className="px-5 sm:px-6 py-4 bg-[#0b2818] text-white flex items-center justify-between gap-3">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.2em] text-emerald-300 font-black">Before Final Submission</div>
-                <h2 className="mt-1 text-lg sm:text-xl font-black">Initial Project Assessment & Registration Fee</h2>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-emerald-300 font-black">Application Submitted</div>
+                <h2 className="mt-1 text-lg sm:text-xl font-black">Complete ₹2,999 Initial Service Payment</h2>
+                <p className="mt-1 text-xs text-emerald-100">Application No: <span className="font-mono font-black">{submittedAppId}</span></p>
               </div>
-              <button type="button" onClick={() => setIsFeeReviewOpen(false)} className="w-9 h-9 rounded-lg hover:bg-white/10 flex items-center justify-center" aria-label="Close fee review">
+              <button type="button" onClick={() => setIsFeeReviewOpen(false)} className="w-9 h-9 rounded-lg hover:bg-white/10 flex items-center justify-center" aria-label="Close payment">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-4 sm:p-6 grid lg:grid-cols-[1.35fr_0.65fr] gap-5">
-              <section className="space-y-4">
-                <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-amber-50 p-5">
-                  <div className="text-xs font-black text-emerald-900">{INITIAL_PROJECT_FEE_LABEL}</div>
-                  <div className="mt-1 text-4xl sm:text-5xl font-black text-[#0b2818]">₹{INITIAL_PROJECT_FEE.toLocaleString('en-IN')}</div>
-                  <p className="mt-2 text-xs sm:text-sm text-slate-600">Please review, pay the initial fee to the official AKBS company payment channel, and enter the transaction reference before the final application can be submitted.</p>
-                </div>
+            <div className="p-4 sm:p-6 space-y-4">
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+                <div className="text-xs font-black text-emerald-900">{INITIAL_PROJECT_FEE_LABEL}</div>
+                <div className="mt-1 text-4xl font-black text-[#0b2818]">₹{INITIAL_PROJECT_FEE.toLocaleString('en-IN')}</div>
+                <p className="mt-2 text-xs sm:text-sm text-slate-600">
+                  Your application has already been submitted. Pay only after reviewing your application confirmation / initial response from AKBS.
+                  You may enter the UTR/reference number, upload the payment screenshot, or provide both.
+                </p>
+              </div>
 
-                <div className="rounded-2xl border border-slate-200 p-4">
-                  <h3 className="text-sm font-black text-slate-900">What is included in ₹2,999</h3>
-                  <div className="mt-3 grid sm:grid-cols-2 gap-2 text-xs text-slate-700">
-                    {['Initial project screening','Basic requirement assessment','Land / investment review','Document checklist guidance','CRM onboarding','Next process guidance'].map(item => (
-                      <div key={item} className="flex items-start gap-2 rounded-lg bg-slate-50 px-3 py-2.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-                        <span className="font-semibold">{item}</span>
-                      </div>
-                    ))}
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <h3 className="text-sm font-black text-slate-900">Later professional service charges</h3>
+                <div className="mt-3 grid sm:grid-cols-3 gap-2 text-xs">
+                  <div className="rounded-xl bg-white/80 p-3"><div className="font-bold">DPR & Financial Assessment</div><div className="mt-1 font-black text-emerald-900">₹25,000–₹35,000</div></div>
+                  <div className="rounded-xl bg-white/80 p-3"><div className="font-bold">Bank Loan Assistance</div><div className="mt-1 font-black text-emerald-900">₹15,000</div></div>
+                  <div className="rounded-xl bg-white/80 p-3"><div className="font-bold">Complete Project Assistance</div><div className="mt-1 font-black text-emerald-900">₹55,000</div></div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                <div className="flex gap-3">
+                  <ShieldCheck className="w-5 h-5 text-rose-700 shrink-0" />
+                  <div>
+                    <h3 className="text-sm font-black text-rose-900">Official Company Payment Only</h3>
+                    <p className="mt-1 text-xs leading-5 text-rose-800">{OFFICIAL_PAYMENT_NOTICE}</p>
                   </div>
                 </div>
+              </div>
 
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                  <h3 className="text-sm font-black text-slate-900">Additional Service Charges</h3>
-                  <div className="mt-3 space-y-2 text-xs">
-                    <div className="flex items-center justify-between gap-4 rounded-lg bg-white/80 px-3 py-2"><span>DPR & Financial Assessment</span><b>₹25,000–₹35,000</b></div>
-                    <div className="flex items-center justify-between gap-4 rounded-lg bg-white/80 px-3 py-2"><span>Bank Loan Assistance</span><b>₹15,000</b></div>
-                    <div className="flex items-center justify-between gap-4 rounded-lg bg-white/80 px-3 py-2"><span>Complete Project Assistance</span><b>₹55,000</b></div>
-                  </div>
-                </div>
+              <div className="rounded-2xl border border-slate-200 p-4 space-y-4">
+                <label className="flex items-start gap-2.5 text-xs text-slate-700 cursor-pointer">
+                  <input type="checkbox" checked={feeAccepted} onChange={e => setFeeAccepted(e.target.checked)} className="mt-0.5 w-4 h-4 accent-emerald-800" />
+                  <span className="font-semibold">I understand the ₹2,999 initial service fee and the stage-wise additional professional charges.</span>
+                </label>
 
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
-                  <div className="flex gap-3">
-                    <ShieldCheck className="w-5 h-5 text-rose-700 shrink-0" />
-                    <div>
-                      <h3 className="text-sm font-black text-rose-900">Official Company Payment Only</h3>
-                      <p className="mt-1 text-xs leading-5 text-rose-800">{OFFICIAL_PAYMENT_NOTICE}</p>
-                    </div>
-                  </div>
-                </div>
+                <label className="flex items-start gap-2.5 text-xs text-slate-700 cursor-pointer">
+                  <input type="checkbox" checked={paymentDeclarationAccepted} onChange={e => setPaymentDeclarationAccepted(e.target.checked)} className="mt-0.5 w-4 h-4 accent-emerald-800" />
+                  <span className="font-semibold">I confirm that any payment is made only to the official AKBS Poultry Farming Pvt. Ltd. company account / authorized payment channel.</span>
+                </label>
 
-                <div className="rounded-2xl border border-slate-200 p-4 space-y-3">
-                  <label className="flex items-start gap-2.5 text-xs text-slate-700 cursor-pointer">
-                    <input type="checkbox" checked={feeAccepted} onChange={e => setFeeAccepted(e.target.checked)} className="mt-0.5 w-4 h-4 accent-emerald-800" />
-                    <span className="font-semibold">I understand and accept the ₹2,999 Initial Project Assessment & Registration Fee and the stage-wise additional service charges.</span>
-                  </label>
-                  <label className="flex items-start gap-2.5 text-xs text-slate-700 cursor-pointer">
-                    <input type="checkbox" checked={paymentDeclarationAccepted} onChange={e => setPaymentDeclarationAccepted(e.target.checked)} className="mt-0.5 w-4 h-4 accent-emerald-800" />
-                    <span className="font-semibold">I confirm that I have paid only to the official AKBS Poultry Farming Pvt. Ltd. company account / authorized payment channel. I understand that AKBS is not responsible for payment made to any personal or unauthorized account.</span>
-                  </label>
-                  <label className="block">
-                    <span className="text-xs font-black text-slate-800">Payment Transaction / UTR / Reference Number</span>
-                    <input
-                      value={paymentReference}
-                      onChange={e => setPaymentReference(e.target.value.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40))}
-                      placeholder="Enter payment reference"
-                      className="mt-2 w-full h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm font-mono uppercase outline-none focus:ring-2 focus:ring-emerald-600"
-                    />
-                  </label>
-                  <p className="text-[11px] leading-4 text-slate-500">Payment reference is recorded with the application and remains subject to company-side bank/payment verification before the payment is treated as confirmed.</p>
-                </div>
+                <label className="block">
+                  <span className="text-xs font-black text-slate-800">UTR / Transaction / Payment Reference</span>
+                  <input
+                    value={paymentReference}
+                    onChange={e => setPaymentReference(e.target.value.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 60))}
+                    placeholder="Enter UTR/reference (optional if screenshot uploaded)"
+                    className="mt-2 w-full h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm font-mono uppercase outline-none focus:ring-2 focus:ring-emerald-600"
+                  />
+                </label>
 
-                {feeReviewError && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700">{feeReviewError}</p>}
+                <label className="block">
+                  <span className="text-xs font-black text-slate-800">Upload Payment Screenshot / Proof</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,application/pdf"
+                    onChange={e => setPaymentProofFile(e.target.files?.[0] || null)}
+                    className="mt-2 block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:font-bold file:text-emerald-800 hover:file:bg-emerald-100"
+                  />
+                  <p className="mt-1.5 text-[10px] text-slate-500">PNG, JPG, WEBP or PDF · maximum 5 MB.</p>
+                </label>
+              </div>
 
-                <div className="flex flex-col-reverse sm:flex-row gap-2">
-                  <button type="button" onClick={() => setIsFeeReviewOpen(false)} className="h-11 px-5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50">Back to Edit Application</button>
-                  <button type="button" onClick={openConsentAfterFee} className="h-11 px-5 rounded-xl bg-[#0b2818] hover:bg-[#123e27] text-white text-xs font-black flex-1 flex items-center justify-center gap-2">
-                    <span>Continue After ₹2,999 Payment</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </section>
+              {feeReviewError && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700">{feeReviewError}</p>}
 
-              <aside className="space-y-4">
-                <div className="rounded-2xl overflow-hidden border border-slate-200">
-                  <div className="bg-slate-900 text-white px-4 py-3 text-sm font-black">Application Summary</div>
-                  <div className="p-4 space-y-3 text-xs">
-                    {[
-                      ['Applicant Name', formData.fullName || '—'],
-                      ['Mobile Number', formData.mobileNumber || '—'],
-                      ['District / State', [formData.district, formData.state].filter(Boolean).join(', ') || '—'],
-                      ['Land Available', formData.hasLand],
-                      ['Proposed Capacity', formData.proposedCapacity ? `${formData.proposedCapacity} Birds` : '—'],
-                      ['Own Investment', formData.ownContribution || '—'],
-                      ['Loan Required', formData.needsLoan === 'Yes' ? formData.approxLoanAmount : formData.needsLoan],
-                      ['Integrator / Support', formData.supportNeeded.join(', ') || 'Not selected']
-                    ].map(([label, value]) => (
-                      <div key={label} className="rounded-lg bg-slate-50 px-3 py-2.5">
-                        <div className="text-[10px] uppercase tracking-wide text-slate-400 font-bold">{label}</div>
-                        <div className="mt-0.5 font-bold text-slate-800 break-words">{value}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                  <div className="flex items-center gap-2 text-emerald-900 font-black text-sm"><Lock className="w-4 h-4" /> Payment & Application Record</div>
-                  <p className="mt-2 text-xs leading-5 text-emerald-800">After submission, the payment reference and application number are stored together so the AKBS team can verify the payment against the official company account.</p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <div className="text-sm font-black text-slate-900">Important</div>
-                  <p className="mt-2 text-xs leading-5 text-slate-600">Loan sanction, subsidy, integrator approval or project approval is not guaranteed. Professional fees are charged stage-wise for the selected service.</p>
-                </div>
-              </aside>
+              <div className="flex flex-col-reverse sm:flex-row gap-2">
+                <button type="button" onClick={() => setIsFeeReviewOpen(false)} className="h-11 px-5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50">
+                  Pay Later / Close
+                </button>
+                <button type="button" disabled={paymentSubmitting} onClick={handlePostSubmissionPayment} className="h-11 px-5 rounded-xl bg-[#0b2818] hover:bg-[#123e27] disabled:bg-slate-400 text-white text-xs font-black flex-1 flex items-center justify-center gap-2">
+                  <span>{paymentSubmitting ? 'Submitting payment proof…' : 'Submit Payment Details'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -3115,7 +3161,7 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                   disabled={submitting || !consentScrolledToEnd || !consentTermsAccepted || !consentContactAccepted}
                   className="h-10 px-5 rounded-xl bg-[#0b2818] hover:bg-[#123e27] disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white text-xs font-black flex items-center justify-center gap-2"
                 >
-                  <span>{submitting ? 'Saving application…' : CUSTOMER_CONSENT_CONTENT[consentLanguage].agreeButton}</span>
+                  <span>{submitting ? 'Submitting application…' : (consentLanguage === 'Hindi' ? 'शर्तें स्वीकार करें एवं आवेदन जमा करें' : 'Accept Terms & Submit Application')}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>

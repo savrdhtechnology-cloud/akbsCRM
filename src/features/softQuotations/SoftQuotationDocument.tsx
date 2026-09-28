@@ -15,6 +15,12 @@ const money = (value: number | null | undefined) =>
 const valueOrConfirm = (value: string | number | null | undefined, suffix = '') =>
   value === null || value === undefined || value === '' ? 'Requires Confirmation' : `${value}${suffix}`;
 
+const formatQuoteDate = (value: string | null | undefined) => {
+  if (!value) return 'Requires Confirmation';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString('en-IN');
+};
+
 const calculateContractFarmingReturn = (q: SoftQuotation) => {
   const capacity = Number(q.projectCapacity || 0);
   const investment = Number(q.grandTotal || 0);
@@ -108,7 +114,7 @@ export const SoftQuotationDocument: React.FC<Props> = ({ quotation, compact = fa
           <div className="text-left lg:text-right text-xs leading-6">
             <div className="text-[10px] uppercase tracking-[.12em] font-black text-emerald-700">Soft Project Estimate</div>
             <div className="font-mono font-black text-slate-900">Ref: {quotation.quotationNo}</div>
-            <div>Date: {formatDate(quotation.createdAt)} · Valid: {quotation.validUntil || 'Requires Confirmation'}</div>
+            <div>Date: {formatQuoteDate(quotation.createdAt)} · Valid: {quotation.validUntil || 'Requires Confirmation'}</div>
           </div>
         </div>
 

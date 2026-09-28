@@ -24,6 +24,7 @@ type PortalContextValue = Snapshot & {
   sendPaymentReceipt: (applicationId: string) => Promise<any>;
   submitPaymentProof: (applicationId: string, reference: string, file?: { name: string; type: string; data: string } | null) => Promise<any>;
   getFeeConfig: () => Promise<any>;
+  signOut: () => Promise<void>;
 };
 
 const PortalContext = createContext<PortalContextValue | null>(null);
@@ -342,7 +343,7 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
 
   if (sessionToken && snapshot?.enrolled) {
     return (
-      <PortalContext.Provider value={{ ...snapshot, rpc: portalRpc, refresh: () => portalRpc('snapshot'), timeline, loadDraft, saveDraft, deleteDraft, sendPaymentReceipt, submitPaymentProof, getFeeConfig }}>
+      <PortalContext.Provider value={{ ...snapshot, rpc: portalRpc, refresh: () => portalRpc('snapshot'), timeline, loadDraft, saveDraft, deleteDraft, sendPaymentReceipt, submitPaymentProof, getFeeConfig, signOut }}>
         {error && <p role="alert" className="bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
         {children}
       </PortalContext.Provider>

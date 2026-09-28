@@ -86,6 +86,10 @@ export const SoftQuotationsModule: React.FC<SoftQuotationModuleProps> = ({
   const [aiBusy, setAiBusy] = useState<AiAction | null>(null);
   const [notice, setNotice] = useState('');
   const [actionMenu, setActionMenu] = useState<string | null>(null);
+  const [analyzedReviewIds, setAnalyzedReviewIds] = useState<string[]>(() => {
+    try { return JSON.parse(sessionStorage.getItem('akbs.softquote.analyzed.v1') || '[]'); }
+    catch { return []; }
+  });
 
   useEffect(() => {
     const handler = () => setRoute(parseRoute());
@@ -206,6 +210,15 @@ export const SoftQuotationsModule: React.FC<SoftQuotationModuleProps> = ({
 
   const totalValue = quotes.filter(q => q.status !== 'ARCHIVED').reduce((sum, q) => sum + q.grandTotal, 0);
   const metric = (status: SoftQuotationStatus) => quotes.filter(q => q.status === status).length;
+
+  const markReviewAnalyzed = (id: string) => {
+    setAnalyzedReviewIds(prev => {
+      const next = prev.includes(id) ? prev : [...prev, id];
+      try { sessionStorage.setItem('akbs.softquote.analyzed.v1', JSON.stringify(next)); } catch {}
+      return next;
+    });
+    flash('Quotation Analyzer completed. Review the quotation format and approve only if all details are correct.');
+  };
 
   const persistDraft = async (status?: SoftQuotationStatus) => {
     if (!draft) return;
@@ -543,6 +556,8 @@ AKBS Poultry Farming Private Limited`;
       activeQuote.projectType === AKBS_EC_20000_TEMPLATE.projectType &&
       Number(activeQuote.projectCapacity) === Number(AKBS_EC_20000_TEMPLATE.capacity);
     const reviewReady = missingForReview.length === 0;
+    const isManagerReview = activeQuote.status === 'REVIEW' && roleCanApprove(currentRole);
+    const reviewAnalyzed = !isManagerReview || analyzedReviewIds.includes(activeQuote.id);
 
     return (
       <div className="p-4 sm:p-6 lg:p-8 space-y-5">
@@ -567,22 +582,37 @@ AKBS Poultry Farming Private Limited`;
                   <Copy className="w-4 h-4"/>Copy Summary
                 </button>
               ) : null
-            ) : <>
+            ) : ['APPROVED','SENT','VIEWED','ACCEPTED'].includes(activeQuote.status) ? <>
               <button onClick={() => window.print()} className="btn-secondary"><Printer className="w-4 h-4"/>Generate PDF</button>
               <button onClick={() => downloadPdf(activeQuote)} className="btn-secondary"><Download className="w-4 h-4"/>Download PDF</button>
               <button onClick={() => sendWhatsApp(activeQuote)} className="btn-secondary"><Send className="w-4 h-4"/>WhatsApp</button>
               <button onClick={() => sendEmail(activeQuote)} className="btn-secondary"><Mail className="w-4 h-4"/>Email</button>
               <button onClick={() => shareQuote(activeQuote)} className="btn-secondary"><Share2 className="w-4 h-4"/>Share</button>
-            </>}
+            </> : null}
           </div>
         </div>
         {notice && <Notice>{notice}</Notice>}
-        {activeQuote.status === 'REVIEW' && roleCanApprove(currentRole) && (
+        {isManagerReview && !reviewAnalyzed && (
+          <div className="print:hidden rounded-2xl border border-emerald-200 bg-white p-6 text-center shadow-sm">
+            <div className="mx-auto w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 grid place-items-center">
+              <Sparkles className="w-6 h-6"/>
+            </div>
+            <h2 className="mt-3 text-xl font-black text-slate-950">Analyze Quotation Request</h2>
+            <p className="mt-2 text-sm text-slate-500 max-w-2xl mx-auto">
+              Analyzer checks this request against the approved AKBS quotation template, project capacity, site/location fields and required confirmation items. No quotation document is shown before this check.
+            </p>
+            <button onClick={() => markReviewAnalyzed(activeQuote.id)} className="btn-primary mt-5">
+              <Sparkles className="w-4 h-4"/>Analyze Quotation
+            </button>
+          </div>
+        )}
+
+        {isManagerReview && reviewAnalyzed && (
           <div className="print:hidden rounded-xl border border-slate-200 bg-white px-4 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="text-xs text-slate-600">
-              <span className="font-black text-slate-900">Analyzer Check:</span>{' '}
-              {templateMatched ? 'Quotation matches the approved AKBS standard template.' : 'Quotation differs from the standard template.'}
-              {missingForReview.length ? ` ${missingForReview.length} item(s) still require confirmation.` : ' No confirmation flags are pending.'}
+              <span className="font-black text-slate-900">Analyzer completed.</span>{' '}
+              {templateMatched ? 'Template matched.' : 'Template variation detected.'}
+              {missingForReview.length ? ` ${missingForReview.length} confirmation item(s) remain.` : ' All required checks are complete.'}
             </div>
             <div className="flex gap-2 shrink-0">
               <button onClick={() => rejectQuote(activeQuote.id)} className="btn-secondary text-rose-700">
@@ -595,13 +625,13 @@ AKBS Poultry Farming Private Limited`;
           </div>
         )}
       {loadingQuotes && <div className="rounded-xl border bg-white px-4 py-3 text-sm text-slate-500">Loading shared quotation workflow…</div>}
-        {activeQuote.versions?.length > 0 && (
+        {reviewAnalyzed && activeQuote.versions?.length > 0 && (
           <div className="print:hidden rounded-xl border bg-white p-4 text-xs">
             <b>Version history:</b> {activeQuote.versions.map(v => `Version ${v.version} (${v.status})`).join(' · ')}
           </div>
         )}
 
-        <SoftQuotationDocument quotation={activeQuote}/>
+        {reviewAnalyzed && <SoftQuotationDocument quotation={activeQuote}/>} 
       </div>
     );
   }

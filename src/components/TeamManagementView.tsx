@@ -137,10 +137,15 @@ export const TeamManagementView: React.FC = () => {
         name:employeeForm.name.trim(),
         login:employeeForm.login.trim(),
         role:preset.role,
-        manager_id:preset.role==='EMPLOYEE' ? employeeForm.managerId || null : null,
-        job_profile: employeeForm.jobProfile,
-        role_title: preset.label
+        manager_id:preset.role==='EMPLOYEE' ? employeeForm.managerId || null : null
       });
+      if (result?.user?.id) {
+        await crm.command('user_profile_update',{
+          id:result.user.id,
+          job_profile:employeeForm.jobProfile,
+          role_title:preset.label
+        });
+      }
       setMessage(
         result?.email_sent
           ? `${preset.label} account created. Login ID, temporary password, CRM link and first-login password-change instruction were sent by email.`

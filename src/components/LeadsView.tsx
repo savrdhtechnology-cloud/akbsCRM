@@ -1,5 +1,5 @@
 import { useCrm } from '../lib/crm';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Search,
   Plus,
@@ -73,9 +73,17 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   const crm=useCrm();
   const [noteError,setNoteError]=useState('');
   const [employeeQuotationRequests,setEmployeeQuotationRequests]=useState<any[]>([]);
+  const [feeConfig,setFeeConfig]=useState<any>({payableFee:2999});
   const isEmployeePortal = crm.user.role === 'EMPLOYEE';
   const isManagerPortal = crm.user.role === 'MANAGER';
   const [activeTab, setActiveTab] = useState<'all' | 'my' | 'unassigned'>(crm.user.role === 'EMPLOYEE' ? 'my' : 'all');
+  useEffect(() => {
+    let active=true;
+    crm.fee('snapshot',{})
+      .then((out:any)=>{ if(active && out?.config) setFeeConfig(out.config); })
+      .catch(()=>undefined);
+    return ()=>{ active=false; };
+  }, [crm.user.role]);
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('All Stages');
   const [stateFilter, setStateFilter] = useState('All States');
@@ -769,7 +777,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                             : 'border-amber-200 bg-amber-50 text-amber-900'
                     }`}>
                       <BadgeIndianRupee className="w-3 h-3" />
-                      Fee: {currentLead.feeStatus || 'Pending'} · ₹{Number(currentLead.feeAmount || 2999).toLocaleString('en-IN')}
+                      Fee: {currentLead.feeStatus || 'Pending'} · ₹{Number(currentLead.feeStatus === 'Pending' ? (feeConfig?.payableFee || 2999) : (currentLead.feeAmount || feeConfig?.payableFee || 2999)).toLocaleString('en-IN')}
                     </span>
                   </div>
                   )}

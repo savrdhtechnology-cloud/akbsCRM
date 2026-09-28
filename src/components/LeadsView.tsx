@@ -735,7 +735,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                   <button
                     onClick={() => onOpenQuickAction?.('send-soft-quotation', currentLead)}
                     className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-lg text-xs font-black shadow-xs flex items-center gap-1.5 transition-all"
-                    title="Request quotation from manager"
+                    title="Request quotation from manager — no customer sending before approval"
                   >
                     <FileText className="w-3.5 h-3.5" />
                     <span>Request Quotation</span>
@@ -819,6 +819,9 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                     <div className="mt-1 text-xs text-slate-500">
                       Manager: <span className="font-bold text-slate-700">{managerDisplayName}</span>
                       {currentWorkItem ? ` · ${currentWorkItem.kind}` : ''}
+                    </div>
+                    <div className="mt-1 text-[10px] text-amber-700 font-semibold">
+                      Quotation requests go to your manager for approval; customer sending is locked.
                     </div>
                   </div>
                   <div className="rounded-xl border border-emerald-200 bg-white px-4 py-3 min-w-[150px]">
@@ -1010,15 +1013,15 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                 <span>Quick Actions</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                <button
-                  onClick={() => isEmployeePortal
-                    ? onOpenQuickAction?.('send-soft-quotation', currentLead)
-                    : setIsQuotationModalOpen(true)}
-                  className="p-2.5 rounded-xl border-2 border-emerald-600 bg-gradient-to-r from-emerald-50 via-emerald-100/60 to-emerald-50 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2 font-black text-emerald-950 shadow-xs col-span-2 sm:col-span-3"
-                >
-                  <FileText className="w-4 h-4" />
-                  <span>{isEmployeePortal ? 'Request Quotation' : 'Soft Quotation'}</span>
-                </button>
+                {!isEmployeePortal && (
+                  <button
+                    onClick={() => setIsQuotationModalOpen(true)}
+                    className="p-2.5 rounded-xl border-2 border-emerald-600 bg-gradient-to-r from-emerald-50 via-emerald-100/60 to-emerald-50 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2 font-black text-emerald-950 shadow-xs col-span-2 sm:col-span-3"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>Soft Quotation</span>
+                  </button>
+                )}
 
                 <button
                   onClick={() => onOpenQuickAction && onOpenQuickAction('call', currentLead)}
@@ -1283,14 +1286,14 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                 <div className="flex flex-wrap gap-2 pt-1">
                   <button onClick={() => onOpenQuickAction?.('loan-application', currentLead)} className="px-3 py-2 bg-[#0b2818] text-white rounded-lg font-bold">Create Loan File</button>
                   <button onClick={() => onOpenQuickAction?.('create-proposal', currentLead)} className="px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-bold">Create DPR</button>
-                  <button
-                    onClick={() => isEmployeePortal
-                      ? onOpenQuickAction?.('send-soft-quotation', currentLead)
-                      : setIsQuotationModalOpen(true)}
-                    className="px-3 py-2 bg-amber-400 text-slate-950 rounded-lg font-bold"
-                  >
-                    {isEmployeePortal ? 'Request Quotation' : 'Soft Quotation'}
-                  </button>
+                  {!isEmployeePortal && (
+                    <button
+                      onClick={() => setIsQuotationModalOpen(true)}
+                      className="px-3 py-2 bg-amber-400 text-slate-950 rounded-lg font-bold"
+                    >
+                      Soft Quotation
+                    </button>
+                  )}
                 </div>
               </div>
             )}

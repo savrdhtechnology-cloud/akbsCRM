@@ -142,6 +142,20 @@ async function paymentAccountsRpc(action: string, data: Record<string, any>, tok
   return out;
 }
 
+async function feeTransactionsRpc(action: string, data: Record<string, any>, token: string) {
+  const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_fee_transactions_staff`, {
+    method: "POST",
+    headers: { apikey: publishableKey, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_action: action, p_token: token, p_data: data }),
+    signal: AbortSignal.timeout(20000),
+    cache: "no-store",
+  });
+  const out = await response.json();
+  if (!response.ok) throw new Error(out.message || "Unable to reach fee transactions service.");
+  if (out?.error) throw Object.assign(new Error(out.error), { status: out.status });
+  return out;
+}
+
 async function feeEventsRpc(action: string, data: Record<string, any>, token: string) {
   const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_fee_events_staff`, {
     method: "POST",
@@ -205,6 +219,7 @@ interface Context extends Snapshot {
   sendQuotationEmail: (id: string) => Promise<any>;
   fee: (action: string, data?: Record<string, any>) => Promise<any>;
   feeEvents: (action: string, data?: Record<string, any>) => Promise<any>;
+  feeTransactions: (action: string, data?: Record<string, any>) => Promise<any>;
   paymentAccounts: (action: string, data?: Record<string, any>) => Promise<any>;
   uploadPaymentQr: (file: { name: string; type: string; data: string }) => Promise<any>;
   logout: () => void;
@@ -440,6 +455,7 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
         sendQuotationEmail: (id) => quoteEmailRpc(id, token),
         fee: (a, d = {}) => feeRpc(a, d, token),
         feeEvents: (a, d = {}) => feeEventsRpc(a, d, token),
+        feeTransactions: (a, d = {}) => feeTransactionsRpc(a, d, token),
         paymentAccounts: (a, d = {}) => paymentAccountsRpc(a, d, token),
         uploadPaymentQr: (file) => paymentQrUploadRpc(file, token),
         logout: () => {

@@ -132,6 +132,11 @@ export interface Lead {
   priority?: 'High' | 'Medium' | 'Low';
   nextFollowUp?: string;
   lastContact?: string;
+  feeStatus?: 'Pending' | 'Proof Submitted' | 'Verified' | 'Rejected';
+  feeAmount?: number;
+  feeReference?: string;
+  feeProofSubmitted?: boolean;
+  feeSubmittedAt?: string;
   state?: string;
   district?: string;
   village?: string;

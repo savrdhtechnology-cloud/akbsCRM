@@ -334,9 +334,6 @@ Quotation Ref: ${quote.quotationNo}
 
 This preliminary estimate has been reviewed and approved by the AKBS manager. Final commercial quotation is subject to site survey, location/site conditions, final engineering scope, specifications, taxes, transportation and confirmed terms.
 
-Review link:
-${shareLink(quote)}
-
 AKBS Poultry Farming Private Limited`;
 
     try {
@@ -358,9 +355,6 @@ Project: ${quote.projectName}
 Capacity: ${quote.projectCapacity.toLocaleString('en-IN')} ${quote.projectUnit}
 Estimated Project Cost: ${formatMoney(quote.grandTotal)}
 Quotation Ref: ${quote.quotationNo}
-
-Review link:
-${shareLink(quote)}
 
 Regards,
 AKBS Poultry Farming Private Limited`;

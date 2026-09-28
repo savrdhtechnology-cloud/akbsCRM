@@ -166,23 +166,23 @@ export const ApplicationProgressTimeline: React.FC<Props> = ({
           50% { box-shadow: 0 0 0 8px rgba(16,185,129,.10); }
         }
       `}</style>
-      <div className="p-5 sm:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 bg-gradient-to-r from-white via-white to-emerald-50/30">
+      <div className={`${compact ? 'p-3 sm:p-3' : 'p-5 sm:p-6'} flex flex-col lg:flex-row lg:items-center justify-between ${compact ? 'gap-2' : 'gap-4'} border-b border-slate-100 bg-gradient-to-r from-white via-white to-emerald-50/30`}>
         <div>
-          <h3 className="text-base sm:text-lg font-black text-slate-950">{title}</h3>
-          <p className="text-[11px] sm:text-xs text-slate-500 mt-1">{subtitle}</p>
+          <h3 className={`${compact ? 'text-sm' : 'text-base sm:text-lg'} font-black text-slate-950`}>{title}</h3>
+          <p className={`${compact ? 'text-[10px] mt-0.5' : 'text-[11px] sm:text-xs mt-1'} text-slate-500`}>{subtitle}</p>
         </div>
-        <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-sm">
-          <ProgressRing stage={{id:'overall',title:'Overall',percentage:overall,status:overall===100?'completed':overall>0?'in_progress':'pending'}} size={56} delay={80}/>
+        <div className={`flex items-center ${compact ? 'gap-2 rounded-xl px-3 py-2' : 'gap-3 rounded-2xl px-4 py-3'} border border-emerald-200 bg-emerald-50 shadow-sm`}>
+          <ProgressRing stage={{id:'overall',title:'Overall',percentage:overall,status:overall===100?'completed':overall>0?'in_progress':'pending'}} size={compact ? 42 : 56} delay={80}/>
           <div>
             <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Overall Progress</div>
-            <div className="text-2xl font-black text-emerald-800 leading-none mt-1">{overall}%</div>
+            <div className={`${compact ? 'text-xl' : 'text-2xl'} font-black text-emerald-800 leading-none mt-1`}>{overall}%</div>
           </div>
         </div>
       </div>
 
       <div className={`relative overflow-x-auto ${compact?'p-3 sm:p-4':'p-4 sm:p-6'}`}>
-        <div className="min-w-[780px] grid grid-cols-6 gap-4 relative">
-          <div className="absolute left-[8%] right-[8%] top-[31px] h-1 rounded-full bg-slate-100 overflow-hidden">
+        <div className={`${compact ? 'min-w-[680px] gap-2' : 'min-w-[780px] gap-4'} grid grid-cols-6 relative`}>
+          <div className={`absolute left-[8%] right-[8%] ${compact ? 'top-[23px] h-0.5' : 'top-[31px] h-1'} rounded-full bg-slate-100 overflow-hidden`}>
             <div
               className="h-full origin-left bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-300 motion-safe:animate-[lineSweep_1.2s_ease-out_both]"
               style={{width:`${Math.max(8, overall)}%`}}
@@ -198,24 +198,24 @@ export const ApplicationProgressTimeline: React.FC<Props> = ({
                 disabled={disabled}
                 onClick={()=>!disabled&&onStageClick?.(stage)}
                 aria-label={`${stage.title}: ${stage.percentage}% ${stage.status.replace('_',' ')}`}
-                className={`relative z-10 text-center rounded-2xl p-2.5 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 ${disabled?'cursor-default':'cursor-pointer hover:bg-emerald-50/50 hover:-translate-y-0.5'} ${isActive?'bg-emerald-50 ring-1 ring-emerald-200 motion-safe:animate-[stageGlow_2.3s_ease-in-out_infinite]':''}`}
+                className={`relative z-10 text-center ${compact ? 'rounded-xl p-1.5' : 'rounded-2xl p-2.5'} transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 ${disabled?'cursor-default':'cursor-pointer hover:bg-emerald-50/50 hover:-translate-y-0.5'} ${isActive?'bg-emerald-50 ring-1 ring-emerald-200 motion-safe:animate-[stageGlow_2.3s_ease-in-out_infinite]':''}`}
               >
                 <div className="mx-auto w-fit">
-                  <ProgressRing stage={stage} size={66} delay={120 + index * 110}/>
+                  <ProgressRing stage={stage} size={compact ? 50 : 66} delay={120 + index * 110}/>
                 </div>
-                <div className="mt-2 text-[10px] font-bold text-slate-400">{String(index+1).padStart(2,'0')}</div>
-                <div className="text-xs font-black text-slate-900 leading-tight min-h-9 flex items-center justify-center px-1">{stage.title}</div>
-                <div className={`mt-1 inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold ${stage.status==='completed'?'bg-emerald-100 text-emerald-800':stage.status==='in_progress'?'bg-emerald-50 text-emerald-700':stage.status==='action_required'?'bg-amber-100 text-amber-800':'bg-slate-100 text-slate-500'}`}>
+                <div className={`${compact ? 'mt-1 text-[9px]' : 'mt-2 text-[10px]'} font-bold text-slate-400`}>{String(index+1).padStart(2,'0')}</div>
+                <div className={`${compact ? 'text-[10px] min-h-7' : 'text-xs min-h-9'} font-black text-slate-900 leading-tight flex items-center justify-center px-1`}>{stage.title}</div>
+                <div className={`${compact ? 'mt-0.5 px-1.5 text-[8px]' : 'mt-1 px-2 text-[9px]'} inline-flex py-0.5 rounded-full font-bold ${stage.status==='completed'?'bg-emerald-100 text-emerald-800':stage.status==='in_progress'?'bg-emerald-50 text-emerald-700':stage.status==='action_required'?'bg-amber-100 text-amber-800':'bg-slate-100 text-slate-500'}`}>
                   {stage.status==='completed'?'Completed':stage.status==='in_progress'?'In Progress':stage.status==='action_required'?'Action Required':stage.status==='locked'?'Locked':'Pending'}
                 </div>
-                <div className="mt-1 text-[10px] font-black text-slate-600">{stage.percentage}%</div>
+                <div className={`${compact ? 'mt-0.5 text-[9px]' : 'mt-1 text-[10px]'} font-black text-slate-600`}>{stage.percentage}%</div>
               </button>
             );
           })}
         </div>
       </div>
 
-      {active && (
+      {active && !compact && (
         <div className="mx-4 sm:mx-6 mb-4 sm:mb-6 rounded-2xl border border-emerald-100 bg-gradient-to-r from-slate-50 via-white to-emerald-50/40 p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
           <div className="min-w-0">
             <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Current Stage</div>

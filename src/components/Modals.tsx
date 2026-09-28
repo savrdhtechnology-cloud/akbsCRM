@@ -19,6 +19,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { Lead, Customer, Partner, ProposalDPR, LoanApplication, DocumentRecord, FollowUp, LeadStatus, LeadSource } from '../types';
+import { useCrm } from '../lib/crm';
 
 interface ModalProps {
   isOpen: boolean;
@@ -343,7 +344,19 @@ export const LeadDetailDrawer: React.FC<{
   onOpenSoftQuotation?: () => void;
   userRole?: 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'FINANCE';
 }> = ({ lead, onClose, onUpdateStatus, onOpenCreateProposal, onOpenSoftQuotation, userRole }) => {
+  const crm = useCrm();
   const [copiedTemplate,setCopiedTemplate]=useState<number | null>(null);
+  const [paymentConfig,setPaymentConfig]=useState<any>(null);
+
+  React.useEffect(() => {
+    if (!lead || userRole !== 'EMPLOYEE') return;
+    let active = true;
+    crm.publicFeeConfig()
+      .then((cfg:any) => { if (active) setPaymentConfig(cfg); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [lead?.id, userRole]);
+
   if (!lead) return null;
 
   const isEmployee = userRole === 'EMPLOYEE';
@@ -406,6 +419,27 @@ Aap apna convenient call time WhatsApp par reply kar dein.
 
 Agar aap ready hain to application yahan complete kar sakte hain:
 ${applyNowUrl}
+
+AKBS Poultry Farming Private Limited`
+    },
+    {
+      id: 5,
+      title: 'Initial Fee Payment Follow-up',
+      status: 'Follow Up' as LeadStatus,
+      message: `Namaste ${firstName} ji,
+
+Aapki AKBS poultry project application process ko aage badhane ke liye *Initial Project Assessment & Registration Fee* ka payment pending hai.
+
+*Payable Amount:* ₹${Number(paymentConfig?.payableFee || lead.feeAmount || 2999).toLocaleString('en-IN')}
+${paymentConfig?.offerActive && Number(paymentConfig?.discountPercent || 0) > 0 ? `*Offer:* ${paymentConfig.offerLabel || 'Special Offer'} – ${paymentConfig.discountPercent}% OFF\n` : ''}
+*Official Company Payment Details:*
+Account Name: ${paymentConfig?.paymentAccount?.accountHolder || 'AKBS Poultry Farming Pvt. Ltd.'}
+${paymentConfig?.paymentAccount?.bankName ? `Bank: ${paymentConfig.paymentAccount.bankName}\n` : ''}${paymentConfig?.paymentAccount?.accountNumber ? `Account No.: ${paymentConfig.paymentAccount.accountNumber}\n` : ''}${paymentConfig?.paymentAccount?.ifsc ? `IFSC: ${paymentConfig.paymentAccount.ifsc}\n` : ''}${paymentConfig?.paymentAccount?.branch ? `Branch: ${paymentConfig.paymentAccount.branch}\n` : ''}${paymentConfig?.paymentAccount?.upiId ? `UPI ID: ${paymentConfig.paymentAccount.upiId}\n` : ''}${paymentConfig?.paymentAccount?.qrImageUrl ? `Official QR: ${paymentConfig.paymentAccount.qrImageUrl}\n` : ''}
+Payment karne ke baad UTR / transaction reference ya payment screenshot Customer Portal me submit karein:
+
+${applyNowUrl}
+
+*Important:* Payment sirf AKBS Poultry Farming Pvt. Ltd. ke official company account / UPI / QR par hi karein. Kisi individual ya unauthorized account me kiye gaye payment ke liye company responsible nahi hogi.
 
 AKBS Poultry Farming Private Limited`
     }

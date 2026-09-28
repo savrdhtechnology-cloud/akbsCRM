@@ -288,6 +288,33 @@ export const SoftQuotationsModule: React.FC<SoftQuotationModuleProps> = ({
     } catch {}
   };
 
+  const copyEmployeeWhatsAppText = async (quote: SoftQuotation) => {
+    if (currentRole !== 'employee') return;
+    if (!['APPROVED','SENT','VIEWED'].includes(quote.status)) {
+      return flash('Manager approval is required before you can copy the customer message.');
+    }
+    const message = `Dear ${quote.customer.customerName},
+
+Your AKBS Poultry Farming soft quotation has been reviewed and approved by the manager.
+
+Project: ${quote.projectName}
+Capacity: ${quote.projectCapacity.toLocaleString('en-IN')} ${quote.projectUnit}
+Approx. Project Budget: ${formatMoney(quote.grandTotal)}
+
+Please review the approved quotation here:
+${shareLink(quote)}
+
+Regards,
+AKBS Poultry Farming Private Limited`;
+
+    try {
+      await navigator.clipboard.writeText(message);
+      flash('Approved WhatsApp message copied. Paste it into WhatsApp manually.');
+    } catch {
+      flash('Could not copy automatically. Please copy the approved quotation message manually.');
+    }
+  };
+
   const sendWhatsApp = async (quote: SoftQuotation) => {
     if (currentRole === 'employee') return flash('Employee can only request a quotation. Manager approval is required before customer dispatch.');
     if (!['APPROVED','SENT','VIEWED'].includes(quote.status)) return flash('Manager approval is required before sending.');
@@ -505,7 +532,17 @@ AKBS Poultry Farming Private Limited`;
               <button onClick={() => rejectQuote(activeQuote.id)} className="btn-secondary text-rose-700"><XCircle className="w-4 h-4"/>Reject</button>
               <button onClick={() => approveQuote(activeQuote.id)} className="btn-primary"><BadgeCheck className="w-4 h-4"/>Approve</button>
             </>}
-            {currentRole !== 'employee' && <>
+            {currentRole === 'employee' ? (
+              ['APPROVED','SENT','VIEWED'].includes(activeQuote.status) ? (
+                <button onClick={() => copyEmployeeWhatsAppText(activeQuote)} className="btn-primary">
+                  <Copy className="w-4 h-4"/>Copy WhatsApp Message
+                </button>
+              ) : (
+                <span className="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
+                  Waiting for manager approval
+                </span>
+              )
+            ) : <>
               <button onClick={() => window.print()} className="btn-secondary"><Printer className="w-4 h-4"/>Generate PDF</button>
               <button onClick={() => downloadPdf(activeQuote)} className="btn-secondary"><Download className="w-4 h-4"/>Download PDF</button>
               <button onClick={() => sendWhatsApp(activeQuote)} className="btn-secondary"><Send className="w-4 h-4"/>WhatsApp</button>
@@ -718,7 +755,11 @@ AKBS Poultry Farming Private Limited`;
                     {actionMenu === q.id && (
                       <div className="absolute right-2 top-11 z-30 w-56 bg-white border rounded-xl shadow-xl p-1 text-xs">
                         <Action label="Duplicate quotation" icon={<Copy/>} onClick={() => { duplicateQuote(q); setActionMenu(null); }}/>
-                        {currentRole !== 'employee' && <>
+                        {currentRole === 'employee' ? (
+                          ['APPROVED','SENT','VIEWED'].includes(q.status)
+                            ? <Action label="Copy WhatsApp Message" icon={<Copy/>} onClick={() => { void copyEmployeeWhatsAppText(q); setActionMenu(null); }}/>
+                            : <div className="px-3 py-2 text-[11px] font-bold text-amber-700">Manager approval required before customer message is available.</div>
+                        ) : <>
                           <Action label="Generate / Print PDF" icon={<Printer/>} onClick={() => { navigate(`/soft-quotations/${q.id}`); setActionMenu(null); }}/>
                           <Action label="Share secure link" icon={<Share2/>} onClick={() => shareQuote(q)}/>
                           <Action label="Send via WhatsApp" icon={<Send/>} onClick={() => sendWhatsApp(q)}/>
@@ -792,7 +833,7 @@ const QuotationBuilder: React.FC<BuilderProps> = ({
             </p>
           </div>
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-900">
-            Employee cannot send quotation directly to customer.
+            Employee can only copy the approved WhatsApp message after manager approval. PDF/email/direct sending remain locked.
           </div>
         </div>
 

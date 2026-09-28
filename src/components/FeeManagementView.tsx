@@ -16,6 +16,7 @@ export const FeeManagementView: React.FC = () => {
   const [offerActive,setOfferActive]=useState(false);
   const [accounts,setAccounts]=useState<any[]>([]);
   const [accountSaving,setAccountSaving]=useState(false);
+  const [qrUploading,setQrUploading]=useState(false);
   const [accountForm,setAccountForm]=useState({
     id:'',
     label:'AKBS Company Account',
@@ -80,6 +81,23 @@ export const FeeManagementView: React.FC = () => {
     qrImageUrl:'',
     active:true
   });
+
+  const fileToDataUrl=(file:File)=>new Promise<string>((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(String(reader.result||''));
+    reader.onerror=()=>reject(new Error('QR image could not be read.'));
+    reader.readAsDataURL(file);
+  });
+
+  const uploadQr=async(file:File)=>{
+    setQrUploading(true); setError('');
+    try{
+      const data=await fileToDataUrl(file);
+      const out=await crm.uploadPaymentQr({name:file.name,type:file.type,data});
+      setAccountForm(p=>({...p,qrImageUrl:out.url||''}));
+    }catch(e:any){setError(e.message||'Unable to upload QR image.');}
+    finally{setQrUploading(false);}
+  };
 
   const saveAccount=async()=>{
     setAccountSaving(true); setError('');
@@ -187,6 +205,17 @@ export const FeeManagementView: React.FC = () => {
           </div>
           <input value={accountForm.upiId} onChange={e=>setAccountForm(p=>({...p,upiId:e.target.value}))} placeholder="UPI ID (optional)" className="h-10 w-full rounded-xl border border-slate-300 px-3 text-xs"/>
           <input value={accountForm.qrImageUrl} onChange={e=>setAccountForm(p=>({...p,qrImageUrl:e.target.value}))} placeholder="QR / barcode image URL (optional)" className="h-10 w-full rounded-xl border border-slate-300 px-3 text-xs"/>
+          <label className="block rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3">
+            <span className="text-[10px] font-black text-slate-700">Upload QR / Barcode Image</span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              disabled={qrUploading}
+              onChange={e=>{const file=e.target.files?.[0]; if(file) void uploadQr(file);}}
+              className="mt-2 block w-full text-[10px] text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-100 file:px-3 file:py-2 file:font-bold file:text-emerald-800"
+            />
+            <div className="mt-1 text-[9px] text-slate-400">{qrUploading?'Uploading QR…':'PNG, JPG or WEBP · max 3 MB'}</div>
+          </label>
           {accountForm.qrImageUrl && <div className="rounded-xl border border-slate-200 p-3 bg-slate-50">
             <div className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-2">QR / Barcode Preview</div>
             <img src={accountForm.qrImageUrl} alt="Payment QR preview" className="max-h-36 mx-auto object-contain rounded-lg"/>

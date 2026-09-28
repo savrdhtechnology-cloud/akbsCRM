@@ -112,6 +112,8 @@ export interface SoftQuotation {
   viewedAt?: string;
   acceptedAt?: string;
   archivedAt?: string;
+  workflowId?: string;
+  workflowVersion?: number;
 
   customer: SoftQuotationCustomer;
 
@@ -179,5 +181,8 @@ export interface SoftQuotationModuleProps {
   customers: Customer[];
   leads: Lead[];
   onCreateCustomer: () => void;
+  reviewWorkflows?: any[];
+  onSubmitReview?: (quotation: SoftQuotation) => Promise<{id:string;version?:number}|null>;
+  onUpdateReviewStatus?: (quotation: SoftQuotation, status: 'APPROVED'|'REJECTED'|'SENT') => Promise<boolean>;
   onConvertToProject?: (quotation: SoftQuotation) => void;
 }

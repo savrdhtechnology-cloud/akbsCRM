@@ -16,6 +16,7 @@ import { TasksView } from './components/TasksView';
 import { ReportsView } from './components/ReportsView';
 import { CommunicationView } from './components/CommunicationView';
 import { SettingsView } from './components/SettingsView';
+import { TeamManagementView } from './components/TeamManagementView';
 import { CustomerRegistrationPortal } from './components/CustomerRegistrationPortal';
 import { PartnerRegistrationPortal } from './components/PartnerRegistrationPortal';
 import { RegistrationHub } from './components/RegistrationHub';
@@ -333,6 +334,10 @@ export default function App() {
               partners={partners}
               onOpenAddPartner={() => window.open('/partner-registration', '_blank', 'noopener,noreferrer')}
             />
+          )}
+
+          {currentSection === 'team-management' && (
+            <TeamManagementView />
           )}
 
           {currentSection === 'registrations' && (

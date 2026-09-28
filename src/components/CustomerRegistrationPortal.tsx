@@ -318,6 +318,8 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
   const [paymentReference, setPaymentReference] = useState('');
   const [paymentDeclarationAccepted, setPaymentDeclarationAccepted] = useState(false);
   const [feeReviewError, setFeeReviewError] = useState('');
+  const [receiptEmailStatus, setReceiptEmailStatus] = useState<'idle' | 'sent' | 'failed'>('idle');
+  const [receiptEmailMessage, setReceiptEmailMessage] = useState('');
 
 
   // Restore latest saved draft for this verified customer account.
@@ -529,6 +531,16 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
       });
       if (!result.submittedId) throw new Error('No application confirmation received. Please try again.');
       setSubmittedAppId(result.submittedId);
+      setReceiptEmailStatus('idle');
+      setReceiptEmailMessage('');
+      try {
+        const receiptResult = await portal.sendPaymentReceipt(result.submittedId);
+        setReceiptEmailStatus('sent');
+        setReceiptEmailMessage(`Payment acknowledgement PDF and application number emailed to ${receiptResult?.email || portal.profile.email}.`);
+      } catch (receiptError: any) {
+        setReceiptEmailStatus('failed');
+        setReceiptEmailMessage(receiptError?.message || 'Application saved, but the receipt email could not be sent automatically.');
+      }
       await portal.deleteDraft(requestId.current).catch(() => undefined);
       setDraftSavedAt('');
       setRegistrationMode('gate'); setDuplicateApplication(null);
@@ -2778,6 +2790,16 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                     Your poultry farm registration has been successfully received by AKBS Poultry Farming Pvt. Ltd.
                   </p>
                 </div>
+
+                {receiptEmailStatus !== 'idle' && (
+                  <div className={`p-4 rounded-xl border text-xs text-left ${receiptEmailStatus === 'sent' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+                    <div className="font-black">{receiptEmailStatus === 'sent' ? 'Receipt Email Sent' : 'Receipt Email Pending'}</div>
+                    <div className="mt-1 leading-5">{receiptEmailMessage}</div>
+                    <div className="mt-2 text-[11px] leading-4">
+                      Payment acknowledgement remains subject to company-side verification against the official AKBS company payment account.
+                    </div>
+                  </div>
+                )}
 
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-left space-y-2">
                   <div className="font-bold text-slate-900">What Happens Next?</div>

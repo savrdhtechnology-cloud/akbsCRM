@@ -125,7 +125,16 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
       body: JSON.stringify({ sessionToken, applicationId, reference, file: file || null })
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result?.error || result?.message || 'Payment proof could not be submitted.');
+    if (!response.ok) {
+      const code = String(result?.code || 'PAYMENT_SUBMISSION_FAILED');
+      const correlationId = String(result?.correlationId || '').trim();
+      const message = String(
+        result?.message ||
+        'Payment submission could not be completed. Please try again. If the issue continues, contact AKBS Support.'
+      );
+      const suffix = correlationId ? ` Reference: ${correlationId}` : '';
+      throw Object.assign(new Error(`${message}${suffix}`), { code, correlationId });
+    }
     return result;
   }
   async function getFeeConfig() {

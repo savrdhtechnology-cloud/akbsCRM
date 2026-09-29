@@ -53,7 +53,6 @@ declare
   v_amount numeric;
   v_discount numeric;
   v_tx uuid;
-  v_existing uuid;
   v_payment jsonb;
   v_hint_exists boolean:=false;
 begin
@@ -161,11 +160,9 @@ begin
 
   perform pg_advisory_xact_lock(hashtextextended('payment-ref:'||v_ref,0));
 
-  select transaction_id into v_existing
-  from akbs_crm.payment_reference_claims
-  where reference=v_ref;
-
-  if found then
+  if exists(
+    select 1 from akbs_crm.payment_reference_claims where reference=v_ref
+  ) then
     return jsonb_build_object(
       'ok',false,'code','DUPLICATE_PAYMENT_REFERENCE',
       'message','This payment reference has already been submitted.',

@@ -142,6 +142,19 @@ async function verifiedPaymentReceiptRpc(leadId: string, token: string) {
   return out;
 }
 
+async function paymentProofViewRpc(leadId: string, token: string) {
+  const response = await fetch(`${databaseUrl}/functions/v1/akbs-payment-proof-view`, {
+    method: "POST",
+    headers: { apikey: publishableKey, "Content-Type": "application/json" },
+    body: JSON.stringify({ staffToken: token, leadId }),
+    signal: AbortSignal.timeout(20000),
+    cache: "no-store",
+  });
+  const out = await response.json();
+  if (!response.ok) throw new Error(out.error || out.message || "Unable to open payment proof.");
+  return out;
+}
+
 async function paymentQrUploadRpc(file: { name: string; type: string; data: string }, token: string) {
   const response = await fetch(`${databaseUrl}/functions/v1/akbs-admin-payment-qr-upload`, {
     method: "POST",
@@ -260,6 +273,7 @@ interface Context extends Snapshot {
   fee: (action: string, data?: Record<string, any>) => Promise<any>;
   sendFeeReminderEmail: (leadId: string) => Promise<any>;
   sendVerifiedPaymentReceipt: (leadId: string) => Promise<any>;
+  viewPaymentProof: (leadId: string) => Promise<any>;
   publicFeeConfig: () => Promise<any>;
   feeEvents: (action: string, data?: Record<string, any>) => Promise<any>;
   feeTransactions: (action: string, data?: Record<string, any>) => Promise<any>;
@@ -499,6 +513,7 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
         fee: (a, d = {}) => feeRpc(a, d, token),
         sendFeeReminderEmail: (leadId) => feeReminderEmailRpc(leadId, token),
         sendVerifiedPaymentReceipt: (leadId) => verifiedPaymentReceiptRpc(leadId, token),
+        viewPaymentProof: (leadId) => paymentProofViewRpc(leadId, token),
         publicFeeConfig: () => publicFeeConfigRpc(),
         feeEvents: (a, d = {}) => feeEventsRpc(a, d, token),
         feeTransactions: (a, d = {}) => feeTransactionsRpc(a, d, token),

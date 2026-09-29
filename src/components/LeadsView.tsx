@@ -1,3 +1,4 @@
+import { csvCell } from '../lib/escapeHtml';
 import { useCrm } from '../lib/crm';
 import React, { useEffect, useState } from 'react';
 import {
@@ -48,6 +49,7 @@ interface LeadsViewProps {
   onSelectLead: (lead: Lead) => void;
   onOpenAddLead: () => void;
   onUpdateLeadStatus: (leadId: string, status: LeadStatus) => void;
+  onConvertLeadToCustomer?: (leadId: string) => void;
   onDeleteLead: (leadId: string) => void;
   onOpenQuickAction?: (actionKey: string, lead?: Lead) => void;
   onEditLead?: (leadId: string, patch: Partial<Lead>) => void;
@@ -273,7 +275,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
       ['Name','Phone','Email','Location','Status','Source','Bird Capacity','Assigned To'],
       ...filteredLeads.map(l => [l.name,l.phone,l.email,l.location,l.status,l.source,String(l.birdCapacity),l.assignedTo])
     ];
-    const csv = rows.map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = rows.map(row => row.map(v => csvCell(v)).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');

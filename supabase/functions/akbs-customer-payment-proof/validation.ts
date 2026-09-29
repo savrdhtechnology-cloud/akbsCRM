@@ -13,7 +13,7 @@ export const ALLOWED_PAYMENT_PROOF_EXTENSIONS = new Set([
   "pdf"
 ]);
 
-export const MAX_PAYMENT_PROOF_BYTES = 5 * 1024 * 1024;
+export const MAX_PAYMENT_PROOF_BYTES = 3 * 1024 * 1024;
 
 export function base64ToBytes(data: string) {
   const clean = data.includes(",") ? data.split(",").pop()! : data;
@@ -65,7 +65,7 @@ export function validatePaymentProof(name: string, mimeInput: string, bytes: Uin
   }
 
   if (bytes.byteLength === 0 || bytes.byteLength > MAX_PAYMENT_PROOF_BYTES) {
-    return { ok: false as const, code: "INVALID_FILE_SIZE", message: "Payment proof must be 5 MB or smaller." };
+    return { ok: false as const, code: "INVALID_FILE_SIZE", message: "Payment proof must be 3 MB or smaller." };
   }
 
   if (!matchesSignature(bytes, mime)) {

@@ -1,3 +1,5 @@
+import { csvCell } from '../lib/escapeHtml';
+import { escapeHtml } from '../lib/escapeHtml';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   BadgeIndianRupee, CheckCircle2, Clock3, Percent, RefreshCw, XCircle, Building2, Star, Trash2,
@@ -252,13 +254,13 @@ export const FeeManagementView: React.FC = () => {
   const exportCsv=()=>{
     const header=['Date','Customer','Application ID','Service','Amount','Discount','Payable','Payment Method','Transaction Ref','Status'];
     const csv=[header,...filteredRows.map((r:any)=>[dt(r.createdAt),r.customerName,r.applicationId||'',r.serviceType,r.amount||0,r.discount||0,r.payable||0,r.paymentMethod||'',r.transactionRef||'',statusLabel(r.status)])]
-      .map(row=>row.map((v:any)=>`"${String(v??'').replaceAll('"','""')}"`).join(',')).join('\n');
+      .map(row=>row.map((v:any)=>csvCell(v)).join(',')).join('\n');
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='AKBS-Fee-Report.csv';a.click();URL.revokeObjectURL(url);
   };
 
   const printReceipt=(r:any)=>{
     const w=window.open('','_blank','width=760,height=850'); if(!w)return;
-    w.document.write(`<html><head><title>AKBS Receipt</title><style>body{font-family:Arial;padding:40px;color:#173b2c}.head{background:#073323;color:#fff;padding:24px;border-radius:14px}.card{border:1px solid #dfe8e3;border-radius:14px;padding:22px;margin-top:20px}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee}.amt{font-size:30px;font-weight:800;color:#087849}</style></head><body><div class="head"><h2>AKBS Poultry Farming Pvt. Ltd.</h2><div>Payment Receipt</div></div><div class="card"><div class="row"><b>Customer</b><span>${r.customerName||''}</span></div><div class="row"><b>Application</b><span>${r.applicationId||'—'}</span></div><div class="row"><b>Service</b><span>${r.serviceType||''}</span></div><div class="row"><b>Transaction Ref</b><span>${r.transactionRef||'—'}</span></div><div class="row"><b>Status</b><span>${statusLabel(r.status)}</span></div><p class="amt">${money(r.payable||0)}</p><small>Generated from AKBS CRM Fee Management.</small></div><script>window.onload=()=>window.print()</script></body></html>`);w.document.close();
+    w.document.write(`<html><head><title>AKBS Receipt</title><style>body{font-family:Arial;padding:40px;color:#173b2c}.head{background:#073323;color:#fff;padding:24px;border-radius:14px}.card{border:1px solid #dfe8e3;border-radius:14px;padding:22px;margin-top:20px}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee}.amt{font-size:30px;font-weight:800;color:#087849}</style></head><body><div class="head"><h2>AKBS Poultry Farming Pvt. Ltd.</h2><div>Payment Receipt</div></div><div class="card"><div class="row"><b>Customer</b><span>${escapeHtml(r.customerName||'')}</span></div><div class="row"><b>Application</b><span>${escapeHtml(r.applicationId||'—')}</span></div><div class="row"><b>Service</b><span>${escapeHtml(r.serviceType||'')}</span></div><div class="row"><b>Transaction Ref</b><span>${escapeHtml(r.transactionRef||'—')}</span></div><div class="row"><b>Status</b><span>${escapeHtml(statusLabel(r.status))}</span></div><p class="amt">${escapeHtml(money(r.payable||0))}</p><small>Generated from AKBS CRM Fee Management.</small></div></body></html>`);w.document.close(); w.opener=null; w.focus(); w.print();
   };
 
   const tabs=[

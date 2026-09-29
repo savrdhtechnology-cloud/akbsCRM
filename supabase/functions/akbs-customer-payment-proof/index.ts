@@ -1,3 +1,4 @@
+import { headers, readJson } from '../_shared/security.ts';
 // @ts-nocheck
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
@@ -8,18 +9,9 @@ import {
 } from "./validation.ts";
 import { validatePaymentRequestEnvelope } from "./requestValidation.ts";
 
-const cors={
-  "Access-Control-Allow-Origin":"*",
-  "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods":"POST, OPTIONS"
-};
-
-const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{
-  status,
-  headers:{...cors,"Content-Type":"application/json"}
-});
-
 Deno.serve(async(req:Request)=>{
+  let cors:Record<string,string>;try{cors=headers(req);}catch{return new Response('Forbidden',{status:403});}
+  const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors});
   if(req.method==="OPTIONS") return new Response("ok",{headers:cors});
   if(req.method!=="POST") return json({code:"METHOD_NOT_ALLOWED",message:"Method not allowed."},405);
 
@@ -27,7 +19,8 @@ Deno.serve(async(req:Request)=>{
   const endpoint="akbs-customer-payment-proof";
 
   try{
-    const body=await req.json().catch(()=>({}));
+    const body=await readJson(req);
+    if(Object.keys(body).some(k=>!['sessionToken','applicationId','reference','file'].includes(k)))return json({error:'Unexpected field'},400);
     const envelope=validatePaymentRequestEnvelope(body);
 
     if(!envelope.ok){
@@ -51,6 +44,8 @@ Deno.serve(async(req:Request)=>{
     const key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb=createClient(url,key,{auth:{persistSession:false}});
 
+    const {data:access,error:accessError}=await sb.rpc('akbs_security_limit',{p_scope:'proof',p_token:sessionToken,p_kind:'customer'});
+    if(accessError||!access?.ok)return json({error:access?.error||'Please sign in'},access?.status||401);
     const safeName=String(file.name).replace(/[^A-Za-z0-9._-]/g,"_").slice(-100);
     const proofPath="akbs/customer-payment-proofs/"+correlationId+"-"+safeName;
 

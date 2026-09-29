@@ -1,3 +1,4 @@
+import { csvCell } from '../../lib/escapeHtml';
 import React, { useState } from 'react';
 import {
   ShieldCheck,
@@ -59,7 +60,7 @@ export const ManagerPortalView: React.FC<ManagerPortalViewProps> = ({
       ['Lead','Location','Bird Capacity','Status','Assigned To'],
       ...leads.map(l => [l.name,l.location,String(l.birdCapacity),l.status,l.assignedTo])
     ];
-    const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const csv = rows.map(r => r.map(v => csvCell(v)).join(',')).join('\n');
     const url = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
     const a=document.createElement('a'); a.href=url; a.download='akbs-regional-mis.csv'; a.click(); URL.revokeObjectURL(url);
   };

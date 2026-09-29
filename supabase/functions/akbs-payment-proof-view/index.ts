@@ -1,26 +1,18 @@
+import { headers, readJson } from '../_shared/security.ts';
 // @ts-nocheck
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
-const cors={
-  "Access-Control-Allow-Origin":"*",
-  "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods":"POST, OPTIONS"
-};
-
-const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{
-  status,
-  headers:{...cors,"Content-Type":"application/json"}
-});
-
 Deno.serve(async(req:Request)=>{
+  let cors:Record<string,string>;try{cors=headers(req);}catch{return new Response('Forbidden',{status:403});}
+  const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors});
   if(req.method==="OPTIONS") return new Response("ok",{headers:cors});
   if(req.method!=="POST") return json({error:"Method not allowed."},405);
 
   const correlationId=crypto.randomUUID();
 
   try{
-    const body=await req.json().catch(()=>({}));
+    const body=await readJson(req);
     const staffToken=String(body?.staffToken||"").trim();
     const leadId=String(body?.leadId||"").trim();
 

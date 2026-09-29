@@ -250,7 +250,7 @@ export default function App() {
     if(!ok)return;
     const out=await run('lead_delete',{lead_id:id});
     if(out?.ok){
-      setSelectedLeadId(undefined);
+      setSelectedLeadId('');
       setSelectedLeadForDrawer(null);
       await crm.refresh().catch(()=>{});
       setSaveError('');
@@ -568,7 +568,7 @@ export default function App() {
         onClose={() => setSelectedLeadForDrawer(null)}
         onUpdateStatus={handleUpdateLeadStatus}
         onOpenCreateProposal={() => setCurrentSection('proposals')}
-        userRole={crm.user.role}
+        userRole={crm.user.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'FINANCE'}
         onOpenSoftQuotation={() => {
           if (!selectedLeadForDrawer) return;
           setCurrentSection('soft-quotations');

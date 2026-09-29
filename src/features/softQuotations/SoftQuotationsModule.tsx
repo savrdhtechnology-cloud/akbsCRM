@@ -1076,8 +1076,8 @@ const QuotationBuilder: React.FC<BuilderProps> = ({
               <div className="text-xs text-slate-500 mt-1 font-mono">{quotation.quotationNo} · Version {quotation.version} · {quotation.status}</div>
             </div>
             <div className="flex gap-2 flex-wrap">
-              {currentRole !== 'employee' && <button onClick={onSave} className="btn-secondary"><Save className="w-4 h-4"/>Save Draft</button>}
-              <button onClick={onSubmit} className="btn-primary"><Send className="w-4 h-4"/>{currentRole === 'employee' ? 'Request Manager Review' : 'Save & Review'}</button>
+              {true && <button onClick={onSave} className="btn-secondary"><Save className="w-4 h-4"/>Save Draft</button>}
+              <button onClick={onSubmit} className="btn-primary"><Send className="w-4 h-4"/>{'Save & Review'}</button>
             </div>
           </div>
           {notice && <Notice>{notice}</Notice>}
@@ -1099,7 +1099,7 @@ const QuotationBuilder: React.FC<BuilderProps> = ({
                   <SectionHead title="Customer Details" subtitle="Select an existing CRM customer/lead or enter a new customer."/>
                   <div className="grid md:grid-cols-3 gap-3">
                     <label className="field md:col-span-2"><span>Existing CRM Customer</span><select onChange={e => onSelectCustomer(e.target.value)} defaultValue=""><option value="">Select customer...</option>{customers.map(c => <option key={c.id} value={c.id}>{c.name} — {c.phone}</option>)}</select></label>
-                    {currentRole !== 'employee' && <button onClick={onCreateCustomer} className="btn-secondary self-end h-10"><UserPlus className="w-4 h-4"/>Create Customer</button>}
+                    {true && <button onClick={onCreateCustomer} className="btn-secondary self-end h-10"><UserPlus className="w-4 h-4"/>Create Customer</button>}
                     <label className="field md:col-span-2"><span>Existing Lead / Application</span><select onChange={e => onSelectLead(e.target.value)} defaultValue=""><option value="">Select lead...</option>{leads.map(l => <option key={l.id} value={l.id}>{l.name} — {l.phone}</option>)}</select></label>
                   </div>
                   <div className="grid md:grid-cols-2 gap-3">
@@ -1220,7 +1220,7 @@ const QuotationBuilder: React.FC<BuilderProps> = ({
           </div>
         </div>
 
-        {currentRole !== 'employee' && <aside className="xl:w-80 shrink-0">
+        {true && <aside className="xl:w-80 shrink-0">
           <div className="xl:sticky xl:top-4 bg-[#071d12] text-white rounded-2xl p-4 shadow-lg">
             <div className="flex items-center gap-2"><Bot className="w-5 h-5 text-emerald-300"/><div><div className="font-black">Quotation Analyzer</div><div className="text-[10px] text-emerald-200/70">Approved CRM + template data only</div></div></div>
             <div className="mt-4 space-y-2">

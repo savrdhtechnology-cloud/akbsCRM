@@ -36,18 +36,6 @@ export const SoftQuotationAcceptancePage: React.FC = () => {
   const [signature, setSignature] = useState('');
 
   useEffect(() => {
-    const quotes = loadSoftQuotations();
-    const quote = quotes.find(q => q.acceptanceToken === token) || null;
-    if (quote) {
-      setLocalQuote(quote);
-      setName(quote.customer.customerName);
-      setEmail(quote.customer.email);
-      setMobile(quote.customer.mobile);
-      setAccepted(quote.status === 'ACCEPTED');
-      setLoading(false);
-      return;
-    }
-
     rpc('get_soft_quotation_for_acceptance', { p_token: token })
       .then(data => {
         if (data?.error) throw new Error(data.error);
@@ -67,26 +55,6 @@ export const SoftQuotationAcceptancePage: React.FC = () => {
       return;
     }
 
-    if (localQuote) {
-      const quotes = loadSoftQuotations();
-      const now = new Date().toISOString();
-      const next = quotes.map(q => q.id === localQuote.id ? {
-        ...q,
-        status: 'ACCEPTED' as const,
-        acceptedAt: now,
-        acceptance: {
-          customerName: name.trim(),
-          email: email.trim(),
-          mobile: mobile.trim(),
-          typedSignature: signature.trim(),
-          acceptedAt: now,
-          acceptanceVersion: q.version
-        }
-      } : q);
-      persistSoftQuotations(next);
-      setAccepted(true);
-      return;
-    }
 
     try {
       const data = await rpc('accept_soft_quotation', {

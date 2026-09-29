@@ -1,22 +1,34 @@
+import { checkOrigin, readBody, send, SecurityError, staff, upstream } from '../server/security';
 import { GoogleGenAI } from '@google/genai';
 
 const clean = (value: unknown) => JSON.stringify(value, null, 2);
 
 export default async function handler(req: any, res: any) {
+  try {
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
+    send(res,405,{ error: 'Method not allowed' });
     return;
   }
 
-  const { action, quotation, approvedTemplate } = req.body || {};
+  checkOrigin(req);
+  const {token,user}=await staff(req);
+  if(!['ADMIN','MANAGER'].includes(user.role))throw new SecurityError('Manager access required.',403);
+  const body=await readBody(req,131072);
+  if(Object.keys(body).some(k=>!['action','quotation','approvedTemplate'].includes(k)))throw new SecurityError('Unexpected field.');
+  const { action }=body;
+  const list=await upstream('akbs_soft_quotation_workspace',{p_action:'list',p_data:{},p_token:token});
+  const quotation=list.quotes?.find((q:any)=>q.id===body.quotation?.id);
+  if(!quotation)throw new SecurityError('Select a saved quotation in your assigned scope.',404);
+  const approvedTemplate={source:'Saved manager-reviewed quotation',projectName:quotation.projectName};
+  await upstream('akbs_security_limit',{p_scope:'ai',p_token:token});
   if (!action || !quotation || !approvedTemplate) {
-    res.status(400).json({ error: 'Missing quotation context' });
+    send(res,400,{ error: 'Missing quotation context' });
     return;
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    res.status(503).json({ error: 'AI service is not configured' });
+    send(res,503,{ error: 'AI service is not configured' });
     return;
   }
 
@@ -25,7 +37,7 @@ export default async function handler(req: any, res: any) {
     'exclusions','commercial-notes','customer-summary','improve-language'
   ]);
   if (!allowedActions.has(action)) {
-    res.status(400).json({ error: 'Unsupported AI action' });
+    send(res,400,{ error: 'Unsupported AI action' });
     return;
   }
 
@@ -62,8 +74,9 @@ ${clean(quotation)}`,
     });
     const text = response.text || '{}';
     const parsed = JSON.parse(text);
-    res.status(200).json(parsed);
+    send(res,200,parsed);
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'AI generation failed' });
+    send(res,500,{ error: 'AI generation failed. Please try again.' });
   }
+  } catch(error) {const e=error instanceof SecurityError?error:new SecurityError('Unable to process request.',500);send(res,e.status,{error:e.message});}
 }

@@ -1,3 +1,4 @@
+import { csvCell } from '../lib/escapeHtml';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Users, UserRound, FileText, BadgeIndianRupee, Bird, Target, TrendingUp,
@@ -160,7 +161,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ leads, customers }) =>
   const exportCsv=(rows:any[],name:string)=>{
     if(!rows.length)return;
     const keys=Object.keys(rows[0]);
-    const csv=[keys,...rows.map(r=>keys.map(k=>r[k]))].map(row=>row.map(v=>`"${String(v??'').replaceAll('"','""')}"`).join(',')).join('\n');
+    const csv=[keys,...rows.map(r=>keys.map(k=>r[k]))].map(row=>row.map(v=>csvCell(v)).join(',')).join('\n');
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
     const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);
   };

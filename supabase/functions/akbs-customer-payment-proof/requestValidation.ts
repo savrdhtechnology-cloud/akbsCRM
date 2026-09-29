@@ -55,7 +55,7 @@ export function validatePaymentRequestEnvelope(body: PaymentRequestEnvelope) {
     };
   }
 
-  if (reference.length < 6) {
+  if (reference.length < 6 || reference.length > 60) {
     return {
       ok: false as const,
       status: 400,

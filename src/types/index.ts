@@ -110,7 +110,7 @@ export interface Lead {
   time: string;
   location: string;
   birdCapacity: number;
-  projectType: 'Broiler' | 'Layer' | 'Breeder' | 'Country Chicken / Desi' | 'Other';
+  projectType: 'EC / Environment Controlled' | 'Broiler' | 'Layer' | 'Breeder' | 'Country Chicken / Desi' | 'Other';
   budgetEstimate: string;
   notes: string;
   assignedTo: string;

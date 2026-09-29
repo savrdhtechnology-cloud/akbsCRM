@@ -1,3 +1,4 @@
+import { csvCell } from '../../lib/escapeHtml';
 import React, { useState } from 'react';
 import {
   Truck,
@@ -41,7 +42,7 @@ export const PartnerPortalView: React.FC<PartnerPortalViewProps> = ({
       ['Order ID','Item','Farmer','Amount','Challan','Status'],
       ...orders.map(o => [o.id,o.itemDescription,o.farmerName,String(o.totalAmount),o.dispatchChallanNo || '',o.status])
     ];
-    const csv=rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const csv=rows.map(r=>r.map(v=>csvCell(v)).join(',')).join('\n');
     const url=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); const a=document.createElement('a'); a.href=url; a.download='partner-statement.csv'; a.click(); URL.revokeObjectURL(url);
   };
   const [selectedOrder, setSelectedOrder] = useState<PartnerSupplyOrder | null>(null);

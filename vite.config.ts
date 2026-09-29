@@ -1,11 +1,13 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import secureHandler from './api/secure';
+import aiHandler from './api/soft-quotation-ai';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), { name: 'local-secure-api', configureServer(server) { server.middlewares.use((req,res,next)=>{ const handler=req.url?.split('?')[0]==='/api/secure'?secureHandler:req.url?.split('?')[0]==='/api/soft-quotation-ai'?aiHandler:null; if(handler)void handler(req,res);else next(); }); } }],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

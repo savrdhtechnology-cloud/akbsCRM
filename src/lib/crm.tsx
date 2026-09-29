@@ -1,3 +1,4 @@
+import { secureRequest } from './secureRequest';
 import React, {
   createContext,
   useCallback,
@@ -32,6 +33,7 @@ export interface Lead {
   approval: string;
   priority: string;
   assigned_to: string | null;
+  manager_id?: string | null;
   capacity: number;
   project_cost: number;
   project_type: string;
@@ -41,6 +43,7 @@ export interface Lead {
   created_at: string;
 }
 export interface Workflow {
+  created_at?: string;
   id: string;
   lead_id: string;
   kind: string;
@@ -102,171 +105,45 @@ const empty: Snapshot = {
   total: 0,
 };
 async function quoteEmailRpc(id: string, token: string) {
-  const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_send_approved_soft_quotation_email`, {
-    method: "POST",
-    headers: { apikey: publishableKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ p_quotation_id: id, p_token: token }),
-    signal: AbortSignal.timeout(20000),
-    cache: "no-store",
-  });
-  const out = await response.json();
-  if (!response.ok) throw new Error(out.message || "Unable to send quotation email.");
-  if (out?.error) throw Object.assign(new Error(out.error), { status: out.status });
-  return out;
+  return secureRequest('akbs_send_approved_soft_quotation_email', { p_quotation_id: id, p_token: token });
 }
 
-async function feeReminderEmailRpc(leadId: string, token: string) {
-  const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_send_fee_reminder_email`, {
-    method: "POST",
-    headers: { apikey: publishableKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ p_lead_id: leadId, p_token: token }),
-    signal: AbortSignal.timeout(30000),
-    cache: "no-store",
-  });
-  const out = await response.json();
-  if (!response.ok) throw new Error(out.message || "Unable to send fee reminder email.");
-  if (out?.error) throw Object.assign(new Error(out.error), { status: out.status });
-  return out;
-}
+async function feeReminderEmailRpc(leadId:string, token:string) { return secureRequest('akbs_send_fee_reminder_email',{p_lead_id:leadId}); }
 
-async function verifiedPaymentReceiptRpc(leadId: string, token: string) {
-  const response = await fetch(`${databaseUrl}/functions/v1/akbs-customer-payment-receipt`, {
-    method: "POST",
-    headers: { apikey: publishableKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ staffToken: token, leadId }),
-    signal: AbortSignal.timeout(30000),
-    cache: "no-store",
-  });
-  const out = await response.json();
-  if (!response.ok) throw new Error(out.error || out.message || "Unable to send verified payment receipt.");
-  return out;
-}
+async function verifiedPaymentReceiptRpc(leadId:string, token:string) { return secureRequest('akbs-staff-payment-receipt',{leadId}); }
 
-async function paymentProofViewRpc(leadId: string, token: string) {
-  const response = await fetch(`${databaseUrl}/functions/v1/akbs-payment-proof-view`, {
-    method: "POST",
-    headers: { apikey: publishableKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ staffToken: token, leadId }),
-    signal: AbortSignal.timeout(20000),
-    cache: "no-store",
-  });
-  const out = await response.json();
-  if (!response.ok) {
-    throw Object.assign(
-      new Error(out.error || out.message || "Unable to open payment proof."),
-      { status: response.status }
-    );
-  }
-  return out;
-}
+async function paymentProofViewRpc(leadId:string, token:string) { return secureRequest('akbs-payment-proof-view',{leadId}); }
 
 async function paymentQrUploadRpc(file: { name: string; type: string; data: string }, token: string) {
-  const response = await fetch(`${databaseUrl}/functions/v1/akbs-admin-payment-qr-upload`, {
-    method: "POST",
-    headers: { apikey: publishableKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ token, file }),
-    signal: AbortSignal.timeout(30000),
-    cache: "no-store",
-  });
-  const out = await response.json();
-  if (!response.ok) throw new Error(out.error || out.message || "Unable to upload payment QR.");
-  return out;
+  return secureRequest('akbs-admin-payment-qr-upload', { token, file });
 }
 
 async function paymentAccountsRpc(action: string, data: Record<string, any>, token: string) {
-  const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_payment_accounts_staff`, {
-    method: "POST",
-    headers: { apikey: publishableKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ p_action: action, p_token: token, p_data: data }),
-    signal: AbortSignal.timeout(20000),
-    cache: "no-store",
-  });
-  const out = await response.json();
-  if (!response.ok) throw new Error(out.message || "Unable to reach payment account service.");
-  if (out?.error) throw Object.assign(new Error(out.error), { status: out.status });
-  return out;
+  return secureRequest('akbs_payment_accounts_staff', { p_action: action, p_token: token, p_data: data });
 }
 
 async function feeTransactionsRpc(action: string, data: Record<string, any>, token: string) {
-  const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_fee_transactions_staff`, {
-    method: "POST",
-    headers: { apikey: publishableKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ p_action: action, p_token: token, p_data: data }),
-    signal: AbortSignal.timeout(20000),
-    cache: "no-store",
-  });
-  const out = await response.json();
-  if (!response.ok) throw new Error(out.message || "Unable to reach fee transactions service.");
-  if (out?.error) throw Object.assign(new Error(out.error), { status: out.status });
-  return out;
+  return secureRequest('akbs_fee_transactions_staff', { p_action: action, p_token: token, p_data: data });
 }
 
 async function feeEventsRpc(action: string, data: Record<string, any>, token: string) {
-  const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_fee_events_staff`, {
-    method: "POST",
-    headers: { apikey: publishableKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ p_action: action, p_token: token, p_data: data }),
-    signal: AbortSignal.timeout(20000),
-    cache: "no-store",
-  });
-  const out = await response.json();
-  if (!response.ok) throw new Error(out.message || "Unable to reach fee events service.");
-  if (out?.error) throw Object.assign(new Error(out.error), { status: out.status });
-  return out;
+  return secureRequest('akbs_fee_events_staff', { p_action: action, p_token: token, p_data: data });
 }
 
 async function publicFeeConfigRpc() {
-  const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_fee_public_config`, {
-    method: "POST",
-    headers: { apikey: publishableKey, "Content-Type": "application/json" },
-    body: JSON.stringify({}),
-    signal: AbortSignal.timeout(15000),
-    cache: "no-store",
-  });
-  const out = await response.json();
-  if (!response.ok) throw new Error(out.message || "Unable to load fee configuration.");
-  return out;
+  return secureRequest('akbs_fee_public_config', {});
 }
 
 async function feeRpc(action: string, data: Record<string, any>, token: string) {
-  const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_fee_staff`, {
-    method: "POST",
-    headers: { apikey: publishableKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ p_action: action, p_token: token, p_data: data }),
-    signal: AbortSignal.timeout(20000),
-    cache: "no-store",
-  });
-  const out = await response.json();
-  if (!response.ok) throw new Error(out.message || "Unable to reach fee management service.");
-  if (out?.error) throw Object.assign(new Error(out.error), { status: out.status });
-  return out;
+  return secureRequest('akbs_fee_staff', { p_action: action, p_token: token, p_data: data });
 }
 
 async function quoteRpc(action: string, data: Record<string, any>, token: string) {
-  const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_soft_quotation_workspace`, {
-    method: "POST",
-    headers: { apikey: publishableKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ p_action: action, p_data: data, p_token: token }),
-    signal: AbortSignal.timeout(20000),
-    cache: "no-store",
-  });
-  const out = await response.json();
-  if (!response.ok) throw new Error(out.message || "Unable to reach quotation service.");
-  if (out?.error) throw Object.assign(new Error(out.error), { status: out.status });
-  return out;
+  return secureRequest('akbs_soft_quotation_workspace', { p_action: action, p_data: data, p_token: token });
 }
 
 async function rpc(action: string, data: Record<string, any>, token: string) {
-  const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_crm_workspace`, {
-    method: "POST", headers: { apikey: publishableKey, "Content-Type": "application/json" },
-    body: JSON.stringify({p_action: action, p_data: data, p_token: token}),
-    signal: AbortSignal.timeout(20000), cache: "no-store",
-  });
-  const out = await response.json();
-  if (!response.ok) throw new Error(out.message || "Unable to reach the CRM database. Please retry.");
-  if (out?.error)
-    throw Object.assign(new Error(out.error), { status: out.status });
-  return out;
+  return secureRequest('akbs_crm_workspace', {p_action: action, p_data: data, p_token: token});
 }
 interface Context extends Snapshot {
   user: User;
@@ -296,7 +173,7 @@ export const useCrm = () => {
 };
 export function CrmProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState(
-    () => sessionStorage.getItem("akbs-workspace-session") || "",
+    () => "cookie",
   );
   const [user, setUser] = useState<User | null>(null);
   const [snapshot, setSnapshot] = useState(empty);
@@ -306,7 +183,7 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
   const request = useRef(0);
   const clear = useCallback(() => {
     request.current++;
-    sessionStorage.removeItem("akbs-workspace-session");
+    sessionStorage.removeItem("akbs-workspace-session"); // Remove pre-hardening browser credentials.
     setToken("");
     setUser(null);
     setSnapshot(empty);
@@ -409,9 +286,9 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
     setError("");
     try {
       const result = await rpc("login", { login, password }, token);
-      sessionStorage.setItem("akbs-workspace-session", result.token);
+
       setUser(null);
-      setToken(result.token);
+      setToken("cookie:" + Date.now());
     } catch (e: any) {
       setError(e.message);
       throw e;
@@ -424,9 +301,9 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
     setError("");
     try {
       const result = await rpc("password", { current_password: currentPassword, password: newPassword }, token);
-      sessionStorage.setItem("akbs-workspace-session", result.token);
+
       setUser(null);
-      setToken(result.token);
+      setToken("cookie:" + Date.now());
     } catch (e: any) {
       setError(e.message);
       throw e;

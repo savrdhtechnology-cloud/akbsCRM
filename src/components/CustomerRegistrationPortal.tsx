@@ -619,8 +619,8 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
       setFeeReviewError('Upload payment screenshot/proof before submitting.');
       return;
     }
-    if (paymentProofFile.size > 5 * 1024 * 1024) {
-      setFeeReviewError('Payment proof must be 5 MB or smaller.');
+    if (paymentProofFile.size > 3 * 1024 * 1024) {
+      setFeeReviewError('Payment proof must be 3 MB or smaller.');
       return;
     }
 
@@ -3129,7 +3129,7 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                     onChange={e => setPaymentProofFile(e.target.files?.[0] || null)}
                     className="mt-2 block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:font-bold file:text-emerald-800 hover:file:bg-emerald-100"
                   />
-                  <p className="mt-1.5 text-[10px] text-slate-500">PNG, JPG, WEBP or PDF · maximum 5 MB.</p>
+                  <p className="mt-1.5 text-[10px] text-slate-500">PNG, JPG, WEBP or PDF · maximum 3 MB.</p>
                 </label>
               </div>
 

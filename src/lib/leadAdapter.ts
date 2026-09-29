@@ -52,8 +52,8 @@ export function mapLead(row: any, users: any[] = []): Lead {
     id:row.id,
     applicationId:row.reference,
     name:pick(row.name,d.fullName,''),
-    phone:pick(row.phone,d.mobileNumber,''),
-    email:pick(row.email,d.email,''),
+    phone:pick(row.phone,d.mobileNumber,'') || '',
+    email:pick(row.email,d.email,'') || '',
     source:row.source==='WEBSITE'||row.source==='CUSTOMER'||row.source==='CUSTOMER_PORTAL'
       ? 'Website'
       : row.source==='PARTNER'||row.source==='PARTNER_PORTAL'

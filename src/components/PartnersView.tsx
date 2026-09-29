@@ -1,3 +1,5 @@
+import { secureRequest } from '../lib/secureRequest';
+import { csvCell } from '../lib/escapeHtml';
 import React, { useMemo, useState } from 'react';
 import { Search, Plus, Users, Handshake, Hourglass, PauseCircle, Coins, Eye, Pencil, MoreVertical, Download, Upload, Filter, X, Phone, Mail, MapPin, CheckCircle2, ShieldCheck, KeyRound, UserCheck, UserX } from 'lucide-react';
 import { Partner } from '../types';
@@ -42,7 +44,7 @@ export const PartnersView: React.FC<PartnersViewProps> = ({ partners, onOpenAddP
 
   const exportCsv = () => {
     const rows = [['Partner Name','Contact Person','Category','Location','Phone','Email','Commission','Status'], ...filtered.map(p => [p.name,p.contactPerson,p.category,p.location,p.phone,p.email,p.commissionRate,normalizedStatus(p.status)])];
-    const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const csv = rows.map(r => r.map(v => csvCell(v)).join(',')).join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
     const a = document.createElement('a'); a.href=url; a.download='akbs-partners.csv'; a.click(); URL.revokeObjectURL(url);
   };
@@ -56,15 +58,9 @@ export const PartnersView: React.FC<PartnersViewProps> = ({ partners, onOpenAddP
     }
     setBusy(true); setMessage('');
     try {
-      const token = sessionStorage.getItem('akbs-workspace-session') || '';
       const payload: Record<string, any> = { id: portalUserId, status: nextStatus, login: loginId.trim().toLowerCase() };
       if (temporaryPassword) payload.password = temporaryPassword;
-      const response = await fetch(`${databaseUrl}/rest/v1/rpc/akbs_crm_partner_access`, {
-        method:'POST', headers:{ apikey:publishableKey, 'Content-Type':'application/json' },
-        body:JSON.stringify({ p_action:'update_access', p_data:payload, p_token:token })
-      });
-      const out = await response.json();
-      if (!response.ok || out?.error) throw new Error(out?.error || out?.message || 'Unable to update partner access.');
+      await secureRequest('akbs_crm_partner_access',{p_action:'update_access',p_data:payload});
       const record = crm.records.find(r => r.id === selectedPartner.id);
       if (!record) throw new Error('Partner CRM record was not found.');
       const crmStatus = nextStatus === 'ACTIVE' ? 'Active' : nextStatus === 'REJECTED' ? 'Rejected' : 'Inactive';

@@ -1,3 +1,4 @@
+import { secureRequest } from '../lib/secureRequest';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, Handshake, LockKeyhole, Mail, ShieldCheck, Sprout } from 'lucide-react';
 import { AkbsLogo } from './AkbsLogo';
@@ -36,20 +37,7 @@ export function usePortal() {
 }
 
 async function rpcCall(fn: string, body: Record<string, unknown>) {
-  const response = await fetch(`${URL}/rest/v1/rpc/${fn}`, {
-    method: 'POST',
-    headers: {
-      apikey: KEY,
-      Authorization: `Bearer ${KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(result?.message || result?.error || 'Unable to connect. Please try again.');
-  }
-  return result;
+  return secureRequest(fn, body);
 }
 
 export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner'; children: React.ReactNode }) {
@@ -99,43 +87,12 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
 
   async function sendPaymentReceipt(applicationId: string) {
     if (!sessionToken) throw new Error('Verify your email OTP first.');
-    const response = await fetch(`${URL}/functions/v1/akbs-customer-payment-receipt`, {
-      method: 'POST',
-      headers: {
-        apikey: KEY,
-        Authorization: `Bearer ${KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ sessionToken, applicationId })
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result?.error || result?.message || 'Receipt email could not be sent.');
-    return result;
+    return secureRequest('akbs-customer-payment-receipt', { sessionToken, applicationId });
   }
 
   async function submitPaymentProof(applicationId: string, reference: string, file?: { name: string; type: string; data: string } | null) {
     if (!sessionToken) throw new Error('Verify your email OTP first.');
-    const response = await fetch(`${URL}/functions/v1/akbs-customer-payment-proof`, {
-      method: 'POST',
-      headers: {
-        apikey: KEY,
-        Authorization: `Bearer ${KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ sessionToken, applicationId, reference, file: file || null })
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const code = String(result?.code || 'PAYMENT_SUBMISSION_FAILED');
-      const correlationId = String(result?.correlationId || '').trim();
-      const message = String(
-        result?.message ||
-        'Payment submission could not be completed. Please try again. If the issue continues, contact AKBS Support.'
-      );
-      const suffix = correlationId ? ` Reference: ${correlationId}` : '';
-      throw Object.assign(new Error(`${message}${suffix}`), { code, correlationId });
-    }
-    return result;
+    return secureRequest('akbs-customer-payment-proof', { sessionToken, applicationId, reference, file: file || null });
   }
   async function getFeeConfig() {
     return rpcCall('akbs_fee_public_config', {});
@@ -167,12 +124,7 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
     let active = true;
     async function restore() {
       try {
-        const saved = sessionStorage.getItem(SESSION_KEY);
-        if (!saved) return;
-        const parsed = JSON.parse(saved);
-        if (parsed?.kind !== kind || !parsed?.token) return;
-        setSessionToken(parsed.token);
-        setEmail(parsed.email || '');
+        const parsed = { kind, token: 'cookie' };
         const result: Snapshot = await rpcCall('akbs_portal_custom', {
           p_action: 'snapshot',
           p_kind: kind,
@@ -180,6 +132,8 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
           p_data: {}
         });
         if (!active) return;
+        setSessionToken('cookie');
+        setEmail(result.profile?.email || '');
         setSnapshot(result);
         if (!result.enrolled) setMode('enroll');
       } catch {
@@ -213,8 +167,8 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
           p_data: {}
         });
         if (!stopped) setSnapshot(current);
-      } catch {
-        // Keep the last good portal state during transient network errors.
+      } catch (error: any) {
+        if (!stopped && [401,403].includes(error.status)) { setSessionToken(''); setSnapshot(null); setMode('login'); }
       } finally {
         inFlight = false;
       }
@@ -254,7 +208,7 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
 
       setOtp('');
       setOtpSent(true);
-      setNotice('A 6-digit OTP has been sent to your email. Enter it below to continue.');
+      setNotice('If your account is eligible, an OTP will arrive shortly. New users should choose Create account.');
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -277,11 +231,10 @@ export function PortalAccess({ kind, children }: { kind: 'customer' | 'partner';
         p_code: otp.trim()
       });
 
-      if (!result?.sessionToken) throw new Error('Unable to create verified session.');
+      if (!result?.authenticated) throw new Error('Unable to create verified session.');
 
-      const token = result.sessionToken;
+      const token = 'cookie';
       setSessionToken(token);
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ kind, token, email: result.email }));
 
       const current: Snapshot = await rpcCall('akbs_portal_custom', {
         p_action: 'snapshot',

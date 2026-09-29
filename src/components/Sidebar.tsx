@@ -76,7 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     partner: ['partner-portal']
   };
 
-  const groups: { label: string; items: NavItem[] }[] = [
+  const allGroups: { label: string; items: NavItem[] }[] = [
     {
       label: 'Overview',
       items: [
@@ -119,7 +119,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'settings', label: 'Settings', icon: <Settings2 className="w-[18px] h-[18px]" /> }
       ]
     }
-  ].map(group => ({
+  ];
+  const groups = allGroups.map(group => ({
     ...group,
     items: group.items.filter(item => allowedByRole[currentRole].includes(item.id))
   })).filter(group => group.items.length > 0);

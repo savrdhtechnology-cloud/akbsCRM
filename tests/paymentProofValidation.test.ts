@@ -25,7 +25,7 @@ test('payment proof rejects extension and MIME mismatch', () => {
   if (!out.ok) assert.equal(out.code,'INVALID_FILE_TYPE');
 });
 
-test('payment proof rejects a file larger than 5 MB', () => {
+test('payment proof rejects a file larger than 3 MB', () => {
   const bytes = new Uint8Array(MAX_PAYMENT_PROOF_BYTES + 1);
   bytes.set([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a],0);
   const out = validatePaymentProof('proof.png','image/png',bytes);

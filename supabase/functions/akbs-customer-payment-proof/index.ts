@@ -26,6 +26,20 @@ Deno.serve(async(req:Request)=>{
 
   try{
     const body=await req.json().catch(()=>({}));
+
+    const forbiddenClientState=[
+      "customerId","customer_id","amount","status","paymentStatus",
+      "verificationStatus","verified","approved","collectionStatus"
+    ];
+    const forbiddenKey=forbiddenClientState.find(key=>Object.prototype.hasOwnProperty.call(body,key));
+    if(forbiddenKey){
+      return json({
+        code:"CLIENT_STATE_NOT_ALLOWED",
+        message:"Payment status and collection state are managed only by AKBS.",
+        correlationId
+      },400);
+    }
+
     const sessionToken=String(body?.sessionToken||"").trim();
     const applicationHint=String(body?.applicationId||"").trim();
     const reference=String(body?.reference||"").trim();
@@ -86,7 +100,7 @@ Deno.serve(async(req:Request)=>{
       const status=
         code==="SESSION_INVALID"?401:
         code==="APPLICATION_NOT_FOUND"?404:
-        code==="CUSTOMER_ACCOUNT_NOT_FOUND"?403:
+        (code==="CUSTOMER_ACCOUNT_NOT_FOUND"||code==="APPLICATION_NOT_AUTHORIZED")?403:
         code.startsWith("DUPLICATE_")||code==="PAYMENT_ALREADY_SUBMITTED"?409:
         code.startsWith("INVALID_")?400:500;
 

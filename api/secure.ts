@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { checkOrigin, cookie, portalCookie, readBody, SecurityError, send, setCookie, STAFF_COOKIE, upstream } from '../server/security';
+import { checkOrigin, cookie, portalCookie, readBody, SecurityError, send, setCookie, STAFF_COOKIE, upstream } from '../server/security.js';
 const staffServices=new Set(['akbs_crm_workspace','akbs_soft_quotation_workspace','akbs_fee_staff','akbs_fee_events_staff','akbs_fee_transactions_staff','akbs_payment_accounts_staff','akbs_send_approved_soft_quotation_email','akbs-admin-payment-qr-upload','akbs_send_fee_reminder_email','akbs_crm_partner_access','akbs_incomplete_applications','akbs-staff-payment-receipt','akbs-payment-proof-view']);
 const portalServices=new Set(['akbs_portal_otp_send','akbs_portal_otp_verify','akbs_portal_custom','akbs_portal_draft_save','akbs_portal_draft_load','akbs_portal_draft_delete','akbs_portal_timeline','akbs-customer-payment-proof','akbs-customer-payment-receipt']);
 export default async function handler(req:any,res:any){
@@ -9,7 +9,6 @@ export default async function handler(req:any,res:any){
   checkOrigin(req);const body=await readBody(req,4200000);
   const {service, ...data}=body;
   if(typeof service!=='string'||(!staffServices.has(service)&&!portalServices.has(service)&&service!=='akbs_fee_public_config'))throw new SecurityError('Unsupported operation.');
-  // Browser-provided credentials are never trusted; the server supplies session cookies.
   delete data.p_token;delete data.p_session_token;delete data.token;delete data.sessionToken;delete data.staffToken;
   let cookieName='';const edge=service.includes('-');
   if(staffServices.has(service)){

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   BadgeIndianRupee, CheckCircle2, Clock3, Percent, RefreshCw, XCircle, Building2, Star, Trash2,
   Plus, Wallet, ReceiptText, RotateCcw, FileBarChart2, History, Search, Filter, Download,
-  CreditCard, Landmark, Smartphone, MoreHorizontal, ShieldCheck, Settings2, ArrowUpRight, Mail, Eye
+  CreditCard, Landmark, Smartphone, MoreHorizontal, ShieldCheck, Settings2, ArrowUpRight, Mail, Eye, Eye
 } from 'lucide-react';
 import { useCrm } from '../lib/crm';
 
@@ -31,6 +31,7 @@ export const FeeManagementView: React.FC = () => {
   const [saving,setSaving]=useState(false);
   const [emailSendingLead,setEmailSendingLead]=useState<string>('');
   const [emailNotice,setEmailNotice]=useState<string>('');
+  const [proofOpeningLead,setProofOpeningLead]=useState<string>('');
   const [proofOpeningLead,setProofOpeningLead]=useState<string>('');
   const [error,setError]=useState('');
   const [query,setQuery]=useState('');
@@ -163,6 +164,25 @@ export const FeeManagementView: React.FC = () => {
       if(!out?.signedUrl) throw new Error('Payment proof is unavailable.');
       window.open(String(out.signedUrl),'_blank','noopener,noreferrer');
     }catch(e:any){
+      setError(e?.message||'Unable to open payment proof.');
+    }finally{
+      setProofOpeningLead('');
+    }
+  };
+
+  const openPaymentProof=async(row:any)=>{
+    const leadId=String(row?.leadId||'').trim();
+    if(!leadId){setError('Application link is missing for this payment.');return;}
+    setProofOpeningLead(leadId);
+    setError('');
+    const popup=window.open('', '_blank', 'noopener,noreferrer');
+    try{
+      const result=await crm.viewPaymentProof(leadId);
+      if(!result?.signedUrl) throw new Error('Payment proof could not be opened.');
+      if(popup) popup.location.href=result.signedUrl;
+      else window.open(result.signedUrl,'_blank','noopener,noreferrer');
+    }catch(e:any){
+      if(popup) popup.close();
       setError(e?.message||'Unable to open payment proof.');
     }finally{
       setProofOpeningLead('');
@@ -411,6 +431,7 @@ export const FeeManagementView: React.FC = () => {
                   {proofOpeningLead===r.leadId?'Opening…':'View Proof'}
                 </button>
               )}
+              {r.kind==='portal'&&r.proofPath&&<button onClick={()=>void openPaymentProof(r)} disabled={proofOpeningLead===r.leadId} className="px-2 py-1 rounded bg-sky-50 text-sky-700 border border-sky-200 text-[9px] font-bold inline-flex items-center gap-1 disabled:opacity-50"><Eye className="w-3 h-3"/>{proofOpeningLead===r.leadId?'Opening…':'View Proof'}</button>}
               {['PENDING_VERIFICATION','UNDER_REVIEW','PROOF_SUBMITTED'].includes(String(r.status).toUpperCase())&&<><button onClick={()=>r.kind==='portal'?void verifyPortal(r.leadId,'VERIFIED'):void verifyManual(String(r.id).replace('manual-',''),'VERIFIED')} disabled={saving} className="px-2 py-1 rounded bg-emerald-700 text-white text-[9px] font-bold disabled:opacity-50">Verify</button><button onClick={()=>r.kind==='portal'?void verifyPortal(r.leadId,'REJECTED'):void verifyManual(String(r.id).replace('manual-',''),'REJECTED')} disabled={saving} className="px-2 py-1 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[9px] font-bold disabled:opacity-50">Reject</button></>}
               {tab==='receipts'&&String(r.status).toUpperCase()==='VERIFIED'&&<button onClick={()=>printReceipt(r)} className="px-2 py-1 rounded bg-blue-50 text-blue-700 text-[9px] font-bold">View / Print</button>}
               <button className="p-1"><MoreHorizontal className="w-4 h-4"/></button>

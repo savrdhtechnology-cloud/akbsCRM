@@ -31,6 +31,8 @@ Deno.serve(async(req:Request)=>{
     const key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb=createClient(url,key,{auth:{persistSession:false}});
 
+    // Use the same staff-auth RPC already used by Fee Management.
+    // This prevents proof-view auth from drifting from the main CRM session rules.
     const feeRes=await fetch(url+"/rest/v1/rpc/akbs_fee_staff",{
       method:"POST",
       headers:{
@@ -62,40 +64,35 @@ Deno.serve(async(req:Request)=>{
       return json({error:"This payment is not available in your authorized Fee Management view.",correlationId},403);
     }
 
-    const {data:lead,error:leadError}=await sb
-      .schema("akbs_crm")
-      .from("leads")
-      .select("id,reference,details")
-      .eq("id",leadId)
-      .maybeSingle();
-
-    if(leadError || !lead){
-      return json({error:"Application could not be found.",correlationId},404);
-    }
-
-    const {data:transaction,error:txError}=await sb
-      .schema("akbs_crm")
-      .from("fee_transactions")
-      .select("id,proof_path,transaction_ref,status,created_at")
-      .eq("lead_id",leadId)
-      .eq("source","CUSTOMER_PORTAL")
-      .eq("service_type","Initial Project Assessment & Registration Fee")
-      .order("created_at",{ascending:false})
-      .limit(1)
-      .maybeSingle();
-
-    if(txError){
-      console.error(JSON.stringify({
-        correlationId,event:"PAYMENT_PROOF_LOOKUP_ERROR",leadId,error:txError.message
-      }));
-      return json({error:"Payment proof could not be loaded.",correlationId},500);
-    }
-
-    const legacyPath=String(lead?.details?.portal_form?._initialPayment?.proofPath||"").trim();
-    const proofPath=String(transaction?.proof_path||legacyPath||"").trim();
+    let proofPath=String(row?.proofPath||"").trim();
+    let transactionId=String(row?.transactionId||"").trim()||null;
+    let paymentReference=String(row?.reference||"").trim()||null;
 
     if(!proofPath){
-      return json({error:"No payment proof is available for this application.",correlationId},404);
+      const {data:transaction,error:txError}=await sb
+        .schema("akbs_crm")
+        .from("fee_transactions")
+        .select("id,proof_path,transaction_ref,status,created_at")
+        .eq("lead_id",leadId)
+        .eq("source","CUSTOMER_PORTAL")
+        .order("created_at",{ascending:false})
+        .limit(1)
+        .maybeSingle();
+
+      if(txError){
+        console.error(JSON.stringify({
+          correlationId,event:"PAYMENT_PROOF_LOOKUP_ERROR",leadId,error:txError.message
+        }));
+        return json({error:"Payment proof could not be loaded.",correlationId},500);
+      }
+
+      proofPath=String(transaction?.proof_path||"").trim();
+      transactionId=transaction?.id||transactionId;
+      paymentReference=transaction?.transaction_ref||paymentReference;
+    }
+
+    if(!proofPath){
+      return json({error:"No payment proof is available for this payment.",correlationId},404);
     }
 
     const {data:signed,error:signedError}=await sb.storage
@@ -112,9 +109,10 @@ Deno.serve(async(req:Request)=>{
 
     return json({
       ok:true,
-      applicationId:lead.reference,
-      transactionId:transaction?.id||null,
-      paymentReference:transaction?.transaction_ref||null,
+      applicationId:String(row?.applicationId||""),
+      transactionId,
+      paymentReference,
+      contentType:String(row?.proofPath||proofPath).toLowerCase().endsWith(".pdf")?"application/pdf":"image/*",
       signedUrl:signed.signedUrl,
       expiresIn:300,
       correlationId

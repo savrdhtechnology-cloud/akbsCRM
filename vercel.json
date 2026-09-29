@@ -1,4 +1,9 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "fix/canonical-customer-payments": false
+    }
+  },
   "rewrites": [
     {
       "source": "/soft-quotations",

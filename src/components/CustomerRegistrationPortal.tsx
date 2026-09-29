@@ -611,8 +611,16 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
       setFeeReviewError('Please confirm that payment is made only to the official AKBS company payment channel.');
       return;
     }
-    if (paymentReference.trim().length < 6 && !paymentProofFile) {
-      setFeeReviewError('Enter the payment UTR/reference or upload payment screenshot/proof.');
+    if (paymentReference.trim().length < 6) {
+      setFeeReviewError('Enter a valid UTR / transaction reference.');
+      return;
+    }
+    if (!paymentProofFile) {
+      setFeeReviewError('Upload payment screenshot/proof before submitting.');
+      return;
+    }
+    if (paymentProofFile.size > 5 * 1024 * 1024) {
+      setFeeReviewError('Payment proof must be 5 MB or smaller.');
       return;
     }
 
@@ -628,7 +636,8 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
         };
       }
 
-      await portal.submitPaymentProof(submittedAppId, paymentReference.trim(), filePayload);
+      const paymentResult = await portal.submitPaymentProof(submittedAppId, paymentReference.trim(), filePayload);
+      if (paymentResult?.applicationId) setSubmittedAppId(String(paymentResult.applicationId));
       setPaymentSubmitted(true);
       setIsFeeReviewOpen(false);
 
@@ -641,7 +650,14 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
         setReceiptEmailMessage(receiptError?.message || 'Payment proof was saved, but the acknowledgement email could not be sent automatically.');
       }
     } catch (error: any) {
-      setFeeReviewError(error.message || 'Payment proof could not be submitted.');
+      const correlationId = String(error?.correlationId || '').trim();
+      if (error?.code === 'APPLICATION_NOT_FOUND') {
+        setFeeReviewError(
+          `Payment submission could not be completed.\nYour application could not be linked with our system. Please try again. If the issue continues, contact AKBS Support.${correlationId ? `\nReference: ${correlationId}` : ''}`
+        );
+      } else {
+        setFeeReviewError(error?.message || 'Payment submission could not be completed. Please try again.');
+      }
     } finally {
       setPaymentSubmitting(false);
     }
@@ -3117,7 +3133,7 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
                 </label>
               </div>
 
-              {feeReviewError && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700">{feeReviewError}</p>}
+              {feeReviewError && <p role="alert" className="whitespace-pre-line rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700">{feeReviewError}</p>}
 
               <div className="flex flex-col-reverse sm:flex-row gap-2">
                 <button type="button" onClick={() => setIsFeeReviewOpen(false)} className="h-11 px-5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50">

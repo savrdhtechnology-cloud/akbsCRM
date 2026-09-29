@@ -12,7 +12,7 @@ const statusLabel=(s:string)=>String(s||'PENDING').replaceAll('_',' ');
 const badgeClass=(s:string)=>{
   const v=String(s||'PENDING').toUpperCase();
   if(v==='VERIFIED') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  if(v==='UNDER_REVIEW'||v==='PROOF_SUBMITTED') return 'bg-blue-50 text-blue-700 border-blue-200';
+  if(v==='UNDER_REVIEW'||v==='PROOF_SUBMITTED'||v==='PENDING_VERIFICATION') return 'bg-blue-50 text-blue-700 border-blue-200';
   if(v==='REJECTED') return 'bg-rose-50 text-rose-700 border-rose-200';
   if(v==='REFUNDED') return 'bg-violet-50 text-violet-700 border-violet-200';
   return 'bg-amber-50 text-amber-700 border-amber-200';
@@ -99,7 +99,17 @@ export const FeeManagementView: React.FC = () => {
     transactionRef:r.reference||'',status:r.status,createdAt:r.submittedAt||r.createdAt,
     assignedTo:r.assignedTo,proofPath:r.proofPath
   }));
-  const rows=[...portalRows,...manualRows.map((r:any)=>({...r,id:'manual-'+r.id,kind:'manual'}))]
+  const portalPaymentKeys=new Set(
+    portalRows
+      .filter((r:any)=>r.transactionRef)
+      .map((r:any)=>`${r.leadId}::${String(r.transactionRef).toUpperCase()}`)
+  );
+  const nonDuplicateManualRows=manualRows.filter((r:any)=>{
+    if(String(r.serviceType||'')!=='Initial Project Assessment & Registration Fee') return true;
+    const key=`${r.leadId||''}::${String(r.transactionRef||'').toUpperCase()}`;
+    return !portalPaymentKeys.has(key);
+  });
+  const rows=[...portalRows,...nonDuplicateManualRows.map((r:any)=>({...r,id:'manual-'+r.id,kind:'manual'}))]
     .sort((a:any,b:any)=>new Date(b.createdAt||0).getTime()-new Date(a.createdAt||0).getTime());
 
   const q=query.trim().toLowerCase();
@@ -111,7 +121,7 @@ export const FeeManagementView: React.FC = () => {
 
   const verifiedRows=rows.filter((r:any)=>String(r.status).toUpperCase()==='VERIFIED');
   const pendingRows=rows.filter((r:any)=>['PENDING'].includes(String(r.status).toUpperCase()));
-  const verificationRows=rows.filter((r:any)=>['UNDER_REVIEW','PROOF_SUBMITTED'].includes(String(r.status).toUpperCase()));
+  const verificationRows=rows.filter((r:any)=>['UNDER_REVIEW','PROOF_SUBMITTED','PENDING_VERIFICATION'].includes(String(r.status).toUpperCase()));
   const refundedPortal=events.filter((e:any)=>e.eventType==='REFUND').reduce((a:number,e:any)=>a+Number(e.amount||0),0);
   const refundedManual=rows.filter((r:any)=>String(r.status).toUpperCase()==='REFUNDED').reduce((a:number,r:any)=>a+Number(r.payable||0),0);
   const refundedTotal=refundedPortal+refundedManual;
@@ -360,9 +370,9 @@ export const FeeManagementView: React.FC = () => {
         </section>}
 
         {['collections','verification','receipts'].includes(tab)&&<section className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-          <div className="p-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><h2 className="font-black">{tab==='verification'?'Payment Verification':tab==='receipts'?'Receipts':'Customer Collections'}</h2><p className="text-[10px] text-slate-500 mt-1">Live fee transactions and payment status.</p></div><div className="flex gap-2"><div className="relative"><Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400"/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search customer, UTR..." className="h-9 pl-9 pr-3 rounded-lg border text-xs"/></div><select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} className="h-9 rounded-lg border px-2 text-xs"><option value="ALL">All Status</option><option>PENDING</option><option>UNDER_REVIEW</option><option>PROOF_SUBMITTED</option><option>VERIFIED</option><option>REJECTED</option><option>REFUNDED</option></select></div></div>
+          <div className="p-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><h2 className="font-black">{tab==='verification'?'Payment Verification':tab==='receipts'?'Receipts':'Customer Collections'}</h2><p className="text-[10px] text-slate-500 mt-1">Live fee transactions and payment status.</p></div><div className="flex gap-2"><div className="relative"><Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400"/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search customer, UTR..." className="h-9 pl-9 pr-3 rounded-lg border text-xs"/></div><select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} className="h-9 rounded-lg border px-2 text-xs"><option value="ALL">All Status</option><option>PENDING</option><option>PENDING_VERIFICATION</option><option>UNDER_REVIEW</option><option>PROOF_SUBMITTED</option><option>VERIFIED</option><option>REJECTED</option><option>REFUNDED</option></select></div></div>
           <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="bg-slate-50 text-[9px] uppercase text-slate-500"><tr><th className="p-3 text-left">Date & Time</th><th className="p-3 text-left">Customer</th><th className="p-3 text-left">Application ID</th><th className="p-3 text-left">Service / Fee Type</th><th className="p-3 text-left">Amount</th><th className="p-3 text-left">Discount</th><th className="p-3 text-left">Payable</th><th className="p-3 text-left">Payment Method</th><th className="p-3 text-left">UTR / Transaction ID</th><th className="p-3 text-left">Status</th><th className="p-3 text-right">Actions</th></tr></thead><tbody>
-            {filteredRows.filter((r:any)=>tab!=='verification'||['UNDER_REVIEW','PROOF_SUBMITTED'].includes(String(r.status).toUpperCase())).map((r:any)=><tr key={r.id} className="border-t"><td className="p-3 text-[10px]">{dt(r.createdAt)}</td><td className="p-3"><b>{r.customerName}</b><div className="text-[9px] text-slate-400">{r.phone}</div></td><td className="p-3 font-mono text-[9px]">{r.applicationId||'—'}</td><td className="p-3">{r.serviceType}</td><td className="p-3 font-bold">{money(r.amount)}</td><td className="p-3">{money(r.discount)}</td><td className="p-3 font-black">{money(r.payable)}</td><td className="p-3">{r.paymentMethod||'—'}</td><td className="p-3 font-mono text-[9px]">{r.transactionRef||'—'}</td><td className="p-3"><span className={`px-2 py-1 rounded-full border text-[9px] font-bold ${badgeClass(r.status)}`}>{statusLabel(r.status)}</span></td><td className="p-3 text-right"><div className="inline-flex flex-wrap justify-end gap-1">
+            {filteredRows.filter((r:any)=>tab!=='verification'||['PENDING_VERIFICATION','UNDER_REVIEW','PROOF_SUBMITTED'].includes(String(r.status).toUpperCase())).map((r:any)=><tr key={r.id} className="border-t"><td className="p-3 text-[10px]">{dt(r.createdAt)}</td><td className="p-3"><b>{r.customerName}</b><div className="text-[9px] text-slate-400">{r.phone}</div></td><td className="p-3 font-mono text-[9px]">{r.applicationId||'—'}</td><td className="p-3">{r.serviceType}</td><td className="p-3 font-bold">{money(r.amount)}</td><td className="p-3">{money(r.discount)}</td><td className="p-3 font-black">{money(r.payable)}</td><td className="p-3">{r.paymentMethod||'—'}</td><td className="p-3 font-mono text-[9px]">{r.transactionRef||'—'}</td><td className="p-3"><span className={`px-2 py-1 rounded-full border text-[9px] font-bold ${badgeClass(r.status)}`}>{statusLabel(r.status)}</span></td><td className="p-3 text-right"><div className="inline-flex flex-wrap justify-end gap-1">
               {String(r.status).toUpperCase()==='PENDING' && r.kind==='portal' && (
                 <button
                   onClick={()=>void sendPendingFeeEmail(r)}
@@ -374,7 +384,7 @@ export const FeeManagementView: React.FC = () => {
                   {emailSendingLead===r.leadId?'Sending…':'Email Reminder'}
                 </button>
               )}
-              {['UNDER_REVIEW','PROOF_SUBMITTED'].includes(String(r.status).toUpperCase())&&<><button onClick={()=>r.kind==='portal'?void verifyPortal(r.leadId,'VERIFIED'):void verifyManual(String(r.id).replace('manual-',''),'VERIFIED')} className="px-2 py-1 rounded bg-emerald-700 text-white text-[9px] font-bold">Verify</button><button onClick={()=>r.kind==='portal'?void verifyPortal(r.leadId,'REJECTED'):void verifyManual(String(r.id).replace('manual-',''),'REJECTED')} className="px-2 py-1 rounded bg-rose-50 text-rose-700 text-[9px] font-bold">Reject</button></>}
+              {['PENDING_VERIFICATION','UNDER_REVIEW','PROOF_SUBMITTED'].includes(String(r.status).toUpperCase())&&<><button onClick={()=>r.kind==='portal'?void verifyPortal(r.leadId,'VERIFIED'):void verifyManual(String(r.id).replace('manual-',''),'VERIFIED')} disabled={saving} className="px-2 py-1 rounded bg-emerald-700 text-white text-[9px] font-bold disabled:opacity-50">Verify</button><button onClick={()=>r.kind==='portal'?void verifyPortal(r.leadId,'REJECTED'):void verifyManual(String(r.id).replace('manual-',''),'REJECTED')} disabled={saving} className="px-2 py-1 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[9px] font-bold disabled:opacity-50">Reject</button></>}
               {tab==='receipts'&&String(r.status).toUpperCase()==='VERIFIED'&&<button onClick={()=>printReceipt(r)} className="px-2 py-1 rounded bg-blue-50 text-blue-700 text-[9px] font-bold">View / Print</button>}
               <button className="p-1"><MoreHorizontal className="w-4 h-4"/></button>
             </div></td></tr>)}

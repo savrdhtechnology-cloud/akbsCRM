@@ -523,8 +523,7 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
             return await paymentProofViewRpc(leadId, token);
           } catch (e: any) {
             if (e?.status === 401) {
-              setError("Your staff session has expired. Please sign in again.");
-              clear();
+              setError("Payment proof access could not be authorized. Please refresh Fee Management and try again.");
             }
             throw e;
           }

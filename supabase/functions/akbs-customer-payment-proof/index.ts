@@ -1,5 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import {
+  base64ToBytes,
+  sha256Hex,
+  validatePaymentProof
+} from "./validation.ts";
 
 const cors={
   "Access-Control-Allow-Origin":"*",
@@ -11,45 +16,6 @@ const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{
   status,
   headers:{...cors,"Content-Type":"application/json"}
 });
-
-const allowedMime=new Set(["image/png","image/jpeg","image/webp","application/pdf"]);
-const allowedExt=new Set(["png","jpg","jpeg","webp","pdf"]);
-
-function base64ToBytes(data:string){
-  const clean=data.includes(",")?data.split(",").pop()!:data;
-  const bin=atob(clean);
-  return Uint8Array.from(bin,c=>c.charCodeAt(0));
-}
-
-function fileExt(name:string){
-  const parts=String(name||"").toLowerCase().split(".");
-  return parts.length>1?parts.pop()!:"";
-}
-
-function matchesSignature(bytes:Uint8Array,mime:string){
-  if(mime==="image/png"){
-    return bytes.length>=8 &&
-      bytes[0]===0x89 && bytes[1]===0x50 && bytes[2]===0x4e && bytes[3]===0x47 &&
-      bytes[4]===0x0d && bytes[5]===0x0a && bytes[6]===0x1a && bytes[7]===0x0a;
-  }
-  if(mime==="image/jpeg"){
-    return bytes.length>=3 && bytes[0]===0xff && bytes[1]===0xd8 && bytes[2]===0xff;
-  }
-  if(mime==="image/webp"){
-    return bytes.length>=12 &&
-      String.fromCharCode(...bytes.slice(0,4))==="RIFF" &&
-      String.fromCharCode(...bytes.slice(8,12))==="WEBP";
-  }
-  if(mime==="application/pdf"){
-    return bytes.length>=5 && String.fromCharCode(...bytes.slice(0,5))==="%PDF-";
-  }
-  return false;
-}
-
-async function sha256Hex(bytes:Uint8Array){
-  const hash=await crypto.subtle.digest("SHA-256",bytes);
-  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join("");
-}
 
 Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS") return new Response("ok",{headers:cors});
@@ -78,29 +44,11 @@ Deno.serve(async(req:Request)=>{
       return json({code:"PAYMENT_PROOF_REQUIRED",message:"Upload payment proof before submitting.",correlationId},400);
     }
 
-    const mime=String(file.type).toLowerCase();
-    const ext=fileExt(String(file.name));
-
-    if(!allowedMime.has(mime) || !allowedExt.has(ext)){
-      return json({code:"INVALID_FILE_TYPE",message:"Upload PNG, JPG/JPEG, WEBP or PDF only.",correlationId},400);
-    }
-
-    const extMatchesMime=
-      (mime==="image/png" && ext==="png") ||
-      (mime==="image/jpeg" && (ext==="jpg"||ext==="jpeg")) ||
-      (mime==="image/webp" && ext==="webp") ||
-      (mime==="application/pdf" && ext==="pdf");
-
-    if(!extMatchesMime){
-      return json({code:"INVALID_FILE_TYPE",message:"The file extension does not match the uploaded file type.",correlationId},400);
-    }
-
     const bytes=base64ToBytes(String(file.data));
-    if(bytes.byteLength===0 || bytes.byteLength>5*1024*1024){
-      return json({code:"INVALID_FILE_SIZE",message:"Payment proof must be 5 MB or smaller.",correlationId},400);
-    }
-    if(!matchesSignature(bytes,mime)){
-      return json({code:"INVALID_FILE_SIGNATURE",message:"The uploaded payment proof is not a valid PNG, JPG/JPEG, WEBP or PDF file.",correlationId},400);
+    const validation=validatePaymentProof(String(file.name),String(file.type),bytes);
+
+    if(!validation.ok){
+      return json({code:validation.code,message:validation.message,correlationId},400);
     }
 
     const proofSha256=await sha256Hex(bytes);
@@ -114,7 +62,7 @@ Deno.serve(async(req:Request)=>{
     const {error:uploadError}=await sb.storage.from("crm-payment-proofs").upload(
       proofPath,
       bytes,
-      {contentType:mime,upsert:false}
+      {contentType:validation.mime,upsert:false}
     );
 
     if(uploadError){

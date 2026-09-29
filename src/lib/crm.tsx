@@ -151,7 +151,12 @@ async function paymentProofViewRpc(leadId: string, token: string) {
     cache: "no-store",
   });
   const out = await response.json();
-  if (!response.ok) throw new Error(out.error || out.message || "Unable to open payment proof.");
+  if (!response.ok) {
+    throw Object.assign(
+      new Error(out.error || out.message || "Unable to open payment proof."),
+      { status: response.status }
+    );
+  }
   return out;
 }
 
@@ -513,7 +518,17 @@ export function CrmProvider({ children }: { children: React.ReactNode }) {
         fee: (a, d = {}) => feeRpc(a, d, token),
         sendFeeReminderEmail: (leadId) => feeReminderEmailRpc(leadId, token),
         sendVerifiedPaymentReceipt: (leadId) => verifiedPaymentReceiptRpc(leadId, token),
-        viewPaymentProof: (leadId) => paymentProofViewRpc(leadId, token),
+        viewPaymentProof: async (leadId) => {
+          try {
+            return await paymentProofViewRpc(leadId, token);
+          } catch (e: any) {
+            if (e?.status === 401) {
+              setError("Your staff session has expired. Please sign in again.");
+              clear();
+            }
+            throw e;
+          }
+        },
         publicFeeConfig: () => publicFeeConfigRpc(),
         feeEvents: (a, d = {}) => feeEventsRpc(a, d, token),
         feeTransactions: (a, d = {}) => feeTransactionsRpc(a, d, token),

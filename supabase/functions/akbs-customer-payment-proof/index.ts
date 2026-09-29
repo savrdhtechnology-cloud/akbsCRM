@@ -5,6 +5,7 @@ import {
   sha256Hex,
   validatePaymentProof
 } from "./validation.ts";
+import { validatePaymentRequestEnvelope } from "./requestValidation.ts";
 
 const cors={
   "Access-Control-Allow-Origin":"*",
@@ -26,38 +27,17 @@ Deno.serve(async(req:Request)=>{
 
   try{
     const body=await req.json().catch(()=>({}));
+    const envelope=validatePaymentRequestEnvelope(body);
 
-    const forbiddenClientState=[
-      "customerId","customer_id","amount","status","paymentStatus",
-      "verificationStatus","verified","approved","collectionStatus"
-    ];
-    const forbiddenKey=forbiddenClientState.find(key=>Object.prototype.hasOwnProperty.call(body,key));
-    if(forbiddenKey){
+    if(!envelope.ok){
       return json({
-        code:"CLIENT_STATE_NOT_ALLOWED",
-        message:"Payment status and collection state are managed only by AKBS.",
+        code:envelope.code,
+        message:envelope.message,
         correlationId
-      },400);
+      },envelope.status);
     }
 
-    const sessionToken=String(body?.sessionToken||"").trim();
-    const applicationHint=String(body?.applicationId||"").trim();
-    const reference=String(body?.reference||"").trim();
-    const file=body?.file||null;
-
-    if(!sessionToken){
-      return json({code:"SESSION_REQUIRED",message:"Please sign in again.",correlationId},401);
-    }
-    if(!applicationHint){
-      return json({code:"APPLICATION_ID_REQUIRED",message:"Application number is required.",correlationId},400);
-    }
-    if(reference.length<6){
-      return json({code:"INVALID_PAYMENT_REFERENCE",message:"Enter a valid UTR / transaction reference.",correlationId},400);
-    }
-    if(!file?.data || !file?.name || !file?.type){
-      return json({code:"PAYMENT_PROOF_REQUIRED",message:"Upload payment proof before submitting.",correlationId},400);
-    }
-
+    const {sessionToken,applicationHint,reference,file}=envelope;
     const bytes=base64ToBytes(String(file.data));
     const validation=validatePaymentProof(String(file.name),String(file.type),bytes);
 

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   BadgeIndianRupee, CheckCircle2, Clock3, Percent, RefreshCw, XCircle, Building2, Star, Trash2,
   Plus, Wallet, ReceiptText, RotateCcw, FileBarChart2, History, Search, Filter, Download,
-  CreditCard, Landmark, Smartphone, MoreHorizontal, ShieldCheck, Settings2, ArrowUpRight, Mail, Eye, Eye
+  CreditCard, Landmark, Smartphone, MoreHorizontal, ShieldCheck, Settings2, ArrowUpRight, Mail, Eye
 } from 'lucide-react';
 import { useCrm } from '../lib/crm';
 
@@ -31,7 +31,6 @@ export const FeeManagementView: React.FC = () => {
   const [saving,setSaving]=useState(false);
   const [emailSendingLead,setEmailSendingLead]=useState<string>('');
   const [emailNotice,setEmailNotice]=useState<string>('');
-  const [proofOpeningLead,setProofOpeningLead]=useState<string>('');
   const [proofOpeningLead,setProofOpeningLead]=useState<string>('');
   const [error,setError]=useState('');
   const [query,setQuery]=useState('');
@@ -154,21 +153,6 @@ export const FeeManagementView: React.FC = () => {
     });
   },[verifiedRows.length,totalCollected]);
   const maxDay=Math.max(1,...collectionSeries.map(x=>x.amount));
-
-  const openPaymentProof=async(row:any)=>{
-    if(!row?.leadId) return;
-    setProofOpeningLead(String(row.leadId));
-    setError('');
-    try{
-      const out=await crm.viewPaymentProof(String(row.leadId));
-      if(!out?.signedUrl) throw new Error('Payment proof is unavailable.');
-      window.open(String(out.signedUrl),'_blank','noopener,noreferrer');
-    }catch(e:any){
-      setError(e?.message||'Unable to open payment proof.');
-    }finally{
-      setProofOpeningLead('');
-    }
-  };
 
   const openPaymentProof=async(row:any)=>{
     const leadId=String(row?.leadId||'').trim();

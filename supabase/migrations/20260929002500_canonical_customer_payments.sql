@@ -7,6 +7,13 @@ alter table akbs_crm.fee_transactions
   add column if not exists correlation_id uuid,
   add column if not exists source text not null default 'STAFF';
 
+alter table akbs_crm.fee_transactions
+  drop constraint if exists fee_transactions_status_check;
+
+alter table akbs_crm.fee_transactions
+  add constraint fee_transactions_status_check
+  check (status in ('PENDING','UNDER_REVIEW','PENDING_VERIFICATION','VERIFIED','REJECTED','REFUNDED'));
+
 update akbs_crm.fee_transactions t
 set application_reference=l.reference
 from akbs_crm.leads l

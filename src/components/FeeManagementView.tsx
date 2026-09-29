@@ -32,6 +32,7 @@ export const FeeManagementView: React.FC = () => {
   const [emailSendingLead,setEmailSendingLead]=useState<string>('');
   const [emailNotice,setEmailNotice]=useState<string>('');
   const [proofOpeningLead,setProofOpeningLead]=useState<string>('');
+  const [proofPreview,setProofPreview]=useState<{url:string;applicationId:string}|null>(null);
   const [error,setError]=useState('');
   const [query,setQuery]=useState('');
   const [statusFilter,setStatusFilter]=useState('ALL');
@@ -159,14 +160,14 @@ export const FeeManagementView: React.FC = () => {
     if(!leadId){setError('Application link is missing for this payment.');return;}
     setProofOpeningLead(leadId);
     setError('');
-    const popup=window.open('', '_blank', 'noopener,noreferrer');
     try{
       const result=await crm.viewPaymentProof(leadId);
       if(!result?.signedUrl) throw new Error('Payment proof could not be opened.');
-      if(popup) popup.location.href=result.signedUrl;
-      else window.open(result.signedUrl,'_blank','noopener,noreferrer');
+      setProofPreview({
+        url:String(result.signedUrl),
+        applicationId:String(result.applicationId||row?.applicationId||'Payment Proof')
+      });
     }catch(e:any){
-      if(popup) popup.close();
       setError(e?.message||'Unable to open payment proof.');
     }finally{
       setProofOpeningLead('');
@@ -415,7 +416,6 @@ export const FeeManagementView: React.FC = () => {
                   {proofOpeningLead===r.leadId?'Opening…':'View Proof'}
                 </button>
               )}
-              {r.kind==='portal'&&r.proofPath&&<button onClick={()=>void openPaymentProof(r)} disabled={proofOpeningLead===r.leadId} className="px-2 py-1 rounded bg-sky-50 text-sky-700 border border-sky-200 text-[9px] font-bold inline-flex items-center gap-1 disabled:opacity-50"><Eye className="w-3 h-3"/>{proofOpeningLead===r.leadId?'Opening…':'View Proof'}</button>}
               {['PENDING_VERIFICATION','UNDER_REVIEW','PROOF_SUBMITTED'].includes(String(r.status).toUpperCase())&&<><button onClick={()=>r.kind==='portal'?void verifyPortal(r.leadId,'VERIFIED'):void verifyManual(String(r.id).replace('manual-',''),'VERIFIED')} disabled={saving} className="px-2 py-1 rounded bg-emerald-700 text-white text-[9px] font-bold disabled:opacity-50">Verify</button><button onClick={()=>r.kind==='portal'?void verifyPortal(r.leadId,'REJECTED'):void verifyManual(String(r.id).replace('manual-',''),'REJECTED')} disabled={saving} className="px-2 py-1 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[9px] font-bold disabled:opacity-50">Reject</button></>}
               {tab==='receipts'&&String(r.status).toUpperCase()==='VERIFIED'&&<button onClick={()=>printReceipt(r)} className="px-2 py-1 rounded bg-blue-50 text-blue-700 text-[9px] font-bold">View / Print</button>}
               <button className="p-1"><MoreHorizontal className="w-4 h-4"/></button>
@@ -455,6 +455,19 @@ export const FeeManagementView: React.FC = () => {
       </div>
       <div className="mt-4 flex justify-end gap-2"><button onClick={()=>setCreateOpen(false)} className="h-9 px-4 rounded-lg border text-xs font-bold">Cancel</button><button disabled={saving} onClick={createManual} className="h-9 px-4 rounded-lg bg-[#075c3e] text-white text-xs font-black">{saving?'Saving…':'Create Transaction'}</button></div>
     </div></div>}
+
+    {proofPreview&&<div className="fixed inset-0 z-[120] bg-slate-950/70 p-4 md:p-8 flex items-center justify-center">
+      <div className="w-full max-w-6xl h-[88vh] rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between gap-4 border-b px-5 py-3">
+          <div>
+            <div className="text-sm font-black text-slate-900">Customer Payment Proof</div>
+            <div className="text-xs text-slate-500">{proofPreview.applicationId}</div>
+          </div>
+          <button onClick={()=>setProofPreview(null)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Close</button>
+        </div>
+        <iframe src={proofPreview.url} title={`Payment proof ${proofPreview.applicationId}`} className="w-full flex-1 bg-slate-100"/>
+      </div>
+    </div>}
 
     {refundRow&&<div className="fixed inset-0 z-[100] bg-slate-950/60 grid place-items-center p-4"><div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
       <h2 className="font-black">Record Refund</h2><p className="mt-1 text-xs text-slate-500">{refundRow.customerName} · {refundRow.serviceType}</p>

@@ -1,7 +1,8 @@
 {
   "git": {
     "deploymentEnabled": {
-      "fix/canonical-customer-payments": false
+      "main": true,
+      "*": false
     }
   },
   "rewrites": [
@@ -30,9 +31,6 @@
       "destination": "/index.html"
     }
   ],
-  "git": {
-    "deploymentEnabled": false
-  },
   "headers": [
     {
       "source": "/(.*)",

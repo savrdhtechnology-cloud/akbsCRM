@@ -12,7 +12,7 @@ const statusLabel=(s:string)=>String(s||'PENDING').replaceAll('_',' ');
 const badgeClass=(s:string)=>{
   const v=String(s||'PENDING').toUpperCase();
   if(v==='VERIFIED') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  if(v==='UNDER_REVIEW'||v==='PROOF_SUBMITTED') return 'bg-blue-50 text-blue-700 border-blue-200';
+  if(v==='UNDER_REVIEW'||v==='PROOF_SUBMITTED'||v==='PENDING_VERIFICATION') return 'bg-blue-50 text-blue-700 border-blue-200';
   if(v==='REJECTED') return 'bg-rose-50 text-rose-700 border-rose-200';
   if(v==='REFUNDED') return 'bg-violet-50 text-violet-700 border-violet-200';
   return 'bg-amber-50 text-amber-700 border-amber-200';
@@ -99,7 +99,17 @@ export const FeeManagementView: React.FC = () => {
     transactionRef:r.reference||'',status:r.status,createdAt:r.submittedAt||r.createdAt,
     assignedTo:r.assignedTo,proofPath:r.proofPath
   }));
-  const rows=[...portalRows,...manualRows.map((r:any)=>({...r,id:'manual-'+r.id,kind:'manual'}))]
+  const portalPaymentKeys=new Set(
+    portalRows
+      .filter((r:any)=>r.transactionRef)
+      .map((r:any)=>`${r.leadId}::${String(r.transactionRef).toUpperCase()}`)
+  );
+  const nonDuplicateManualRows=manualRows.filter((r:any)=>{
+    if(String(r.serviceType||'')!=='Initial Project Assessment & Registration Fee') return true;
+    const key=`${r.leadId||''}::${String(r.transactionRef||'').toUpperCase()}`;
+    return !portalPaymentKeys.has(key);
+  });
+  const rows=[...portalRows,...nonDuplicateManualRows.map((r:any)=>({...r,id:'manual-'+r.id,kind:'manual'}))]
     .sort((a:any,b:any)=>new Date(b.createdAt||0).getTime()-new Date(a.createdAt||0).getTime());
 
   const q=query.trim().toLowerCase();
@@ -111,7 +121,7 @@ export const FeeManagementView: React.FC = () => {
 
   const verifiedRows=rows.filter((r:any)=>String(r.status).toUpperCase()==='VERIFIED');
   const pendingRows=rows.filter((r:any)=>['PENDING'].includes(String(r.status).toUpperCase()));
-  const verificationRows=rows.filter((r:any)=>['UNDER_REVIEW','PROOF_SUBMITTED'].includes(String(r.status).toUpperCase()));
+  const verificationRows=rows.filter((r:any)=>['UNDER_REVIEW','PROOF_SUBMITTED','PENDING_VERIFICATION'].includes(String(r.status).toUpperCase()));
   const refundedPortal=events.filter((e:any)=>e.eventType==='REFUND').reduce((a:number,e:any)=>a+Number(e.amount||0),0);
   const refundedManual=rows.filter((r:any)=>String(r.status).toUpperCase()==='REFUNDED').reduce((a:number,r:any)=>a+Number(r.payable||0),0);
   const refundedTotal=refundedPortal+refundedManual;

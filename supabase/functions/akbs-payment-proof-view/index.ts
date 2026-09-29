@@ -13,12 +13,6 @@ const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{
   headers:{...cors,"Content-Type":"application/json"}
 });
 
-async function sha256Hex(value:string){
-  const bytes=new TextEncoder().encode(value);
-  const hash=await crypto.subtle.digest("SHA-256",bytes);
-  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join("");
-}
-
 Deno.serve(async(req:Request)=>{
   if(req.method==="OPTIONS") return new Response("ok",{headers:cors});
   if(req.method!=="POST") return json({error:"Method not allowed."},405);
@@ -37,31 +31,35 @@ Deno.serve(async(req:Request)=>{
     const key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb=createClient(url,key,{auth:{persistSession:false}});
 
-    const tokenHash=await sha256Hex(staffToken);
-    const {data:session,error:sessionError}=await sb
-      .schema("akbs_crm")
-      .from("crm2_sessions")
-      .select("user_id,expires_at")
-      .eq("token_hash",tokenHash)
-      .maybeSingle();
+    const feeRes=await fetch(url+"/rest/v1/rpc/akbs_fee_staff",{
+      method:"POST",
+      headers:{
+        apikey:key,
+        Authorization:"Bearer "+key,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        p_action:"snapshot",
+        p_token:staffToken,
+        p_data:{}
+      })
+    });
 
-    if(sessionError || !session || new Date(session.expires_at).getTime()<=Date.now()){
-      return json({error:"Your staff session has expired. Please sign in again.",correlationId},401);
+    const fee=await feeRes.json().catch(()=>({}));
+    if(!feeRes.ok){
+      console.error(JSON.stringify({
+        correlationId,event:"PAYMENT_PROOF_STAFF_AUTH_FAILED",
+        leadId,status:feeRes.status
+      }));
+      return json({error:"Your staff session is not valid for this action.",correlationId},401);
     }
 
-    const {data:user,error:userError}=await sb
-      .schema("akbs_crm")
-      .from("users")
-      .select("id,role,active,must_change_password")
-      .eq("id",session.user_id)
-      .maybeSingle();
+    const row=Array.isArray(fee?.rows)
+      ? fee.rows.find((x:any)=>String(x?.leadId||"")===leadId)
+      : null;
 
-    if(userError || !user || !user.active || user.must_change_password){
-      return json({error:"Staff access denied.",correlationId},403);
-    }
-
-    if(!["ADMIN","FINANCE"].includes(String(user.role).toUpperCase())){
-      return json({error:"Only Admin or Finance can view payment proof.",correlationId},403);
+    if(!row){
+      return json({error:"This payment is not available in your authorized Fee Management view.",correlationId},403);
     }
 
     const {data:lead,error:leadError}=await sb
@@ -87,7 +85,9 @@ Deno.serve(async(req:Request)=>{
       .maybeSingle();
 
     if(txError){
-      console.error(JSON.stringify({correlationId,event:"PAYMENT_PROOF_LOOKUP_ERROR",leadId,error:txError.message}));
+      console.error(JSON.stringify({
+        correlationId,event:"PAYMENT_PROOF_LOOKUP_ERROR",leadId,error:txError.message
+      }));
       return json({error:"Payment proof could not be loaded.",correlationId},500);
     }
 
@@ -100,26 +100,15 @@ Deno.serve(async(req:Request)=>{
 
     const {data:signed,error:signedError}=await sb.storage
       .from("crm-payment-proofs")
-      .createSignedUrl(proofPath,180);
+      .createSignedUrl(proofPath,300);
 
     if(signedError || !signed?.signedUrl){
-      console.error(JSON.stringify({correlationId,event:"PAYMENT_PROOF_SIGN_ERROR",leadId,error:signedError?.message||"unknown"}));
+      console.error(JSON.stringify({
+        correlationId,event:"PAYMENT_PROOF_SIGN_ERROR",leadId,
+        proofPath,error:signedError?.message||"unknown"
+      }));
       return json({error:"Payment proof could not be opened.",correlationId},500);
     }
-
-    await sb.schema("akbs_crm").from("security_events").insert({
-      actor_id:user.id,
-      actor_role:String(user.role),
-      action:"PAYMENT_PROOF_VIEWED",
-      entity:"lead",
-      entity_id:lead.id,
-      request_id:correlationId,
-      after_data:{
-        applicationId:lead.reference,
-        transactionId:transaction?.id||null,
-        status:transaction?.status||null
-      }
-    }).catch(()=>undefined);
 
     return json({
       ok:true,
@@ -127,13 +116,12 @@ Deno.serve(async(req:Request)=>{
       transactionId:transaction?.id||null,
       paymentReference:transaction?.transaction_ref||null,
       signedUrl:signed.signedUrl,
-      expiresIn:180,
+      expiresIn:300,
       correlationId
     });
   }catch(error){
     console.error(JSON.stringify({
-      correlationId,
-      event:"PAYMENT_PROOF_VIEW_EXCEPTION",
+      correlationId,event:"PAYMENT_PROOF_VIEW_EXCEPTION",
       error:error instanceof Error?error.message:"Unexpected error"
     }));
     return json({error:"Payment proof could not be opened.",correlationId},500);

@@ -2,11 +2,13 @@ name: Build Debug
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - fix/canonical-customer-payments
   workflow_dispatch:
 
 jobs:
-  build:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,4 +17,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run test:portals
       - run: npm run build

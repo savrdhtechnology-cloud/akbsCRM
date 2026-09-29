@@ -53,9 +53,9 @@ declare
   v_amount numeric;
   v_discount numeric;
   v_tx uuid;
-  v_owned_count integer:=0;
   v_existing uuid;
   v_payment jsonb;
+  v_hint_exists boolean:=false;
 begin
   select s.email into v_email
   from akbs_crm.portal_custom_sessions s
@@ -76,7 +76,8 @@ begin
 
   select a.crm_user_id into v_actor
   from akbs_crm.portal_custom_accounts a
-  where a.kind='customer' and lower(a.email)=lower(v_email)
+  where a.kind='customer'
+    and lower(a.email)=lower(v_email)
   limit 1;
 
   if v_actor is null then
@@ -87,15 +88,11 @@ begin
     );
   end if;
 
-  select count(*) into v_owned_count
-  from akbs_crm.portal_custom_submissions s
-  where s.kind='customer' and lower(s.email)=lower(v_email);
-
   select l.* into v_lead
   from akbs_crm.portal_custom_submissions s
   join akbs_crm.leads l on l.id=s.lead_id
   where s.kind='customer'
-    and lower(s.email)=lower(v_email)
+    and l.customer_id=v_actor
     and (
       upper(trim(l.reference))=upper(trim(coalesce(p_application_hint,'')))
       or l.id::text=trim(coalesce(p_application_hint,''))
@@ -104,28 +101,39 @@ begin
   order by s.created_at desc
   limit 1;
 
-  if v_lead.id is null and v_owned_count=1 then
-    select l.* into v_lead
-    from akbs_crm.portal_custom_submissions s
-    join akbs_crm.leads l on l.id=s.lead_id
-    where s.kind='customer' and lower(s.email)=lower(v_email)
-    order by s.created_at desc
-    limit 1;
-  end if;
-
   if v_lead.id is null then
+    select exists(
+      select 1
+      from akbs_crm.portal_custom_submissions s
+      join akbs_crm.leads l on l.id=s.lead_id
+      where s.kind='customer'
+        and (
+          upper(trim(l.reference))=upper(trim(coalesce(p_application_hint,'')))
+          or l.id::text=trim(coalesce(p_application_hint,''))
+          or s.id::text=trim(coalesce(p_application_hint,''))
+        )
+    ) into v_hint_exists;
+
     insert into akbs_crm.security_events(
       actor_id,actor_role,action,entity,entity_id,request_id,after_data
     ) values (
-      v_actor,'CUSTOMER','PAYMENT_APPLICATION_LOOKUP_FAILED','lead',
-      null,p_correlation_id::text,
+      v_actor,'CUSTOMER',
+      case when v_hint_exists then 'PAYMENT_APPLICATION_UNAUTHORIZED' else 'PAYMENT_APPLICATION_LOOKUP_FAILED' end,
+      'lead',null,p_correlation_id::text,
       jsonb_build_object(
         'applicationHint',left(coalesce(p_application_hint,''),120),
-        'ownedApplicationCount',v_owned_count,
         'endpoint','akbs_customer_payment_submit',
-        'lookupResult','NOT_FOUND'
+        'lookupResult',case when v_hint_exists then 'UNAUTHORIZED' else 'NOT_FOUND' end
       )
     );
+
+    if v_hint_exists then
+      return jsonb_build_object(
+        'ok',false,'code','APPLICATION_NOT_AUTHORIZED',
+        'message','You are not authorized to submit payment for this application.',
+        'correlationId',p_correlation_id
+      );
+    end if;
 
     return jsonb_build_object(
       'ok',false,'code','APPLICATION_NOT_FOUND',
@@ -166,7 +174,8 @@ begin
   end if;
 
   if coalesce(p_proof_sha256,'')<>'' and exists(
-    select 1 from akbs_crm.fee_transactions
+    select 1
+    from akbs_crm.fee_transactions
     where proof_sha256=p_proof_sha256
   ) then
     return jsonb_build_object(
@@ -177,7 +186,8 @@ begin
   end if;
 
   if exists(
-    select 1 from akbs_crm.fee_transactions
+    select 1
+    from akbs_crm.fee_transactions
     where lead_id=v_lead.id
       and service_type='Initial Project Assessment & Registration Fee'
       and status in ('PENDING_VERIFICATION','VERIFIED')
@@ -189,7 +199,10 @@ begin
     );
   end if;
 
-  select * into v_fee from akbs_crm.fee_settings where id=true;
+  select * into v_fee
+  from akbs_crm.fee_settings
+  where id=true;
+
   v_discount:=case when v_fee.offer_active then coalesce(v_fee.discount_percent,0) else 0 end;
   v_amount:=round(coalesce(v_fee.initial_fee,2999)*(1-v_discount/100.0),2);
 
@@ -285,6 +298,7 @@ exception
         'databaseError',sqlstate
       )
     );
+
     return jsonb_build_object(
       'ok',false,'code','PAYMENT_SUBMISSION_FAILED',
       'message','Payment submission could not be completed. Please try again. If the issue continues, contact AKBS Support.',

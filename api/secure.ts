@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { checkOrigin, cookie, portalCookie, readBody, SecurityError, send, setCookie, STAFF_COOKIE, upstream } from '../server/security';
-const staffServices=new Set(['akbs_crm_workspace','akbs_soft_quotation_workspace','akbs_fee_staff','akbs_fee_events_staff','akbs_fee_transactions_staff','akbs_payment_accounts_staff','akbs_send_approved_soft_quotation_email','akbs-admin-payment-qr-upload','akbs_send_fee_reminder_email','akbs_crm_partner_access','akbs-staff-payment-receipt','akbs-payment-proof-view']);
+const staffServices=new Set(['akbs_crm_workspace','akbs_soft_quotation_workspace','akbs_fee_staff','akbs_fee_events_staff','akbs_fee_transactions_staff','akbs_payment_accounts_staff','akbs_send_approved_soft_quotation_email','akbs-admin-payment-qr-upload','akbs_send_fee_reminder_email','akbs_crm_partner_access','akbs_incomplete_applications','akbs-staff-payment-receipt','akbs-payment-proof-view']);
 const portalServices=new Set(['akbs_portal_otp_send','akbs_portal_otp_verify','akbs_portal_custom','akbs_portal_draft_save','akbs_portal_draft_load','akbs_portal_draft_delete','akbs_portal_timeline','akbs-customer-payment-proof','akbs-customer-payment-receipt']);
 export default async function handler(req:any,res:any){
  const requestId=randomUUID();res.setHeader('X-Request-ID',requestId);

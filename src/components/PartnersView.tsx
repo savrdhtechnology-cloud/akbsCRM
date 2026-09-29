@@ -1,3 +1,4 @@
+import { IncompleteApplications } from './IncompleteApplications';
 import { secureRequest } from '../lib/secureRequest';
 import { csvCell } from '../lib/escapeHtml';
 import React, { useMemo, useState } from 'react';
@@ -14,6 +15,7 @@ const statusTone = (status: string) => normalizedStatus(status) === 'Active' ? '
 
 export const PartnersView: React.FC<PartnersViewProps> = ({ partners, onOpenAddPartner }) => {
   const crm = useCrm();
+  const [incomplete,setIncomplete]=useState(false);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const [status, setStatus] = useState('All');
@@ -92,7 +94,10 @@ export const PartnersView: React.FC<PartnersViewProps> = ({ partners, onOpenAddP
     {label:'Partner Records',value:partners.length,icon:Coins,tone:'bg-violet-50 text-violet-700'}
   ];
 
+  if(incomplete && crm.user.role==='ADMIN') return <IncompleteApplications kind="partner" onBack={()=>setIncomplete(false)} onCompleted={()=>void crm.refresh()}/>;
   return <div className="p-4 lg:p-6 space-y-4 max-w-[1700px] mx-auto bg-slate-50/40 min-h-full">
+      {crm.user.role==='ADMIN'&&<button onClick={()=>setIncomplete(true)} className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-900">Incomplete Registrations →</button>}
+
     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
       <div><h1 className="text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Strategic Business Partners</h1><p className="text-sm text-slate-500">Approve partner applications, configure margins and manage secure partner access.</p></div>
       <div className="flex flex-wrap gap-2"><button onClick={exportCsv} className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold flex items-center gap-2"><Download className="w-4 h-4"/>Export</button><button className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold flex items-center gap-2"><Upload className="w-4 h-4"/>Import</button><button onClick={onOpenAddPartner} className="px-4 py-2 bg-[#063d28] text-white rounded-lg text-sm font-bold flex items-center gap-2"><Plus className="w-4 h-4"/>Add New Partner</button></div>

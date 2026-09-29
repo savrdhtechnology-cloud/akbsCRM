@@ -90,7 +90,7 @@ export default function App() {
   const [saveError,setSaveError]=useState('');
   const [saving,setSaving]=useState(false);
   const run=async(action:string,data:Record<string,any>)=>{setSaving(true);setSaveError('');try{return await crm.command(action,data);}catch(e:any){setSaveError(e.message);await crm.refresh().catch(()=>{});return null;}finally{setSaving(false);}};
-  const leads=crm.leads.map(l=>mapLead(l,crm.users));
+  const leads=crm.leads.filter(l=>l.source!=='PARTNER_PORTAL').map(l=>mapLead(l,crm.users));
   const nameFor=(id:string)=>leads.find(l=>l.id===id)?.name||'';
   const records=(kind:string)=>crm.records.filter(r=>r.kind===kind).map(r=>({...r.data,id:r.id}));
   const customers:Customer[]=[...records('customer'),...leads.filter(l=>l.status==='Converted').map(l=>({id:l.id,name:l.name,farmName:l.name,phone:l.phone,email:l.email,location:l.location,state:l.state||'',capacity:l.birdCapacity,shedType:'Environment Controlled (EC)' as const,status:'Active' as const,batchesCompleted:0,currentBatchBirds:0,joinedDate:l.date,integrationPartner:''}))];

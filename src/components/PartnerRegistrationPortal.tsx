@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Handshake,
   Building2,
@@ -25,6 +25,8 @@ const PartnerApplication: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [consent, setConsent] = useState(false);
+  const [draftReady,setDraftReady]=useState(false);
+  const [draftNotice,setDraftNotice]=useState('Restoring saved registration…');
   const [submitted, setSubmitted] = useState(portal.applications.length > 0);
   const [form, setForm] = useState({
     fullName: portal.profile.name || '',
@@ -39,6 +41,25 @@ const PartnerApplication: React.FC = () => {
     message: ''
   });
 
+  useEffect(()=>{
+    let active=true;
+    portal.loadDraft().then(d=>{
+      if(!active)return;
+      if(d?.requestId){requestId.current=d.requestId;setForm(prev=>({...prev,...d.form,email:portal.profile.email}));}
+      setDraftReady(true);setDraftNotice('All changes are saved automatically.');
+    }).catch(()=>{if(active){setError('Unable to restore your saved registration. Refresh before editing.');setDraftNotice('Draft unavailable');}});
+    return()=>{active=false;};
+  },[]);
+  useEffect(()=>{
+    if(!draftReady||submitted)return;
+    let active=true;
+    const save=()=>portal.saveDraft(requestId.current,form,1).then(()=>{if(active)setDraftNotice('Draft saved');}).catch(()=>{if(active)setDraftNotice('Unable to save. Check your connection.');});
+    const timer=window.setTimeout(()=>void save(),700);
+    const flush=()=>{if(document.visibilityState==='hidden')void save();};
+    const exit=()=>{void save();};
+    document.addEventListener('visibilitychange',flush);window.addEventListener('pagehide',exit);
+    return()=>{active=false;window.clearTimeout(timer);document.removeEventListener('visibilitychange',flush);window.removeEventListener('pagehide',exit);};
+  },[form,draftReady,submitted]);
   const update = (key: string, value: string) => setForm(prev => ({ ...prev, [key]: value }));
   const partnerProgressStages = partnerOnboardingProgress(form, submitted);
   const partnerActiveStageId =
@@ -49,7 +70,7 @@ const PartnerApplication: React.FC = () => {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (lock.current || !consent) return;
+    if (lock.current || !consent || !draftReady) return;
     lock.current = true; setBusy(true); setError('');
     try {
       const result = await portal.rpc('submit', { request_id: requestId.current, form,
@@ -59,6 +80,7 @@ const PartnerApplication: React.FC = () => {
     } catch(e: any) { setError(e.message || 'Unable to save registration.'); }
     finally { lock.current = false; setBusy(false); }
   }
+  if(!draftReady&&!submitted)return <div className="min-h-screen grid place-items-center p-6"><div><p role="status">{error||draftNotice}</p>{error&&<button className="mt-4 underline" onClick={()=>window.location.reload()}>Retry loading saved registration</button>}</div></div>;
   if (submitted) {
     return (
       <div className="min-h-screen bg-[#f3f6f4] flex items-center justify-center p-5">
@@ -148,6 +170,7 @@ const PartnerApplication: React.FC = () => {
             </div>
 
             <form onSubmit={submit} className="p-5 sm:p-7 space-y-6">
+              <p role="status" className="text-xs text-emerald-700">{draftNotice}</p>
               <section>
                 <div className="text-xs font-bold text-slate-900 mb-3">1. Contact Details</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -1,3 +1,4 @@
+import { IncompleteApplications } from './IncompleteApplications';
 import { csvCell } from '../lib/escapeHtml';
 import { useCrm } from '../lib/crm';
 import React, { useEffect, useState } from 'react';
@@ -73,6 +74,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   activities = []
 }) => {
   const crm=useCrm();
+  const [incomplete,setIncomplete]=useState(false);
   const [noteError,setNoteError]=useState('');
   const [employeeQuotationRequests,setEmployeeQuotationRequests]=useState<any[]>([]);
   const [feeConfig,setFeeConfig]=useState<any>({payableFee:2999});
@@ -390,7 +392,8 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
     if (!name) return 'L';
     const parts = name.trim().split(' ');
     if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
+      if(incomplete && crm.user.role==='ADMIN') return <IncompleteApplications kind="customer" onBack={()=>setIncomplete(false)} onCompleted={()=>void crm.refresh()}/>;
+  return (parts[0][0] + parts[1][0]).toUpperCase();
     }
     return name.slice(0, 2).toUpperCase();
   };
@@ -398,6 +401,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   if(!leads.length)return <div className="p-6"><h1 className="text-xl font-bold">Leads</h1><p className="my-4">No leads yet. Website enquiries will appear here after submission.</p><button onClick={onOpenAddLead}>Add Lead</button></div>;
   return (
     <div className="p-3 sm:p-5 lg:p-6 space-y-4 max-w-[1680px] mx-auto font-sans antialiased text-slate-800">
+      {crm.user.role==='ADMIN'&&<button onClick={()=>setIncomplete(true)} className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-900">Incomplete Applications →</button>}
       {/* Top Header Row matching Image 3 */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>

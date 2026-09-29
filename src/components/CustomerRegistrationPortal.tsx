@@ -287,6 +287,7 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
   const submitLock = useRef(false);
   const requestId = useRef(crypto.randomUUID());
   const [draftRestored, setDraftRestored] = useState(false);
+  const [draftRestoreError, setDraftRestoreError] = useState('');
   const [draftSavedAt, setDraftSavedAt] = useState('');
   const [draftSaving, setDraftSaving] = useState(false);
   const [registrationMode, setRegistrationMode] = useState<'gate' | 'form'>(portal.applications.length ? 'gate' : 'form');
@@ -366,10 +367,9 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
           setRegistrationMode('form');
           setDraftSavedAt(draft.updatedAt ? new Date(draft.updatedAt).toLocaleString('en-IN') : '');
         }
-      } catch {
-        // Draft restore is non-blocking; the live form remains usable.
-      } finally {
         if (active) setDraftRestored(true);
+      } catch {
+        if (active) setDraftRestoreError('Your saved application could not be loaded. Please retry before editing.');
       }
     };
     void restoreDraft();
@@ -390,7 +390,10 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
         setDraftSaving(false);
       }
     }, 900);
-    return () => window.clearTimeout(timer);
+    const flush=()=>{if(document.visibilityState==='hidden')void portal.saveDraft(requestId.current,formData,currentStep).catch(()=>undefined);};
+    const exit=()=>{void portal.saveDraft(requestId.current,formData,currentStep).catch(()=>undefined);};
+    document.addEventListener('visibilitychange',flush);window.addEventListener('pagehide',exit);
+    return () => {window.clearTimeout(timer);document.removeEventListener('visibilitychange',flush);window.removeEventListener('pagehide',exit);};
   }, [formData, currentStep, registrationMode, draftRestored, isSubmitted]);
 
 
@@ -925,6 +928,8 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
     }
   };
 
+
+  if (!draftRestored) return <div className="p-8 text-center text-slate-700"><p role={draftRestoreError ? 'alert' : 'status'}>{draftRestoreError || 'Loading your saved application…'}</p>{draftRestoreError && <button className="mt-4 rounded-xl bg-emerald-900 px-5 py-3 text-white" onClick={() => window.location.reload()}>Retry loading application</button>}</div>;
 
   return (
     <div className="min-h-screen bg-[#edf2f0] flex flex-col text-slate-800 font-sans">

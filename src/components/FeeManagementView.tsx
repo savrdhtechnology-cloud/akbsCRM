@@ -22,9 +22,9 @@ const badgeClass=(s:string)=>{
 
 type Tab='dashboard'|'settings'|'collections'|'verification'|'accounts'|'receipts'|'refunds'|'reports'|'audit';
 
-export const FeeManagementView: React.FC = () => {
+export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}> = ({leadId='',onClearLead}) => {
   const crm=useCrm();
-  const [tab,setTab]=useState<Tab>('dashboard');
+  const [tab,setTab]=useState<Tab>(leadId?'collections':'dashboard');
   const [data,setData]=useState<any>(null);
   const [accounts,setAccounts]=useState<any[]>([]);
   const [events,setEvents]=useState<any[]>([]);
@@ -116,11 +116,12 @@ export const FeeManagementView: React.FC = () => {
   const rows=[...portalRows,...nonDuplicateManualRows.map((r:any)=>({...r,id:'manual-'+r.id,kind:'manual'}))]
     .sort((a:any,b:any)=>new Date(b.createdAt||0).getTime()-new Date(a.createdAt||0).getTime());
 
+  useEffect(()=>{if(leadId){setTab('collections');setQuery('');setStatusFilter('ALL');}},[leadId]);
   const q=query.trim().toLowerCase();
   const filteredRows=rows.filter((r:any)=>{
     const matches=!q||[r.customerName,r.applicationId,r.phone,r.transactionRef,r.serviceType].some(v=>String(v||'').toLowerCase().includes(q));
     const status=statusLabel(r.status).toUpperCase().replaceAll(' ','_');
-    return matches&&(statusFilter==='ALL'||status===statusFilter);
+    return (!leadId||r.leadId===leadId)&&matches&&(statusFilter==='ALL'||status===statusFilter);
   });
 
   const verifiedRows=rows.filter((r:any)=>String(r.status).toUpperCase()==='VERIFIED');
@@ -295,6 +296,7 @@ export const FeeManagementView: React.FC = () => {
 
     <div className="block">
       <main className="p-4 sm:p-5 space-y-4 min-w-0">
+        {leadId&&<div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950 flex justify-between gap-4"><div><b>Fees for {crm.leads.find(l=>l.id===leadId)?.name||'selected application'}</b><p className="text-sm">Review payment status below. For unpaid registration fees, use Email Reminder.</p></div><button onClick={onClearLead} className="font-bold underline">Show all customers</button></div>}
         {error&&<div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">{error}</div>}
         {emailNotice&&<div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-700">{emailNotice}</div>}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3">

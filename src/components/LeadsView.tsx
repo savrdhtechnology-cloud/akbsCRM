@@ -47,6 +47,7 @@ import { crmLeadProgress } from '../lib/applicationProgress';
 interface LeadsViewProps {
   leads: Lead[];
   selectedLeadId?: string;
+  onOpenFees?: (leadId: string) => void;
   onSelectLead: (lead: Lead) => void;
   onOpenAddLead: () => void;
   onUpdateLeadStatus: (leadId: string, status: LeadStatus) => void;
@@ -62,6 +63,7 @@ interface LeadsViewProps {
 export const LeadsView: React.FC<LeadsViewProps> = ({
   leads,
   selectedLeadId,
+  onOpenFees,
   onSelectLead,
   onOpenAddLead,
   onUpdateLeadStatus,
@@ -392,13 +394,14 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
     if (!name) return 'L';
     const parts = name.trim().split(' ');
     if (parts.length >= 2) {
-      if(incomplete && crm.user.role==='ADMIN') return <IncompleteApplications kind="customer" onBack={()=>setIncomplete(false)} onCompleted={()=>void crm.refresh()}/>;
-  return (parts[0][0] + parts[1][0]).toUpperCase();
+      return (parts[0][0] + parts[1][0]).toUpperCase();
     }
     return name.slice(0, 2).toUpperCase();
   };
 
-  if(!leads.length)return <div className="p-6"><h1 className="text-xl font-bold">Leads</h1><p className="my-4">No leads yet. Website enquiries will appear here after submission.</p><button onClick={onOpenAddLead}>Add Lead</button></div>;
+  if(incomplete && crm.user.role==='ADMIN') return <IncompleteApplications kind="customer" onBack={()=>setIncomplete(false)} onCompleted={()=>void crm.refresh()}/>;
+
+  if(!leads.length)return <div className="p-6"><h1 className="text-xl font-bold">Leads</h1>{crm.user.role==='ADMIN'&&<button onClick={()=>setIncomplete(true)}>Incomplete Applications →</button>}<p className="my-4">No leads yet. Website enquiries will appear here after submission.</p><button onClick={onOpenAddLead}>Add Lead</button></div>;
   return (
     <div className="p-3 sm:p-5 lg:p-6 space-y-4 max-w-[1680px] mx-auto font-sans antialiased text-slate-800">
       {crm.user.role==='ADMIN'&&<button onClick={()=>setIncomplete(true)} className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-900">Incomplete Applications →</button>}
@@ -638,7 +641,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                       <span className={`px-2 py-0.5 rounded-md font-semibold border ${getStatusBadgeStyle(lead.status)}`}>
                         {lead.status}
                       </span>
-                      <span className={`px-2 py-0.5 rounded-md font-bold border ${
+                      <button type="button" disabled={!onOpenFees} onClick={e=>{e.stopPropagation();onOpenFees?.(lead.id);}} title="Open this lead’s fees and payment reminders" className={`px-2 py-0.5 rounded-md font-bold border hover:underline ${
                         lead.feeStatus === 'Verified'
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                           : lead.feeStatus === 'Proof Submitted'
@@ -648,7 +651,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                               : 'bg-amber-50 text-amber-700 border-amber-200'
                       }`}>
                         Fee: {lead.feeStatus || 'Pending'}
-                      </span>
+                      </button>
                     </div>
                     <span className="text-slate-400 shrink-0">
                       {lead.relativeTime || lead.date || 'Today'}
@@ -774,7 +777,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                       <Target className="w-3 h-3" />
                       Lead Status: {currentLead.status}
                     </span>
-                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${
+                    <button type="button" disabled={!onOpenFees} onClick={()=>onOpenFees?.(currentLead.id)} title="Open this lead’s fees and payment reminders" className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold hover:underline ${
                       currentLead.feeStatus === 'Verified'
                         ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
                         : currentLead.feeStatus === 'Proof Submitted'
@@ -785,7 +788,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                     }`}>
                       <BadgeIndianRupee className="w-3 h-3" />
                       Fee: {currentLead.feeStatus || 'Pending'} · ₹{Number(currentLead.feeStatus === 'Pending' ? (feeConfig?.payableFee || 2999) : (currentLead.feeAmount || feeConfig?.payableFee || 2999)).toLocaleString('en-IN')}
-                    </span>
+                    </button>
                   </div>
                   )}
                 </div>

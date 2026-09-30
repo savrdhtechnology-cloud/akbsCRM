@@ -122,6 +122,7 @@ export default function App() {
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
   const [selectedLeadForDrawer, setSelectedLeadForDrawer] = useState<Lead | null>(null);
   const [selectedLeadId, setSelectedLeadId] = useState<string>('');
+  const [feeLeadId,setFeeLeadId]=useState('');
   const [actionLead, setActionLead] = useState<Lead | null>(null);
   const [isEditLeadOpen, setIsEditLeadOpen] = useState(false);
   const [isAssignLeadOpen, setIsAssignLeadOpen] = useState(false);
@@ -377,6 +378,7 @@ export default function App() {
           {currentSection === 'leads' && (
             <LeadsView
               leads={leads}
+              onOpenFees={canOpenSection('fee-management') ? (id)=>{setFeeLeadId(id);safeSetSection('fee-management');} : undefined}
               selectedLeadId={selectedLeadId}
               onSelectLead={(lead) => {
                 setSelectedLeadId(lead.id);
@@ -452,7 +454,7 @@ export default function App() {
           )}
 
           {currentSection === 'fee-management' && (
-            <FeeManagementView />
+            <FeeManagementView leadId={feeLeadId} onClearLead={()=>setFeeLeadId('')}/>
           )}
 
           {currentSection === 'documents' && (

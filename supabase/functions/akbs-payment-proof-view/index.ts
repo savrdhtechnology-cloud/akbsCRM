@@ -1,119 +1,30 @@
-import { headers, readJson } from '../_shared/security.ts';
-// @ts-nocheck
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
-
+import {createClient} from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import {headers,readJson} from '../_shared/security.ts';
 Deno.serve(async(req:Request)=>{
-  let cors:Record<string,string>;try{cors=headers(req);}catch{return new Response('Forbidden',{status:403});}
-  const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors});
-  if(req.method==="OPTIONS") return new Response("ok",{headers:cors});
-  if(req.method!=="POST") return json({error:"Method not allowed."},405);
-
-  const correlationId=crypto.randomUUID();
-
-  try{
-    const body=await readJson(req);
-    const staffToken=String(body?.staffToken||"").trim();
-    const leadId=String(body?.leadId||"").trim();
-
-    if(!staffToken) return json({error:"Staff session is required.",correlationId},401);
-    if(!leadId) return json({error:"Application is required.",correlationId},400);
-
-    const url=Deno.env.get("SUPABASE_URL")!;
-    const key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const sb=createClient(url,key,{auth:{persistSession:false}});
-
-    // Use the same staff-auth RPC already used by Fee Management.
-    // This prevents proof-view auth from drifting from the main CRM session rules.
-    const feeRes=await fetch(url+"/rest/v1/rpc/akbs_fee_staff",{
-      method:"POST",
-      headers:{
-        apikey:key,
-        Authorization:"Bearer "+key,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        p_action:"snapshot",
-        p_token:staffToken,
-        p_data:{}
-      })
-    });
-
-    const fee=await feeRes.json().catch(()=>({}));
-    if(!feeRes.ok){
-      console.error(JSON.stringify({
-        correlationId,event:"PAYMENT_PROOF_STAFF_AUTH_FAILED",
-        leadId,status:feeRes.status
-      }));
-      return json({error:"Your staff session is not valid for this action.",correlationId},401);
-    }
-
-    const row=Array.isArray(fee?.rows)
-      ? fee.rows.find((x:any)=>String(x?.leadId||"")===leadId)
-      : null;
-
-    if(!row){
-      return json({error:"This payment is not available in your authorized Fee Management view.",correlationId},403);
-    }
-
-    let proofPath=String(row?.proofPath||"").trim();
-    let transactionId=String(row?.transactionId||"").trim()||null;
-    let paymentReference=String(row?.reference||"").trim()||null;
-
-    if(!proofPath){
-      const {data:transaction,error:txError}=await sb
-        .schema("akbs_crm")
-        .from("fee_transactions")
-        .select("id,proof_path,transaction_ref,status,created_at")
-        .eq("lead_id",leadId)
-        .eq("source","CUSTOMER_PORTAL")
-        .order("created_at",{ascending:false})
-        .limit(1)
-        .maybeSingle();
-
-      if(txError){
-        console.error(JSON.stringify({
-          correlationId,event:"PAYMENT_PROOF_LOOKUP_ERROR",leadId,error:txError.message
-        }));
-        return json({error:"Payment proof could not be loaded.",correlationId},500);
-      }
-
-      proofPath=String(transaction?.proof_path||"").trim();
-      transactionId=transaction?.id||transactionId;
-      paymentReference=transaction?.transaction_ref||paymentReference;
-    }
-
-    if(!proofPath){
-      return json({error:"No payment proof is available for this payment.",correlationId},404);
-    }
-
-    const {data:signed,error:signedError}=await sb.storage
-      .from("crm-payment-proofs")
-      .createSignedUrl(proofPath,300);
-
-    if(signedError || !signed?.signedUrl){
-      console.error(JSON.stringify({
-        correlationId,event:"PAYMENT_PROOF_SIGN_ERROR",leadId,
-        proofPath,error:signedError?.message||"unknown"
-      }));
-      return json({error:"Payment proof could not be opened.",correlationId},500);
-    }
-
-    return json({
-      ok:true,
-      applicationId:String(row?.applicationId||""),
-      transactionId,
-      paymentReference,
-      contentType:String(row?.proofPath||proofPath).toLowerCase().endsWith(".pdf")?"application/pdf":"image/*",
-      signedUrl:signed.signedUrl,
-      expiresIn:300,
-      correlationId
-    });
-  }catch(error){
-    console.error(JSON.stringify({
-      correlationId,event:"PAYMENT_PROOF_VIEW_EXCEPTION",
-      error:error instanceof Error?error.message:"Unexpected error"
-    }));
-    return json({error:"Payment proof could not be opened.",correlationId},500);
+ let cors:Record<string,string>;try{cors=headers(req);}catch{return new Response('Forbidden',{status:403});}
+ const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors});
+ if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
+ if(req.method!=='POST')return json({error:'Method not allowed'},405);
+ const correlationId=crypto.randomUUID();
+ try{
+  const body=await readJson(req,8192);
+  if(!body.staffToken)return json({error:'Please sign in',correlationId},401);
+  if(!body.leadId)return json({error:'Application is required',correlationId},400);
+  const sb=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false}});
+  const out=await sb.rpc('akbs_fee_staff',{p_action:'snapshot',p_token:String(body.staffToken),p_data:{}});
+  if(out.error)return json({error:'Staff session could not be authorized.',correlationId},401);
+  if(!['ADMIN','FINANCE'].includes(out.data?.viewerRole))return json({error:'Admin/Finance access required',correlationId},403);
+  let row=(out.data?.rows||[]).find((r:any)=>r.leadId===String(body.leadId)&&(!body.transactionId||r.transactionId===String(body.transactionId)));
+  if(!row&&body.transactionId){
+   const manual=await sb.rpc('akbs_fee_transactions_staff',{p_action:'snapshot',p_token:String(body.staffToken),p_data:{}});
+   if(manual.error)return json({error:'Payment could not be authorized.',correlationId},403);
+   row=(manual.data?.rows||[]).find((r:any)=>r.id===String(body.transactionId)&&r.leadId===String(body.leadId));
   }
+  if(!row)return json({error:'This payment is not in your authorized collection view.',correlationId},403);
+  if(!row.proofPath)return json({error:'No payment proof is available for this payment.',correlationId},404);
+  const signed=await sb.storage.from('crm-payment-proofs').createSignedUrl(String(row.proofPath),300);
+  if(signed.error||!signed.data?.signedUrl)return json({error:'Payment proof could not be opened.',correlationId},500);
+  return json({ok:true,applicationId:row.applicationId,transactionId:row.transactionId||row.id,paymentReference:row.reference||row.transactionRef,contentType:String(row.proofPath).toLowerCase().endsWith('.pdf')?'application/pdf':'image/*',signedUrl:signed.data.signedUrl,expiresIn:300,correlationId});
+ }catch{console.warn(JSON.stringify({event:'PAYMENT_PROOF_VIEW_FAILED',correlationId}));return json({error:'Payment proof could not be opened.',correlationId},500);}
 });

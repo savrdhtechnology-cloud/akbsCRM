@@ -94,7 +94,7 @@ export const crmLeadProgress = (lead: Record<string, any>): ProgressStage[] => {
     fullName: lead.name,
     mobileNumber: lead.phone,
     email: lead.email,
-    preferredLanguage: lead.language || 'Hindi',
+    preferredLanguage: lead.language,
     projectObjective: lead.projectObjective || lead.projectType,
     poultryType: lead.projectType,
     shedType: lead.shedType,
@@ -114,7 +114,7 @@ export const crmLeadProgress = (lead: Record<string, any>): ProgressStage[] => {
     experience: lead.experience,
     supportNeeded: lead.supportNeeded,
     startTimeline: lead.timeline,
-    declarationConfirmed: true
+    declarationConfirmed: lead.applicationEligible === true
   };
   const stages = customerApplicationProgress(form);
 

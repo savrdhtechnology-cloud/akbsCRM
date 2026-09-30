@@ -127,6 +127,8 @@ export interface Lead {
   experience?: string;
   supportNeeded?: string[];
   applicationId?: string;
+  applicationEligible?: boolean;
+  sourceDetail?: string;
   relativeTime?: string;
   estimatedCost?: string;
   priority?: 'High' | 'Medium' | 'Low';

@@ -1,4 +1,5 @@
 import type { Lead, LeadStatus } from '../types';
+import { applicationEligible } from './feeCollections';
 
 export const STAGES: Record<string, LeadStatus> = {
   NEW:'New', CONTACTED:'Contacted', QUALIFIED:'Qualified', SITE_VISIT:'Site Visit',
@@ -13,7 +14,7 @@ export const dateLabel = (value?: string) =>
   value ? new Date(value).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '';
 
 const pick = (...values:any[]) =>
-  values.find(v => v !== undefined && v !== null && String(v).trim() !== '');
+  values.find(v => v !== undefined && v !== null && String(v).trim() !== '') ?? '';
 
 const normalizeProjectType = (value:any): Lead['projectType'] => {
   const v=String(value||'').toLowerCase();
@@ -40,7 +41,8 @@ export function mapLead(row: any, users: any[] = []): Lead {
   const projectTypeRaw=pick(d.poultryType,d.poultry_type,row.project_type,'Other');
   const fee=d._initialPayment||root._initialPayment||null;
   const feeVerification=String(fee?.verificationStatus||'').toUpperCase();
-  const feeStatus: Lead['feeStatus'] = !fee
+  const eligible = applicationEligible(row);
+  const feeStatus: Lead['feeStatus'] = !eligible ? undefined : !fee
     ? 'Pending'
     : feeVerification==='VERIFIED'
       ? 'Verified'
@@ -51,6 +53,8 @@ export function mapLead(row: any, users: any[] = []): Lead {
   return {
     id:row.id,
     applicationId:row.reference,
+    applicationEligible:eligible,
+    sourceDetail:row.source==='WEBSITE' ? 'Website Inquiry Form' : ['CUSTOMER_PORTAL','CUSTOMER'].includes(row.source) ? 'Customer Self Registration' : ['PARTNER','PARTNER_PORTAL'].includes(row.source) ? 'Partner Referral' : 'Staff / Direct Lead',
     name:pick(row.name,d.fullName,''),
     phone:pick(row.phone,d.mobileNumber,'') || '',
     email:pick(row.email,d.email,'') || '',
@@ -93,7 +97,7 @@ export function mapLead(row: any, users: any[] = []): Lead {
     village,
     googleMapsLink:pick(d.googleMapsLink,''),
     feeStatus,
-    feeAmount:Number(fee?.amount||2999),
+    feeAmount:eligible ? Number(fee?.amount ?? 2999) : 0,
     feeReference:String(fee?.reference||''),
     feeProofSubmitted:Boolean(fee?.proofPath),
     feeSubmittedAt:String(fee?.submittedAt||'')

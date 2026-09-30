@@ -24,9 +24,9 @@ declare
   dashboard jsonb;
   corr uuid:=gen_random_uuid();
 begin
-  app1:='AKBS-TEST-'||suffix||'-1';
-  app2:='AKBS-TEST-'||suffix||'-2';
-  app3:='AKBS-TEST-'||suffix||'-3';
+  app1:='AKBS-2099-990001';
+  app2:='AKBS-2099-990002';
+  app3:='AKBS-2099-990003';
   ref1:='UTR'||suffix||'01';
   ref2:='UTR'||suffix||'02';
   ref3:='UTR'||suffix||'03';

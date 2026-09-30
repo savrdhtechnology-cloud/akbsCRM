@@ -17,7 +17,7 @@ import { ReportsView } from './components/ReportsView';
 import { CommunicationView } from './components/CommunicationView';
 import { SettingsView } from './components/SettingsView';
 import { TeamManagementView } from './components/TeamManagementView';
-import { FeeManagementView } from './components/FeeManagementView';
+import { FeeManagementView, type FeeTab } from './components/FeeManagementView';
 import { CustomerRegistrationPortal } from './components/CustomerRegistrationPortal';
 import { PartnerRegistrationPortal } from './components/PartnerRegistrationPortal';
 import { RegistrationHub } from './components/RegistrationHub';
@@ -123,6 +123,17 @@ export default function App() {
   const [selectedLeadForDrawer, setSelectedLeadForDrawer] = useState<Lead | null>(null);
   const [selectedLeadId, setSelectedLeadId] = useState<string>('');
   const [feeLeadId,setFeeLeadId]=useState('');
+  const [feeTab,setFeeTab]=useState<FeeTab>('dashboard');
+  useEffect(()=>{
+    const handleFeeTab=(event:Event)=>{
+      const value=(event as CustomEvent).detail;
+      if(['dashboard','settings','collections','verification','accounts','receipts','refunds','reports','audit'].includes(value)){
+        setFeeTab(value);setFeeLeadId('');
+      }
+    };
+    window.addEventListener('akbs-fee-tab',handleFeeTab);
+    return()=>window.removeEventListener('akbs-fee-tab',handleFeeTab);
+  },[]);
   const [actionLead, setActionLead] = useState<Lead | null>(null);
   const [isEditLeadOpen, setIsEditLeadOpen] = useState(false);
   const [isAssignLeadOpen, setIsAssignLeadOpen] = useState(false);
@@ -454,7 +465,7 @@ export default function App() {
           )}
 
           {currentSection === 'fee-management' && (
-            <FeeManagementView leadId={feeLeadId} onClearLead={()=>setFeeLeadId('')}/>
+            <FeeManagementView initialTab={feeTab} leadId={feeLeadId} onClearLead={()=>setFeeLeadId('')}/>
           )}
 
           {currentSection === 'documents' && (
@@ -625,4 +636,3 @@ export default function App() {
     </div>
   );
 }
-

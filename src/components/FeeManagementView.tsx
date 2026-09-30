@@ -7,6 +7,8 @@ import {
   CreditCard, Landmark, Smartphone, MoreHorizontal, ShieldCheck, Settings2, ArrowUpRight, Mail, Eye
 } from 'lucide-react';
 import { useCrm } from '../lib/crm';
+import { collectionRows, collectionActions } from '../lib/feeCollections';
+import { receiptHtml } from '../../supabase/functions/_shared/paymentReceipt';
 
 const money=(value:number)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(Number(value||0));
 const dt=(value:any)=>value?new Date(value).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'}):'—';
@@ -20,11 +22,12 @@ const badgeClass=(s:string)=>{
   return 'bg-amber-50 text-amber-700 border-amber-200';
 };
 
-type Tab='dashboard'|'settings'|'collections'|'verification'|'accounts'|'receipts'|'refunds'|'reports'|'audit';
+export type FeeTab='dashboard'|'settings'|'collections'|'verification'|'accounts'|'receipts'|'refunds'|'reports'|'audit';
+type Tab=FeeTab;
 
-export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}> = ({leadId='',onClearLead}) => {
+export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void;initialTab?:FeeTab}> = ({leadId='',onClearLead,initialTab='dashboard'}) => {
   const crm=useCrm();
-  const [tab,setTab]=useState<Tab>(leadId?'collections':'dashboard');
+  const [tab,setTab]=useState<Tab>(leadId?'collections':initialTab);
   const [data,setData]=useState<any>(null);
   const [accounts,setAccounts]=useState<any[]>([]);
   const [events,setEvents]=useState<any[]>([]);
@@ -34,7 +37,7 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
   const [emailSendingLead,setEmailSendingLead]=useState<string>('');
   const [emailNotice,setEmailNotice]=useState<string>('');
   const [proofOpeningLead,setProofOpeningLead]=useState<string>('');
-  const [proofPreview,setProofPreview]=useState<{url:string;applicationId:string}|null>(null);
+  const [proofPreview,setProofPreview]=useState<{url:string;applicationId:string;contentType:string}|null>(null);
   const [error,setError]=useState('');
   const [query,setQuery]=useState('');
   const [statusFilter,setStatusFilter]=useState('ALL');
@@ -57,8 +60,8 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
     bankName:'',accountNumber:'',ifsc:'',branch:'',upiId:'',qrImageUrl:'',active:true
   });
 
-  const load=async()=>{
-    setLoading(true); setError('');
+  const load=async(clearError=true)=>{
+    setLoading(true); if(clearError)setError('');
     try{
       const [fees,accountData,eventData,transactionData]=await Promise.all([
         crm.fee('snapshot',{}),
@@ -78,6 +81,7 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
     finally{setLoading(false);}
   };
   useEffect(()=>{void load();},[]);
+  useEffect(()=>{setTab(initialTab);setQuery('');setStatusFilter('ALL');},[initialTab]);
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -95,26 +99,10 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
     return Math.max(0,Math.round(base*(1-off/100)));
   },[initialFee,discount,offerActive]);
 
-  const portalRows=(data?.rows||[]).map((r:any)=>({
-    id:'portal-'+r.leadId,kind:'portal',leadId:r.leadId,applicationId:r.applicationId,customerName:r.customerName,
-    phone:r.phone,email:r.email,serviceType:'Initial Registration Fee',amount:Number(r.amount||data?.config?.payableFee||0),
-    discount:Math.max(0,Number(data?.config?.baseFee||0)-Number(r.amount||data?.config?.payableFee||0)),
-    payable:Number(r.amount||data?.config?.payableFee||0),paymentMethod:r.reference?'Customer Submitted':'—',
-    transactionRef:r.reference||'',status:r.status,createdAt:r.submittedAt||r.createdAt,
-    assignedTo:r.assignedTo,proofPath:r.proofPath
-  }));
-  const portalPaymentKeys=new Set(
-    portalRows
-      .filter((r:any)=>r.transactionRef)
-      .map((r:any)=>`${r.leadId}::${String(r.transactionRef).toUpperCase()}`)
-  );
-  const nonDuplicateManualRows=manualRows.filter((r:any)=>{
-    if(String(r.serviceType||'')!=='Initial Project Assessment & Registration Fee') return true;
-    const key=`${r.leadId||''}::${String(r.transactionRef||'').toUpperCase()}`;
-    return !portalPaymentKeys.has(key);
-  });
-  const rows=[...portalRows,...nonDuplicateManualRows.map((r:any)=>({...r,id:'manual-'+r.id,kind:'manual'}))]
-    .sort((a:any,b:any)=>new Date(b.createdAt||0).getTime()-new Date(a.createdAt||0).getTime());
+  const rows=useMemo(()=>collectionRows(data,manualRows),[data,manualRows]);
+  const canVerify=['ADMIN','FINANCE'].includes(String(crm.user?.role||'').toUpperCase());
+  const canCreate=['ADMIN','MANAGER','FINANCE'].includes(String(crm.user?.role||'').toUpperCase());
+  const canConfigure=String(crm.user?.role||'').toUpperCase()==='ADMIN';
 
   useEffect(()=>{if(leadId){setTab('collections');setQuery('');setStatusFilter('ALL');}},[leadId]);
   const q=query.trim().toLowerCase();
@@ -123,6 +111,8 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
     const status=statusLabel(r.status).toUpperCase().replaceAll(' ','_');
     return (!leadId||r.leadId===leadId)&&matches&&(statusFilter==='ALL'||status===statusFilter);
   });
+
+  const visibleRows=filteredRows.filter((r:any)=>(tab!=='verification'||['PENDING_VERIFICATION','UNDER_REVIEW','PROOF_SUBMITTED'].includes(r.status))&&(tab!=='receipts'||r.status==='VERIFIED'));
 
   const verifiedRows=rows.filter((r:any)=>String(r.status).toUpperCase()==='VERIFIED');
   const pendingRows=rows.filter((r:any)=>['PENDING'].includes(String(r.status).toUpperCase()));
@@ -141,13 +131,13 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
     const m=new Map<string,{amount:number,count:number}>();
     rows.forEach((r:any)=>{const k=r.serviceType||'Other Fee';const x=m.get(k)||{amount:0,count:0};x.amount+=Number(r.payable||0);x.count++;m.set(k,x);});
     return [...m.entries()].map(([name,v])=>({name,...v})).sort((a,b)=>b.amount-a.amount);
-  },[rows.length,totalExpected]);
+  },[rows]);
 
   const methodSummary=useMemo(()=>{
     const m=new Map<string,{amount:number,count:number}>();
     verifiedRows.forEach((r:any)=>{const k=r.paymentMethod||'Other';const x=m.get(k)||{amount:0,count:0};x.amount+=Number(r.payable||0);x.count++;m.set(k,x);});
     return [...m.entries()].map(([name,v])=>({name,...v})).sort((a,b)=>b.amount-a.amount);
-  },[verifiedRows.length,totalCollected]);
+  },[rows]);
 
   const collectionSeries=useMemo(()=>{
     const days=Array.from({length:14},(_,i)=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-(13-i));return d;});
@@ -155,7 +145,7 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
       const amount=verifiedRows.filter((r:any)=>{const x=new Date(r.createdAt||0);return x>=d&&x<next;}).reduce((a:number,r:any)=>a+Number(r.payable||0),0);
       return {label:d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}),amount};
     });
-  },[verifiedRows.length,totalCollected]);
+  },[rows]);
   const maxDay=Math.max(1,...collectionSeries.map(x=>x.amount));
 
   const openPaymentProof=async(row:any)=>{
@@ -164,11 +154,12 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
     setProofOpeningLead(leadId);
     setError('');
     try{
-      const result=await crm.viewPaymentProof(leadId);
+      const result=await crm.viewPaymentProof(leadId,row.transactionId);
       if(!result?.signedUrl) throw new Error('Payment proof could not be opened.');
       setProofPreview({
         url:String(result.signedUrl),
-        applicationId:String(result.applicationId||row?.applicationId||'Payment Proof')
+        applicationId:String(result.applicationId||row?.applicationId||'Payment Proof'),
+        contentType:String(result.contentType||'')
       });
     }catch(e:any){
       setError(e?.message||'Unable to open payment proof.');
@@ -199,6 +190,16 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
     }
   };
 
+  const emailReceipt=async(row:any)=>{
+    if(!canVerify||row.kind!=='portal'||row.status!=='VERIFIED')return;
+    setEmailSendingLead(row.leadId);setEmailNotice('');setError('');
+    try{
+      const out=await crm.sendVerifiedPaymentReceipt(row.leadId);
+      setEmailNotice(`Receipt PDF emailed to ${out?.email||row.email||row.customerName}.`);
+    }catch(e:any){setError(e.message||'Unable to email payment receipt.');}
+    finally{setEmailSendingLead('');}
+  };
+
   const verifyPortal=async(leadId:string,status:'VERIFIED'|'REJECTED')=>{
     setSaving(true);setError('');setEmailNotice('');
     try{
@@ -212,7 +213,8 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
           setError(`Payment verified, but receipt email failed: ${mailError?.message||'Unable to send receipt email.'}`);
         }
       }
-      await load();
+      await load(false);
+      void crm.refresh?.().catch(()=>undefined);
     }catch(e:any){
       setError(e.message||'Unable to update payment.');
     }finally{setSaving(false);}
@@ -260,8 +262,10 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
   };
 
   const printReceipt=(r:any)=>{
-    const w=window.open('','_blank','width=760,height=850'); if(!w)return;
-    w.document.write(`<html><head><title>AKBS Receipt</title><style>body{font-family:Arial;padding:40px;color:#173b2c}.head{background:#073323;color:#fff;padding:24px;border-radius:14px}.card{border:1px solid #dfe8e3;border-radius:14px;padding:22px;margin-top:20px}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee}.amt{font-size:30px;font-weight:800;color:#087849}</style></head><body><div class="head"><h2>AKBS Poultry Farming Pvt. Ltd.</h2><div>Payment Receipt</div></div><div class="card"><div class="row"><b>Customer</b><span>${escapeHtml(r.customerName||'')}</span></div><div class="row"><b>Application</b><span>${escapeHtml(r.applicationId||'—')}</span></div><div class="row"><b>Service</b><span>${escapeHtml(r.serviceType||'')}</span></div><div class="row"><b>Transaction Ref</b><span>${escapeHtml(r.transactionRef||'—')}</span></div><div class="row"><b>Status</b><span>${escapeHtml(statusLabel(r.status))}</span></div><p class="amt">${escapeHtml(money(r.payable||0))}</p><small>Generated from AKBS CRM Fee Management.</small></div></body></html>`);w.document.close(); w.opener=null; w.focus(); w.print();
+    if(String(r.status).toUpperCase()!=='VERIFIED')return;
+    const w=window.open('','_blank','width=820,height=920');
+    if(!w){setError('Allow pop-ups for this CRM to open and print the receipt.');return;}
+    w.document.write(receiptHtml(r));w.document.close();w.opener=null;w.focus();
   };
 
   const tabs=[
@@ -288,7 +292,8 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
           <p className="text-sm text-slate-500 mt-1">Manage customer fees, collections, payment verification and revenue tracking in one place.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={()=>setCreateOpen(true)} className="h-10 px-4 rounded-xl bg-[#075c3e] text-white text-xs font-black flex items-center gap-2"><Plus className="w-4 h-4"/>Create Fee / Add Transaction</button>
+          <button onClick={()=>void load()} disabled={loading} aria-label="Refresh" title="Refresh payment status" className="h-10 px-3 rounded-xl border border-slate-200 text-slate-600 disabled:opacity-50"><RefreshCw className="w-4 h-4"/></button>
+          {canCreate&&<button onClick={()=>setCreateOpen(true)} className="h-10 px-4 rounded-xl bg-[#075c3e] text-white text-xs font-black flex items-center gap-2"><Plus className="w-4 h-4"/>Create Fee / Add Transaction</button>}
           <button onClick={exportCsv} className="h-10 px-4 rounded-xl bg-[#087849] text-white text-xs font-black flex items-center gap-2"><Download className="w-4 h-4"/>Export Report</button>
         </div>
       </div>
@@ -297,8 +302,8 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
     <div className="block">
       <main className="p-4 sm:p-5 space-y-4 min-w-0">
         {leadId&&<div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950 flex justify-between gap-4"><div><b>Fees for {crm.leads.find(l=>l.id===leadId)?.name||'selected application'}</b><p className="text-sm">Review payment status below. For unpaid registration fees, use Email Reminder.</p></div><button onClick={onClearLead} className="font-bold underline">Show all customers</button></div>}
-        {error&&<div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">{error}</div>}
-        {emailNotice&&<div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-700">{emailNotice}</div>}
+        {error&&<div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">{error}</div>}
+        {emailNotice&&<div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-700">{emailNotice}</div>}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3">
           {summaryCards.map(([label,value,Icon,cls])=><div key={label} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm min-h-[96px]">
             <div className="flex items-center gap-3 h-full">
@@ -339,7 +344,7 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
             <section className="rounded-xl border border-slate-200 bg-white p-4">
               <h2 className="font-black text-slate-900 text-sm">Quick Actions</h2>
               <div className="mt-3 space-y-2">
-                <button onClick={()=>setCreateOpen(true)} className="w-full h-9 rounded-lg bg-[#075c3e] text-white text-[10px] font-black">Create Fee / Add Transaction</button>
+                {canCreate&&<button onClick={()=>setCreateOpen(true)} className="w-full h-9 rounded-lg bg-[#075c3e] text-white text-[10px] font-black">Create Fee / Add Transaction</button>}
                 <button onClick={()=>setTab('verification')} className="w-full h-9 rounded-lg border border-slate-200 text-[10px] font-bold">Verify Payments ({verificationRows.length})</button>
                 <button onClick={()=>setTab('receipts')} className="w-full h-9 rounded-lg border border-slate-200 text-[10px] font-bold">Generate Receipt</button>
                 <button onClick={()=>setTab('settings')} className="w-full h-9 rounded-lg border border-slate-200 text-[10px] font-bold">Manage Fee Settings</button>
@@ -373,7 +378,7 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
             <label className="sm:col-span-2 flex items-center justify-between rounded-xl border p-3 text-xs font-bold"><span>Offer Active</span><input type="checkbox" checked={offerActive} onChange={e=>setOfferActive(e.target.checked)} className="w-5 h-5 accent-emerald-700"/></label>
             <div className="sm:col-span-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><div className="text-[10px] font-bold text-emerald-700">CUSTOMER PAYABLE FEE</div><div className="text-3xl font-black text-emerald-950">{money(payable)}</div>{offerActive&&Number(discount)>0&&<div className="text-xs text-emerald-700 mt-1">Base {money(Number(initialFee||0))} · {discount}% discount</div>}</div>
           </div>
-          <button disabled={saving} onClick={saveConfig} className="mt-4 h-10 px-5 rounded-xl bg-[#075c3e] text-white text-xs font-black">{saving?'Saving…':'Save Fee Settings'}</button>
+          <button disabled={saving||!canConfigure} onClick={saveConfig} className="mt-4 h-10 px-5 rounded-xl bg-[#075c3e] text-white text-xs font-black disabled:opacity-50">{saving?'Saving…':canConfigure?'Save Fee Settings':'Admin access required'}</button>
         </section>}
 
         {tab==='accounts'&&<section className="rounded-xl border border-slate-200 bg-white p-5">
@@ -397,19 +402,19 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
         {['collections','verification','receipts'].includes(tab)&&<section className="rounded-xl border border-slate-200 bg-white overflow-hidden">
           <div className="p-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><h2 className="font-black">{tab==='verification'?'Payment Verification':tab==='receipts'?'Receipts':'Customer Collections'}</h2><p className="text-[10px] text-slate-500 mt-1">Live fee transactions and payment status.</p></div><div className="flex gap-2"><div className="relative"><Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400"/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search customer, UTR..." className="h-9 pl-9 pr-3 rounded-lg border text-xs"/></div><select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} className="h-9 rounded-lg border px-2 text-xs"><option value="ALL">All Status</option><option>PENDING</option><option>PENDING_VERIFICATION</option><option>UNDER_REVIEW</option><option>PROOF_SUBMITTED</option><option>VERIFIED</option><option>REJECTED</option><option>REFUNDED</option></select></div></div>
           <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="bg-slate-50 text-[9px] uppercase text-slate-500"><tr><th className="p-3 text-left">Date & Time</th><th className="p-3 text-left">Customer</th><th className="p-3 text-left">Application ID</th><th className="p-3 text-left">Service / Fee Type</th><th className="p-3 text-left">Amount</th><th className="p-3 text-left">Discount</th><th className="p-3 text-left">Payable</th><th className="p-3 text-left">Payment Method</th><th className="p-3 text-left">UTR / Transaction ID</th><th className="p-3 text-left">Status</th><th className="p-3 text-right">Actions</th></tr></thead><tbody>
-            {filteredRows.filter((r:any)=>tab!=='verification'||['PENDING_VERIFICATION','UNDER_REVIEW','PROOF_SUBMITTED'].includes(String(r.status).toUpperCase())).map((r:any)=><tr key={r.id} className="border-t"><td className="p-3 text-[10px]">{dt(r.createdAt)}</td><td className="p-3"><b>{r.customerName}</b><div className="text-[9px] text-slate-400">{r.phone}</div></td><td className="p-3 font-mono text-[9px]">{r.applicationId||'—'}</td><td className="p-3">{r.serviceType}</td><td className="p-3 font-bold">{money(r.amount)}</td><td className="p-3">{money(r.discount)}</td><td className="p-3 font-black">{money(r.payable)}</td><td className="p-3">{r.paymentMethod||'—'}</td><td className="p-3 font-mono text-[9px]">{r.transactionRef||'—'}</td><td className="p-3"><span className={`px-2 py-1 rounded-full border text-[9px] font-bold ${badgeClass(r.status)}`}>{statusLabel(r.status)}</span></td><td className="p-3 text-right"><div className="inline-flex flex-wrap justify-end gap-1">
-              {String(r.status).toUpperCase()==='PENDING' && r.kind==='portal' && (
+            {visibleRows.map((r:any)=><tr key={r.id} className="border-t"><td className="p-3 text-[10px]">{dt(r.createdAt)}</td><td className="p-3"><b>{r.customerName}</b><div className="text-[9px] text-slate-400">{r.phone}</div></td><td className="p-3 font-mono text-[9px]">{r.applicationId||'—'}</td><td className="p-3">{r.serviceType}</td><td className="p-3 font-bold">{money(r.amount)}</td><td className="p-3">{money(r.discount)}</td><td className="p-3 font-black">{money(r.payable)}</td><td className="p-3">{r.paymentMethod||'—'}</td><td className="p-3 font-mono text-[9px]">{r.transactionRef||'—'}</td><td className="p-3"><span className={`px-2 py-1 rounded-full border text-[9px] font-bold ${badgeClass(r.status)}`}>{statusLabel(r.status)}</span></td><td className="p-3 text-right"><div className="inline-flex flex-wrap justify-end gap-1">
+              {collectionActions(r,crm.user.role).reminder && (
                 <button
                   onClick={()=>void sendPendingFeeEmail(r)}
-                  disabled={emailSendingLead===r.leadId}
-                  title="Send fee payment reminder by email only"
+                  disabled={emailSendingLead===r.leadId||!r.email}
+                  title={r.email?"Send fee payment reminder by email":"Customer email is missing. Update the application contact first."}
                   className="px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[9px] font-bold inline-flex items-center gap-1 disabled:opacity-50"
                 >
                   <Mail className="w-3 h-3"/>
                   {emailSendingLead===r.leadId?'Sending…':'Email Reminder'}
                 </button>
               )}
-              {r.proofPath&&r.kind==='portal'&&['ADMIN','FINANCE'].includes(String(crm.user?.role||'').toUpperCase())&&(
+              {collectionActions(r,crm.user.role).proof&&(
                 <button
                   onClick={()=>void openPaymentProof(r)}
                   disabled={proofOpeningLead===r.leadId}
@@ -420,17 +425,17 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
                   {proofOpeningLead===r.leadId?'Opening…':'View Proof'}
                 </button>
               )}
-              {['PENDING_VERIFICATION','UNDER_REVIEW','PROOF_SUBMITTED'].includes(String(r.status).toUpperCase())&&<><button onClick={()=>r.kind==='portal'?void verifyPortal(r.leadId,'VERIFIED'):void verifyManual(String(r.id).replace('manual-',''),'VERIFIED')} disabled={saving} className="px-2 py-1 rounded bg-emerald-700 text-white text-[9px] font-bold disabled:opacity-50">Verify</button><button onClick={()=>r.kind==='portal'?void verifyPortal(r.leadId,'REJECTED'):void verifyManual(String(r.id).replace('manual-',''),'REJECTED')} disabled={saving} className="px-2 py-1 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[9px] font-bold disabled:opacity-50">Reject</button></>}
-              {tab==='receipts'&&String(r.status).toUpperCase()==='VERIFIED'&&<button onClick={()=>printReceipt(r)} className="px-2 py-1 rounded bg-blue-50 text-blue-700 text-[9px] font-bold">View / Print</button>}
-              <button className="p-1"><MoreHorizontal className="w-4 h-4"/></button>
+              {collectionActions(r,crm.user.role).verify&&<><button onClick={()=>r.kind==='portal'?void verifyPortal(r.leadId,'VERIFIED'):void verifyManual(String(r.id).replace('manual-',''),'VERIFIED')} disabled={saving} className="px-2 py-1 rounded bg-emerald-700 text-white text-[9px] font-bold disabled:opacity-50">Verify</button><button onClick={()=>r.kind==='portal'?void verifyPortal(r.leadId,'REJECTED'):void verifyManual(String(r.id).replace('manual-',''),'REJECTED')} disabled={saving} className="px-2 py-1 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[9px] font-bold disabled:opacity-50">Reject</button></>}
+              {collectionActions(r,crm.user.role).receipt&&<button onClick={()=>printReceipt(r)} className="px-2 py-1 rounded bg-blue-50 text-blue-700 text-[9px] font-bold">View / Print Receipt</button>}
+              {collectionActions(r,crm.user.role).emailReceipt&&<button onClick={()=>void emailReceipt(r)} disabled={emailSendingLead===r.leadId||!r.email} title={r.email?'Email the verified receipt PDF':'Customer email is missing'} className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold inline-flex items-center gap-1 disabled:opacity-50"><Mail className="w-3 h-3"/>{emailSendingLead===r.leadId?'Sending…':'Email Receipt'}</button>}
             </div></td></tr>)}
-            {!filteredRows.length&&<tr><td colSpan={11} className="p-10 text-center text-slate-400">No payment records found.</td></tr>}
+            {!visibleRows.length&&<tr><td colSpan={11} className="p-10 text-center text-slate-400">No payment records found.</td></tr>}
           </tbody></table></div>
         </section>}
 
         {tab==='refunds'&&<section className="rounded-xl border border-slate-200 bg-white p-4">
           <h2 className="font-black">Refunds & Adjustments</h2><p className="text-xs text-slate-500 mt-1">Record refunds against verified collections and keep an audit trail.</p>
-          <div className="mt-4 overflow-x-auto"><table className="w-full text-xs"><thead className="bg-slate-50"><tr><th className="p-3 text-left">Customer</th><th className="p-3 text-left">Service</th><th className="p-3 text-left">Collected</th><th className="p-3 text-left">Status</th><th className="p-3 text-right">Action</th></tr></thead><tbody>{verifiedRows.map((r:any)=><tr key={r.id} className="border-t"><td className="p-3 font-bold">{r.customerName}</td><td className="p-3">{r.serviceType}</td><td className="p-3 font-black">{money(r.payable)}</td><td className="p-3"><span className={`px-2 py-1 rounded-full border text-[9px] font-bold ${badgeClass(r.status)}`}>Verified</span></td><td className="p-3 text-right"><button onClick={()=>{setRefundRow(r);setRefundAmount(String(r.payable||0));}} className="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 font-bold">Record Refund</button></td></tr>)}</tbody></table></div>
+          <div className="mt-4 overflow-x-auto"><table className="w-full text-xs"><thead className="bg-slate-50"><tr><th className="p-3 text-left">Customer</th><th className="p-3 text-left">Service</th><th className="p-3 text-left">Collected</th><th className="p-3 text-left">Status</th><th className="p-3 text-right">Action</th></tr></thead><tbody>{verifiedRows.map((r:any)=><tr key={r.id} className="border-t"><td className="p-3 font-bold">{r.customerName}</td><td className="p-3">{r.serviceType}</td><td className="p-3 font-black">{money(r.payable)}</td><td className="p-3"><span className={`px-2 py-1 rounded-full border text-[9px] font-bold ${badgeClass(r.status)}`}>Verified</span></td><td className="p-3 text-right"><button disabled={!canVerify} onClick={()=>{setRefundRow(r);setRefundAmount(String(r.payable||0));}} className="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 font-bold">Record Refund</button></td></tr>)}</tbody></table></div>
         </section>}
 
         {tab==='reports'&&<section className="rounded-xl border border-slate-200 bg-white p-5">
@@ -449,7 +454,7 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
     {createOpen&&<div className="fixed inset-0 z-[100] bg-slate-950/60 grid place-items-center p-4"><div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl p-5">
       <div className="flex justify-between"><div><h2 className="font-black">Create Fee / Add Transaction</h2><p className="text-xs text-slate-500 mt-1">Add a service fee or record an offline payment reference.</p></div><button onClick={()=>setCreateOpen(false)}><XCircle className="w-5 h-5 text-slate-400"/></button></div>
       <div className="mt-4 grid sm:grid-cols-2 gap-3">
-        <select value={manualForm.leadId} onChange={e=>setManualForm(p=>({...p,leadId:e.target.value}))} className="h-10 rounded-xl border px-3 text-xs sm:col-span-2"><option value="">General / no customer</option>{(data?.rows||[]).map((r:any)=><option key={r.leadId} value={r.leadId}>{r.customerName} · {r.applicationId}</option>)}</select>
+        <select value={manualForm.leadId} onChange={e=>setManualForm(p=>({...p,leadId:e.target.value}))} className="h-10 rounded-xl border px-3 text-xs sm:col-span-2"><option value="">Select submitted application (required for registration fee)</option>{(data?.rows||[]).map((r:any)=><option key={r.leadId} value={r.leadId}>{r.customerName} · {r.applicationId}</option>)}</select>
         <select value={manualForm.serviceType} onChange={e=>setManualForm(p=>({...p,serviceType:e.target.value}))} className="h-10 rounded-xl border px-3 text-xs"><option>Registration Fee</option><option>Soft Quotation Fee</option><option>DPR Proposal Fee</option><option>Site Visit Fee</option><option>Consultation Fee</option><option>Loan Processing Fee</option><option>Complete Project Assistance</option><option>Other Fee</option></select>
         <select value={manualForm.paymentMethod} onChange={e=>setManualForm(p=>({...p,paymentMethod:e.target.value}))} className="h-10 rounded-xl border px-3 text-xs"><option>UPI / QR Code</option><option>Bank Transfer</option><option>Cash</option><option>Razorpay</option><option>Other</option></select>
         <input type="number" value={manualForm.amount} onChange={e=>setManualForm(p=>({...p,amount:e.target.value}))} placeholder="Amount" className="h-10 rounded-xl border px-3 text-xs"/>
@@ -460,16 +465,16 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void}>
       <div className="mt-4 flex justify-end gap-2"><button onClick={()=>setCreateOpen(false)} className="h-9 px-4 rounded-lg border text-xs font-bold">Cancel</button><button disabled={saving} onClick={createManual} className="h-9 px-4 rounded-lg bg-[#075c3e] text-white text-xs font-black">{saving?'Saving…':'Create Transaction'}</button></div>
     </div></div>}
 
-    {proofPreview&&<div className="fixed inset-0 z-[120] bg-slate-950/70 p-4 md:p-8 flex items-center justify-center">
+    {proofPreview&&<div role="dialog" aria-modal="true" aria-label="Customer Payment Proof" className="fixed inset-0 z-[120] bg-slate-950/70 p-4 md:p-8 flex items-center justify-center">
       <div className="w-full max-w-6xl h-[88vh] rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col">
         <div className="flex items-center justify-between gap-4 border-b px-5 py-3">
           <div>
             <div className="text-sm font-black text-slate-900">Customer Payment Proof</div>
             <div className="text-xs text-slate-500">{proofPreview.applicationId}</div>
           </div>
-          <button onClick={()=>setProofPreview(null)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Close</button>
+          <div className="flex gap-2"><a href={proofPreview.url} target="_blank" rel="noreferrer" className="rounded-lg border px-3 py-2 text-xs font-bold">Open Proof</a><button onClick={()=>setProofPreview(null)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Close</button></div>
         </div>
-        <iframe src={proofPreview.url} title={`Payment proof ${proofPreview.applicationId}`} className="w-full flex-1 bg-slate-100"/>
+        {proofPreview.contentType.startsWith('image/')?<div className="flex-1 min-h-0 bg-slate-100 overflow-auto p-4"><img src={proofPreview.url} alt={`Payment proof ${proofPreview.applicationId}`} className="w-full h-full object-contain"/></div>:<iframe src={proofPreview.url} title={`Payment proof ${proofPreview.applicationId}`} className="w-full flex-1 bg-slate-100"/>}
       </div>
     </div>}
 

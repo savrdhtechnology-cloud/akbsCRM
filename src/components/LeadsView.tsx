@@ -43,6 +43,7 @@ import { Lead, LeadStatus, LeadSource, DocumentRecord, FollowUp, Activity } from
 import { SoftQuotationModal } from './SoftQuotationModal';
 import { ApplicationProgressTimeline } from './ApplicationProgressTimeline';
 import { crmLeadProgress } from '../lib/applicationProgress';
+import { secureRequest } from '../lib/secureRequest';
 
 interface LeadsViewProps {
   leads: Lead[];
@@ -112,6 +113,16 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   const [isProjectEditing, setIsProjectEditing] = useState(false);
   const [isFinancialEditing, setIsFinancialEditing] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
+  const [registrationEmailBusy,setRegistrationEmailBusy]=useState(false);
+  const sendRegistrationReminder=async(lead:Lead)=>{
+    setRegistrationEmailBusy(true);setNoteError('');setSavedMessage('');
+    try{
+      const out=await secureRequest('akbs-fee-reminder-email',{leadId:lead.id,purpose:'registration',requestId:crypto.randomUUID()});
+      setSavedMessage(`Registration reminder emailed to ${out.email}.`);
+      void crm.refresh().catch(()=>undefined);
+    }catch(e:any){setNoteError(e.message||'Unable to send registration reminder.');}
+    finally{setRegistrationEmailBusy(false);}
+  };
   const [projectDraft, setProjectDraft] = useState({
     projectType: 'Broiler' as Lead['projectType'],
     birdCapacity: 10000,
@@ -399,7 +410,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
     return name.slice(0, 2).toUpperCase();
   };
 
-  if(incomplete && crm.user.role==='ADMIN') return <IncompleteApplications kind="customer" onBack={()=>setIncomplete(false)} onCompleted={()=>void crm.refresh()}/>;
+  if(incomplete && crm.user.role==='ADMIN') return <IncompleteApplications kind="customer" inquiries={leads.filter(l=>l.sourceDetail==='Website Inquiry Form'&&!l.applicationEligible)} onOpenInquiry={lead=>{setIncomplete(false);setSelectedLead(lead);onSelectLead(lead);}} onBack={()=>setIncomplete(false)} onCompleted={()=>void crm.refresh()}/>;
 
   if(!leads.length)return <div className="p-6"><h1 className="text-xl font-bold">Leads</h1>{crm.user.role==='ADMIN'&&<button onClick={()=>setIncomplete(true)}>Incomplete Applications →</button>}<p className="my-4">No leads yet. Website enquiries will appear here after submission.</p><button onClick={onOpenAddLead}>Add Lead</button></div>;
   return (
@@ -628,7 +639,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
 
                     <div className="text-right">
                       <div className="text-xs font-bold font-mono text-slate-900">
-                        {lead.estimatedCost || lead.budgetEstimate || '₹50 Lakh'}
+                        {lead.estimatedCost || lead.budgetEstimate || 'Not provided'}
                       </div>
                       <div className="text-[10px] text-slate-500">
                         {lead.birdCapacity ? `${lead.birdCapacity.toLocaleString()} Birds` : 'Poultry'} {lead.shedType?.includes('EC') ? '(EC)' : ''}
@@ -641,7 +652,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                       <span className={`px-2 py-0.5 rounded-md font-semibold border ${getStatusBadgeStyle(lead.status)}`}>
                         {lead.status}
                       </span>
-                      <button type="button" disabled={!onOpenFees} onClick={e=>{e.stopPropagation();onOpenFees?.(lead.id);}} title="Open this lead’s fees and payment reminders" className={`px-2 py-0.5 rounded-md font-bold border hover:underline ${
+                      {lead.applicationEligible ? <button type="button" disabled={!onOpenFees} onClick={e=>{e.stopPropagation();onOpenFees?.(lead.id);}} title="Open this application’s fees and payment reminders" className={`px-2 py-0.5 rounded-md font-bold border hover:underline ${
                         lead.feeStatus === 'Verified'
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                           : lead.feeStatus === 'Proof Submitted'
@@ -651,7 +662,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                               : 'bg-amber-50 text-amber-700 border-amber-200'
                       }`}>
                         Fee: {lead.feeStatus || 'Pending'}
-                      </button>
+                      </button> : <span className="px-2 py-0.5 rounded-md font-bold border bg-slate-50 text-slate-600 border-slate-200">Registration required</span>}
                     </div>
                     <span className="text-slate-400 shrink-0">
                       {lead.relativeTime || lead.date || 'Today'}
@@ -745,7 +756,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                     </span>
                     <span>•</span>
                     <span className="text-emerald-800 font-medium">
-                      Source: {currentLead.source} {currentLead.source === 'Website' ? '(Customer Portal)' : ''}
+                      Source: {currentLead.sourceDetail||currentLead.source}
                     </span>
                   </div>
                   {isEmployeePortal ? (
@@ -777,7 +788,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                       <Target className="w-3 h-3" />
                       Lead Status: {currentLead.status}
                     </span>
-                    <button type="button" disabled={!onOpenFees} onClick={()=>onOpenFees?.(currentLead.id)} title="Open this lead’s fees and payment reminders" className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold hover:underline ${
+                    {currentLead.applicationEligible ? <button type="button" disabled={!onOpenFees} onClick={()=>onOpenFees?.(currentLead.id)} title="Open this application’s fees and payment reminders" className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold hover:underline ${
                       currentLead.feeStatus === 'Verified'
                         ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
                         : currentLead.feeStatus === 'Proof Submitted'
@@ -788,9 +799,14 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                     }`}>
                       <BadgeIndianRupee className="w-3 h-3" />
                       Fee: {currentLead.feeStatus || 'Pending'} · ₹{Number(currentLead.feeStatus === 'Pending' ? (feeConfig?.payableFee || 2999) : (currentLead.feeAmount || feeConfig?.payableFee || 2999)).toLocaleString('en-IN')}
-                    </button>
+                    </button> : <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600">Registration not submitted · Fee not applicable yet</span>}
                   </div>
                   )}
+                  {!currentLead.applicationEligible&&<div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">
+                    <p>{currentLead.sourceDetail==='Website Inquiry Form'?'This lead came from the website inquiry form.':'This lead does not have a submitted customer application.'} Customer registration must be completed before the registration fee is payable.</p>
+                    <div className="mt-2 flex flex-wrap gap-2"><button disabled={registrationEmailBusy||!currentLead.email} onClick={()=>void sendRegistrationReminder(currentLead)} title={currentLead.email?'Send the registration link to the recorded customer email':'Customer email is missing'} className="rounded-lg bg-emerald-800 px-3 py-2 font-bold text-white disabled:opacity-50">{registrationEmailBusy?'Sending…':'Email Registration Reminder'}</button><button onClick={()=>void navigator.clipboard.writeText('https://crm.akbspoultry.com/customer-registration').then(()=>setSavedMessage('Customer registration link copied.')).catch(()=>setNoteError('Unable to copy registration link.'))} className="rounded-lg border bg-white px-3 py-2 font-bold">Copy Registration Link</button></div>
+                    {noteError&&<p role="alert" className="mt-2 text-rose-700">{noteError}</p>}
+                  </div>}
                 </div>
               </div>
 
@@ -1606,4 +1622,3 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
     </div>
   );
 };
-

@@ -32,6 +32,11 @@ test('Staff credentials always come from server cookie; logout clears it',async(
 test('Portal sessions are isolated between customer and partner',async()=>{
  const res=response();await handler(req({service:'akbs_portal_custom',p_action:'snapshot',p_kind:'partner'},{cookie:'akbs_portal_customer='+token}),res);assert.equal(res.statusCode,401);
 });
+test('reminder waiting-period deadline survives the authenticated API proxy',async()=>{
+ const previous=globalThis.fetch;const retryAt='2026-09-30T16:30:00Z';
+ globalThis.fetch=async()=>new Response(JSON.stringify({error:'Reminder already sent',retryAt}),{status:429});
+ try{const res=response();await handler(req({service:'akbs-fee-reminder-email',leadId:'a'},{cookie:'akbs_staff='+token}),res);assert.equal(res.statusCode,429);assert.equal(res.body.retryAt,retryAt);}finally{globalThis.fetch=previous;}
+});
 test('Receipt HTML escapes all user-controlled markup',()=>{assert.equal(escapeHtml('<img src=x onerror="bad">&\''),'&lt;img src=x onerror=&quot;bad&quot;&gt;&amp;&#39;');});
 test('Upload validation detects fake MIME, extension mismatch, traversal and excessive size',()=>{
  const data=Buffer.from('89504e470d0a1a0a0000000000000000','hex').toString('base64');const file={name:'proof.png',type:'image/png',data};assert.equal(validateFile(file,100).ext,'png');

@@ -12,7 +12,7 @@ import { AuthPortal } from "../components/AuthPortal";
 const databaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://ldffgetuzoeupuhoaubn.supabase.co";
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_KzdI4K0qLXgi3MhA5GXPhg_6f5vB8By";
 export interface User { id:string; name:string; login:string; role:string; active:boolean; profile?:Record<string,any>; manager_id:string|null; must_change_password:boolean; }
-export interface Lead { id:string; reference:string; name:string; phone:string; email:string; location:string; source:string; stage:string; approval:string; priority:string; assigned_to:string|null; manager_id?:string|null; capacity:number; project_cost:number; project_type:string; message:string; details:Record<string,any>; version:number; created_at:string; }
+export interface Lead { applicationEligible?:boolean; id:string; reference:string; name:string; phone:string; email:string; location:string; source:string; stage:string; approval:string; priority:string; assigned_to:string|null; manager_id?:string|null; capacity:number; project_cost:number; project_type:string; message:string; details:Record<string,any>; version:number; created_at:string; }
 export interface Workflow { created_at?:string; id:string; lead_id:string; kind:string; title:string; status:string; due_at:string|null; notes:string; amount:number; bank:string; location:string; document_id:string|null; assignee_id:string|null; shared:boolean; version:number; }
 export interface Template { id:string; title:string; channel:string; subject:string; body:string; }
 export interface Document { id:string; lead_id:string; name:string; category:string; size:number; mime:string; created_at:string; }

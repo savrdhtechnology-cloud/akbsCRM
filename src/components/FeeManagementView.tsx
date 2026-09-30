@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useCrm } from '../lib/crm';
 import { collectionRows, collectionActions } from '../lib/feeCollections';
+import { useReminderCooldown } from '../lib/reminderCooldown';
 import { receiptHtml } from '../../supabase/functions/_shared/paymentReceipt';
 
 const money=(value:number)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(Number(value||0));
@@ -100,6 +101,7 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void;i
   },[initialFee,discount,offerActive]);
 
   const rows=useMemo(()=>collectionRows(data,manualRows),[data,manualRows]);
+  const reminders=useReminderCooldown(rows.filter((r:any)=>r.kind==='portal'&&r.status==='PENDING').map((r:any)=>({purpose:'payment' as const,leadId:r.leadId})));
   const canVerify=['ADMIN','FINANCE'].includes(String(crm.user?.role||'').toUpperCase());
   const canCreate=['ADMIN','MANAGER','FINANCE'].includes(String(crm.user?.role||'').toUpperCase());
   const canConfigure=String(crm.user?.role||'').toUpperCase()==='ADMIN';
@@ -176,17 +178,14 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void;i
 
   const sendPendingFeeEmail=async(row:any)=>{
     if(row.kind!=='portal' || !row.leadId) return;
-    setEmailSendingLead(row.leadId);
     setEmailNotice('');
     setError('');
     try{
-      const out=await crm.sendFeeReminderEmail(row.leadId);
-      setEmailNotice(`Payment reminder email sent to ${out?.email || row.email || row.customerName}.`);
+      const out=await reminders.send({purpose:'payment',leadId:row.leadId},()=>crm.sendFeeReminderEmail(row.leadId));
+      if(out)setEmailNotice(`Payment reminder emailed only to ${out.email || row.email || row.customerName}. Resend is available after 60 minutes.`);
       window.setTimeout(()=>setEmailNotice(''),5000);
     }catch(e:any){
       setError(e.message||'Unable to send payment reminder email.');
-    }finally{
-      setEmailSendingLead('');
     }
   };
 
@@ -406,12 +405,12 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void;i
               {collectionActions(r,crm.user.role).reminder && (
                 <button
                   onClick={()=>void sendPendingFeeEmail(r)}
-                  disabled={emailSendingLead===r.leadId||!r.email}
+                  disabled={reminders.disabled({purpose:'payment',leadId:r.leadId})||!r.email}
                   title={r.email?"Send fee payment reminder by email":"Customer email is missing. Update the application contact first."}
                   className="px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[9px] font-bold inline-flex items-center gap-1 disabled:opacity-50"
                 >
                   <Mail className="w-3 h-3"/>
-                  {emailSendingLead===r.leadId?'Sending…':'Email Reminder'}
+                  {reminders.label({purpose:'payment',leadId:r.leadId},'Email Reminder')}
                 </button>
               )}
               {collectionActions(r,crm.user.role).proof&&(

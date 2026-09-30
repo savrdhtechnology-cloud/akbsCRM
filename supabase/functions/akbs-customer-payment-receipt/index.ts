@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2.57.4";
 import {headers,readJson} from '../_shared/security.ts';
 import {receiptPdf,type ReceiptData} from '../_shared/paymentReceipt.ts';
-import {emailEscape as esc,pdfBase64,sendCollectionEmail} from '../_shared/collectionEmail.ts';
+import {emailEscape as esc,pdfBase64,sendCollectionEmail,collectionEmailConfig} from '../_shared/collectionEmail.ts';
 
 Deno.serve(async(req:Request)=>{
  let cors:Record<string,string>;try{cors=headers(req);}catch{return new Response('Forbidden',{status:403});}
@@ -32,9 +32,7 @@ Deno.serve(async(req:Request)=>{
    row={applicationId:out.data.applicationId,customerName:out.data.customerName,phone:out.data.customerPhone,serviceType:p.feeLabel||'Initial Project Assessment & Registration Fee',payable:Number(p.amount),reference:p.reference||'Proof uploaded',transactionId:p.transactionId,paymentMethod:'UPI / Bank Transfer',verifiedAt:p.verifiedAt,submittedAt:p.submittedAt,status};
   }
   if(!context?.email)return json({error:'Customer email is missing.'},400);
-  let secret=Deno.env.get('AKBS_RESEND_API_KEY')||'';
-  if(!secret){const out=await sb.schema('akbs_crm').from('integration_secrets').select('secret_value').eq('key_name','AKBS_RESEND_API_KEY').maybeSingle();secret=out.data?.secret_value||'';}
-  if(!secret)return json({error:'AKBS email service is not configured.'},503);
+  const config=await collectionEmailConfig(sb,Deno.env.get('AKBS_RESEND_API_KEY')||'');
   const verified=row.status==='VERIFIED';
   if(staff&&!verified)return json({error:'Receipt is available only after payment verification.'},409);
   const r:ReceiptData={applicationId:row.applicationId,customerName:row.customerName,phone:row.phone,serviceType:row.serviceType||'Initial Project Assessment & Registration Fee',payable:Number(row.payable??row.amount),transactionRef:row.reference||'—',transactionId:row.transactionId,paymentMethod:row.paymentMethod||'UPI / Bank Transfer',receiptDate:row.verifiedAt||row.submittedAt||row.createdAt,status:row.status};
@@ -43,7 +41,7 @@ Deno.serve(async(req:Request)=>{
   const title=verified?'Payment Received and Verified':'Payment Details Received';
   const html='<div style="font-family:Arial,sans-serif;max-width:650px;margin:auto;color:#18382d;line-height:1.6"><div style="background:#073b29;color:white;padding:24px"><h2>AKBS Poultry Farming Pvt. Ltd.</h2></div><div style="padding:24px;border:1px solid #dce8e1"><h2>'+title+'</h2><p>Dear '+esc(r.customerName)+',</p><p>Application: <b>'+esc(r.applicationId)+'</b><br>Service: '+esc(r.serviceType)+'<br>Amount: <b>'+esc(amount)+'</b><br>Transaction / UTR: '+esc(r.transactionRef)+'<br>Status: <b>'+esc(r.status.replaceAll('_',' '))+'</b></p><p>'+ (verified?'Your official payment receipt PDF is attached.':'Your payment acknowledgement PDF is attached. Company verification is pending.')+'</p><p>www.akbspoultry.com · support@akbspoultry.com</p></div></div>';
   const requestId=/^[a-f0-9-]{36}$/i.test(String(body.requestId||''))?String(body.requestId):'automatic-'+String(r.transactionId||r.applicationId)+'-'+String(row.verifiedAt||row.status);
-  const sent=await sendCollectionEmail(secret,{to:context.email,subject:(verified?'AKBS Payment Receipt - ':'AKBS Payment Acknowledgement - ')+r.applicationId,html,attachments:[{filename:'AKBS_'+(verified?'Payment_Receipt_':'Payment_Acknowledgement_')+r.applicationId+'.pdf',content:pdfBase64(bytes),content_type:'application/pdf'}]},'akbs-receipt-'+requestId);
+  const sent=await sendCollectionEmail(config,{to:context.email,subject:(verified?'AKBS Payment Receipt - ':'AKBS Payment Acknowledgement - ')+r.applicationId,html,attachments:[{filename:'AKBS_'+(verified?'Payment_Receipt_':'Payment_Acknowledgement_')+r.applicationId+'.pdf',content:pdfBase64(bytes),content_type:'application/pdf'}]},'akbs-receipt-'+requestId);
   const note=(verified?'Verified receipt PDF':'Payment acknowledgement PDF')+' accepted for '+context.email+'. Email ID: '+sent.id;
   if(staff){
    const audit=await sb.schema('akbs_crm').from('fee_events').insert({lead_id:context.leadId,event_type:'RECEIPT_EMAILED',amount:r.payable,note,created_by:context.actorId});

@@ -1,6 +1,8 @@
 import { IncompleteApplications } from './IncompleteApplications';
 import { csvCell } from '../lib/escapeHtml';
 import { useCrm } from '../lib/crm';
+import { useReminderCooldown } from '../lib/reminderCooldown';
+import { applicationEligible } from '../lib/feeCollections';
 import React, { useEffect, useState } from 'react';
 import {
   Search,
@@ -113,15 +115,15 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   const [isProjectEditing, setIsProjectEditing] = useState(false);
   const [isFinancialEditing, setIsFinancialEditing] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
-  const [registrationEmailBusy,setRegistrationEmailBusy]=useState(false);
+  const registrationReminders=useReminderCooldown(crm.leads.filter(l=>!applicationEligible(l)).map(l=>({purpose:'registration' as const,leadId:l.id})));
   const sendRegistrationReminder=async(lead:Lead)=>{
-    setRegistrationEmailBusy(true);setNoteError('');setSavedMessage('');
+    setNoteError('');setSavedMessage('');
     try{
-      const out=await secureRequest('akbs-fee-reminder-email',{leadId:lead.id,purpose:'registration',requestId:crypto.randomUUID()});
-      setSavedMessage(`Registration reminder emailed to ${out.email}.`);
+      const target={leadId:lead.id,purpose:'registration' as const};
+      const out=await registrationReminders.send(target,()=>secureRequest('akbs-fee-reminder-email',{...target,requestId:crypto.randomUUID()}));
+      if(out)setSavedMessage(`Registration reminder emailed only to ${out.email}. Resend is available after 60 minutes.`);
       void crm.refresh().catch(()=>undefined);
     }catch(e:any){setNoteError(e.message||'Unable to send registration reminder.');}
-    finally{setRegistrationEmailBusy(false);}
   };
   const [projectDraft, setProjectDraft] = useState({
     projectType: 'Broiler' as Lead['projectType'],
@@ -804,7 +806,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                   )}
                   {!currentLead.applicationEligible&&<div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">
                     <p>{currentLead.sourceDetail==='Website Inquiry Form'?'This lead came from the website inquiry form.':'This lead does not have a submitted customer application.'} Customer registration must be completed before the registration fee is payable.</p>
-                    <div className="mt-2 flex flex-wrap gap-2"><button disabled={registrationEmailBusy||!currentLead.email} onClick={()=>void sendRegistrationReminder(currentLead)} title={currentLead.email?'Send the registration link to the recorded customer email':'Customer email is missing'} className="rounded-lg bg-emerald-800 px-3 py-2 font-bold text-white disabled:opacity-50">{registrationEmailBusy?'Sending…':'Email Registration Reminder'}</button><button onClick={()=>void navigator.clipboard.writeText('https://crm.akbspoultry.com/customer-registration').then(()=>setSavedMessage('Customer registration link copied.')).catch(()=>setNoteError('Unable to copy registration link.'))} className="rounded-lg border bg-white px-3 py-2 font-bold">Copy Registration Link</button></div>
+                    <div className="mt-2 flex flex-wrap gap-2"><button disabled={registrationReminders.disabled({purpose:'registration',leadId:currentLead.id})||!currentLead.email} onClick={()=>void sendRegistrationReminder(currentLead)} title={currentLead.email?'Send the registration link to the recorded customer email':'Customer email is missing'} className="rounded-lg bg-emerald-800 px-3 py-2 font-bold text-white disabled:opacity-50">{registrationReminders.label({purpose:'registration',leadId:currentLead.id},'Email Registration Reminder')}</button><button onClick={()=>void navigator.clipboard.writeText('https://crm.akbspoultry.com/customer-registration').then(()=>setSavedMessage('Customer registration link copied.')).catch(()=>setNoteError('Unable to copy registration link.'))} className="rounded-lg border bg-white px-3 py-2 font-bold">Copy Registration Link</button></div>
                     {noteError&&<p role="alert" className="mt-2 text-rose-700">{noteError}</p>}
                   </div>}
                 </div>

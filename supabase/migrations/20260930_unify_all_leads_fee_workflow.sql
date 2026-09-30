@@ -1,4 +1,5 @@
--- Ensure Fee Management follows every CRM lead, regardless of lead source.
+-- Fee Management must start only after a real customer application number exists.
+-- Website inquiries / raw leads / incomplete registrations must NOT show fee pending.
 -- Existing staff visibility/RBAC remains enforced by akbs_crm.visible().
 
 create or replace function public.akbs_fee_staff(p_action text, p_token text, p_data jsonb default '{}'::jsonb)
@@ -42,6 +43,13 @@ begin
     v_lead=(p_data->>'leadId')::uuid; v_status=upper(coalesce(p_data->>'status',''));
     if v_status not in ('VERIFIED','REJECTED') then raise exception 'Invalid status'; end if;
 
+    -- Never allow payment verification before a real application number exists.
+    if not exists (
+      select 1 from akbs_crm.leads l
+      where l.id=v_lead
+        and coalesce(l.reference,'') ~ '^AKBS-[0-9]{4}-[0-9]{6}$'
+    ) then raise exception 'Application number is required before fee processing'; end if;
+
     select t.id into v_tx from akbs_crm.fee_transactions t
     where t.lead_id=v_lead and t.service_type='Initial Project Assessment & Registration Fee'
     order by t.created_at desc limit 1 for update;
@@ -73,6 +81,8 @@ begin
       order by t.created_at desc limit 1
     ) tx on true
     where (v_user.role='ADMIN' or v_user.role='FINANCE' or akbs_crm.visible(v_user,l))
+      -- Critical rule: only submitted applications with generated application numbers enter Fee Management.
+      and coalesce(l.reference,'') ~ '^AKBS-[0-9]{4}-[0-9]{6}$'
   ), y as (
     select *,case
       when transaction_status='VERIFIED' then 'VERIFIED' when transaction_status='REJECTED' then 'REJECTED'

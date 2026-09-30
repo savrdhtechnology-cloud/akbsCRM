@@ -1925,7 +1925,7 @@ export const PORTAL_USERS: PortalUser[] = [
     role: 'admin',
     roleTitle: 'Managing Director & Super Admin',
     email: 'director@akbspoultry.com',
-    phone: '+91 98271 22334',
+    phone: '+91 9893345906',
     departmentOrCompany: 'Executive Management',
     avatarLetter: 'A'
   },

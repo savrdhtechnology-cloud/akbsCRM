@@ -1785,9 +1785,9 @@ const CustomerApplication: React.FC<CustomerRegistrationPortalProps> = ({
               <p className="text-[11px] text-slate-600">
                 Facing issues while filling the registration? Call directly:
               </p>
-              <div className="font-mono font-bold text-emerald-900 text-sm">
-                +91 98271 22334
-              </div>
+              <a href="tel:+919893345906" className="block font-mono font-bold text-emerald-900 text-sm hover:underline">
+                +91 9893345906
+              </a>
             </div>
           </aside>
 

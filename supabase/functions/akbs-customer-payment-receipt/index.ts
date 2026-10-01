@@ -42,12 +42,8 @@ Deno.serve(async(req:Request)=>{
   const html='<div style="font-family:Arial,sans-serif;max-width:650px;margin:auto;color:#18382d;line-height:1.6"><div style="background:#073b29;color:white;padding:24px"><h2>AKBS Poultry Farming Pvt. Ltd.</h2></div><div style="padding:24px;border:1px solid #dce8e1"><h2>'+title+'</h2><p>Dear '+esc(r.customerName)+',</p><p>Application: <b>'+esc(r.applicationId)+'</b><br>Service: '+esc(r.serviceType)+'<br>Amount: <b>'+esc(amount)+'</b><br>Transaction / UTR: '+esc(r.transactionRef)+'<br>Status: <b>'+esc(r.status.replaceAll('_',' '))+'</b></p><p>'+ (verified?'Your official payment receipt PDF is attached.':'Your payment acknowledgement PDF is attached. Company verification is pending.')+'</p><p>www.akbspoultry.com · support@akbspoultry.com</p></div></div>';
   const requestId=/^[a-f0-9-]{36}$/i.test(String(body.requestId||''))?String(body.requestId):'automatic-'+String(r.transactionId||r.applicationId)+'-'+String(row.verifiedAt||row.status);
   const sent=await sendCollectionEmail(config,{to:context.email,subject:(verified?'AKBS Payment Receipt - ':'AKBS Payment Acknowledgement - ')+r.applicationId,html,attachments:[{filename:'AKBS_'+(verified?'Payment_Receipt_':'Payment_Acknowledgement_')+r.applicationId+'.pdf',content:pdfBase64(bytes),content_type:'application/pdf'}]},'akbs-receipt-'+requestId);
-  const note=(verified?'Verified receipt PDF':'Payment acknowledgement PDF')+' accepted for '+context.email+'. Email ID: '+sent.id;
-  if(staff){
-   const audit=await sb.schema('akbs_crm').from('fee_events').insert({lead_id:context.leadId,event_type:'RECEIPT_EMAILED',amount:r.payable,note,created_by:context.actorId});
-   if(audit.error)console.warn(JSON.stringify({event:'RECEIPT_EMAIL_AUDIT_FAILED',emailId:sent.id}));
-  }
-  await sb.schema('akbs_crm').from('activities').insert({lead_id:context.leadId,actor_name:context.actorName||'System',action:verified?'PAYMENT_RECEIPT_EMAILED':'PAYMENT_ACKNOWLEDGEMENT_EMAILED',note,shared:false});
+  const audit=await sb.rpc('akbs_collection_receipt_audit',{p_token:String(staff?body.staffToken:body.sessionToken),p_lead_id:context.leadId,p_email_id:sent.id,p_kind:staff?'staff':'customer'});
+  if(audit.error||!audit.data?.ok)console.warn(JSON.stringify({event:'RECEIPT_EMAIL_AUDIT_FAILED',emailId:sent.id}));
   return json({ok:true,applicationId:r.applicationId,email:context.email,emailId:sent.id,status:r.status});
  }catch(error){console.warn(JSON.stringify({event:'PAYMENT_RECEIPT_EMAIL_FAILED',message:error instanceof Error?error.message:'Unknown error'}));return json({error:'Unable to email the receipt. Please check AKBS email settings and try again.'},502);}
 });

@@ -23,6 +23,8 @@ declare
   r jsonb;
   dashboard jsonb;
   corr uuid:=gen_random_uuid();
+  email_id text:=gen_random_uuid()::text;
+  customer_email_id text:=gen_random_uuid()::text;
 begin
   app1:='AKBS-2099-990001';
   app2:='AKBS-2099-990002';
@@ -107,6 +109,25 @@ begin
 
   if (select details#>>'{portal_form,_initialPayment,verificationStatus}' from akbs_crm.leads where id=l1) <> 'VERIFIED' then
     raise exception 'J failed: compatibility payment state not verified';
+  end if;
+
+  -- Accepted receipt delivery creates one private audit event through the public RPC.
+  r:=public.akbs_collection_receipt_audit(admin_token,l1,email_id,'staff');
+  if r->>'ok'<>'true' then raise exception 'Receipt audit failed: %',r;end if;
+  perform public.akbs_collection_receipt_audit(admin_token,l1,email_id,'staff');
+  if (select count(*) from akbs_crm.fee_events where lead_id=l1 and event_type='RECEIPT_EMAILED' and note like '%'||email_id)<>1
+   or (select count(*) from akbs_crm.activities where lead_id=l1 and action='PAYMENT_RECEIPT_EMAILED' and note like '%'||email_id)<>1 then
+   raise exception 'Receipt audit was missing or duplicated';
+  end if;
+  r:=public.akbs_collection_receipt_audit(token1,l1,customer_email_id,'customer');
+  if r->>'ok'<>'true' then raise exception 'Customer receipt audit failed: %',r;end if;
+  r:=public.akbs_collection_receipt_audit(token1,l2,gen_random_uuid()::text,'customer');
+  if not (r ? 'error') then raise exception 'Receipt audit accepted another customer application';end if;
+  r:=public.akbs_collection_receipt_audit('',l1,gen_random_uuid()::text,'staff');
+  if r->>'status'<>'401' then raise exception 'Receipt audit accepted an unauthenticated caller';end if;
+  if has_function_privilege('anon','public.akbs_collection_receipt_audit(text,uuid,text,text)','EXECUTE')
+   or has_function_privilege('authenticated','public.akbs_collection_receipt_audit(text,uuid,text,text)','EXECUTE') then
+   raise exception 'Receipt audit exposed to a public API role';
   end if;
 
   if not exists(

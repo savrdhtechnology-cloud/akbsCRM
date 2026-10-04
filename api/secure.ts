@@ -6,20 +6,20 @@ async function syncWorkforceLead(row:any){
  const url=(process.env.AKBS_WORKFORCE_SYNC_URL||'').trim();
  const token=(process.env.AKBS_WORKFORCE_SYNC_TOKEN||'').trim();
  if(!url||!token||!row?.id)return {ok:false,skipped:true};
- const details=row.details||{};
+ const details=row.details||row.formData||{};
  const portal=details.portal_form||details.formData||{};
  const d={...details,...portal};
  const payload={
   lead_id:String(row.id),
-  application_reference:String(row.reference||''),
+  application_reference:String(row.reference||row.appId||''),
   name:String(row.name||d.fullName||'').trim(),
   email:String(row.email||d.email||'').trim(),
-  phone:String(row.phone||d.mobileNumber||'').trim(),
+  phone:String(row.phone||row.mobileNumber||d.mobileNumber||'').trim(),
   company:'AKBS Poultry Farming Private Limited',
   city:String(d.villageOrCity||d.village||d.city||row.location||'').trim(),
   state:String(d.state||'').trim(),
   location:String(row.location||'').trim(),
-  source:String(row.source||'AKBS CRM'),
+  source:String(row.source||(row.appId?'CUSTOMER_PORTAL':'AKBS CRM')),
   notes:String(row.message||'').trim(),
   email_consent:Boolean(d.communicationConsentAccepted||d.emailConsent||false),
   whatsapp_consent:Boolean(d.communicationConsentAccepted||d.whatsappConsent||false),
@@ -49,7 +49,7 @@ if(service==='akbs_crm_workspace'&&data.p_action==='snapshot'&&data.p_data?.work
   out.workforce_sync={attempted:out.leads.length,failed:results.filter((x:any)=>x.status==='rejected').length};
 }
 if(service==='akbs_portal_custom'&&data.p_action==='submit'&&out?.submittedId&&Array.isArray(out?.applications)){
-  const submitted=out.applications.find((x:any)=>String(x.id||x.reference||'')===String(out.submittedId));
+  const submitted=out.applications.find((x:any)=>String(x.appId||x.reference||x.id||'')===String(out.submittedId));
   if(submitted){try{await syncWorkforceLead(submitted);}catch(e){console.error('AKBS workforce customer-submit sync failed',e instanceof Error?e.message:'unknown');}}
 }
 const nextToken=out.token||out.sessionToken;if(nextToken){if(!/^[a-f0-9]{64}$/.test(nextToken))throw new SecurityError('Invalid session response.',502);setCookie(res,cookieName,nextToken);delete out.token;delete out.sessionToken;out.authenticated=true;}delete out.temporary_credential;delete out.password;delete out.password_hash;if(data.p_action==='logout')setCookie(res,cookieName,'',0);send(res,200,out);}catch(e){const err=e instanceof SecurityError?e:new SecurityError('Unable to process this request.',500);send(res,err.status,{error:err.message,status:err.status,requestId,...(err.retryAt?{retryAt:err.retryAt}:{})});}}

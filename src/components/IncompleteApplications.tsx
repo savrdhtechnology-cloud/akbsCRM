@@ -8,7 +8,7 @@ type Row={requestId:string;email:string;name:string;mobile:string;form:Record<st
 const draftTarget=(row:Row):ReminderTarget=>({purpose:'registration',draftKind:'customer',draftEmail:row.email,draftRequestId:row.requestId});
 const inquiryTarget=(row:Lead):ReminderTarget=>({purpose:'registration',leadId:row.id});
 const date=(v:string)=>v?new Date(v).toLocaleString('en-IN'):'—';
-export function IncompleteApplications({kind,onBack,onCompleted,inquiries=[],onOpenInquiry}:{kind:PortalKind;onBack:()=>void;onCompleted:()=>void;inquiries?:Lead[];onOpenInquiry?:(lead:Lead)=>void}){
+export function IncompleteApplications({kind,onBack,onCompleted,inquiries=[],onOpenInquiry,embedded=false}:{kind:PortalKind;onBack:()=>void;onCompleted:()=>void;inquiries?:Lead[];onOpenInquiry?:(lead:Lead)=>void;embedded?:boolean}){
  const [rows,setRows]=useState<Row[]>([]),[offset,setOffset]=useState(0),[query,setQuery]=useState(''),[search,setSearch]=useState('');
  const [selected,setSelected]=useState<Row|null>(null),[form,setForm]=useState<Record<string,any>>({}),[consent,setConsent]=useState(false);
  const [loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
@@ -28,8 +28,8 @@ export function IncompleteApplications({kind,onBack,onCompleted,inquiries=[],onO
    if(out)setNotice(`Registration completion reminder emailed only to ${out.email}. Resend is available after 60 minutes.`);
   }catch(e:any){setError(e.message||'Unable to send completion reminder.');}
  }
- return <section className="fixed inset-0 z-[90] overflow-y-auto bg-slate-50 text-slate-800 p-4 sm:p-6 lg:p-8 space-y-5">
-  <button onClick={onBack} className="flex items-center gap-2 text-sm font-bold text-emerald-800"><ArrowLeft size={16}/>Back to {kind==='customer'?'Leads':'Partners'}</button>
+ return <section className={embedded?"rounded-2xl border border-amber-200 bg-slate-50 text-slate-800 p-4 space-y-5":"fixed inset-0 z-[90] overflow-y-auto bg-slate-50 text-slate-800 p-4 sm:p-6 lg:p-8 space-y-5"}>
+  {!embedded&&<button onClick={onBack} className="flex items-center gap-2 text-sm font-bold text-emerald-800"><ArrowLeft size={16}/>Back to {kind==='customer'?'Leads':'Partners'}</button>}
   <div className="flex flex-wrap gap-3 justify-between items-center"><div><h1 className="text-2xl font-bold text-slate-900">{title}</h1><p className="text-sm text-slate-500 mt-1">{kind==='customer'?'Verified customers who have not submitted their application.':'Saved partner registrations awaiting completion. Approval and activation remain separate.'}</p></div><button onClick={()=>void refresh()} disabled={loading} className="rounded-xl border bg-white p-3" aria-label="Refresh incomplete applications"><RefreshCw size={18}/></button></div>
   {error&&<p role="alert" className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-rose-800">{error}</p>}{notice&&<p role="status" className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-emerald-800">{notice}</p>}
   <label className="flex gap-2 items-center rounded-xl border bg-white p-3"><Search size={18}/><input className="w-full outline-none" aria-label="Search incomplete applications" placeholder="Search name, mobile or email" value={query} onChange={e=>setQuery(e.target.value)}/></label>

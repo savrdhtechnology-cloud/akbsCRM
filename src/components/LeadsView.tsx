@@ -412,12 +412,17 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
     return name.slice(0, 2).toUpperCase();
   };
 
-  if(incomplete && crm.user.role==='ADMIN') return <IncompleteApplications kind="customer" inquiries={leads.filter(l=>l.sourceDetail==='Website Inquiry Form'&&!l.applicationEligible)} onOpenInquiry={lead=>{setIncomplete(false);setSelectedLead(lead);onSelectLead(lead);}} onBack={()=>setIncomplete(false)} onCompleted={()=>void crm.refresh()}/>;
-
-  if(!leads.length)return <div className="p-6"><h1 className="text-xl font-bold">Leads</h1>{crm.user.role==='ADMIN'&&<button onClick={()=>setIncomplete(true)}>Incomplete Applications →</button>}<p className="my-4">No leads yet. Website enquiries will appear here after submission.</p><button onClick={onOpenAddLead}>Add Lead</button></div>;
+  const incompleteInquiries=leads.filter(l=>l.sourceDetail==='Website Inquiry Form'&&!l.applicationEligible);
+  if(!leads.length && crm.user.role!=='ADMIN')return <div className="p-6"><h1 className="text-xl font-bold">Leads</h1><p className="my-4">No leads yet.</p><button onClick={onOpenAddLead}>Add Lead</button></div>;
   return (
     <div className="p-3 sm:p-5 lg:p-6 space-y-4 max-w-[1680px] mx-auto font-sans antialiased text-slate-800">
-      {crm.user.role==='ADMIN'&&<button onClick={()=>setIncomplete(true)} className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-900">Incomplete Applications →</button>}
+      {crm.user.role==='ADMIN'&&<div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-3">
+        <button onClick={()=>setIncomplete(v=>!v)} aria-expanded={incomplete} className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm font-extrabold text-amber-950">
+          <span className="flex items-center gap-2"><Clock className="h-4 w-4"/>Incomplete Leads <span className="text-xs font-medium text-amber-700">Applications in progress + website inquiries ({incompleteInquiries.length} inquiries)</span></span>
+          <span>{incomplete?'Hide section −':'View incomplete leads +'}</span>
+        </button>
+        {incomplete&&<div className="mt-3"><IncompleteApplications embedded kind="customer" inquiries={incompleteInquiries} onOpenInquiry={lead=>{setIncomplete(false);setSelectedLead(lead);onSelectLead(lead);}} onBack={()=>setIncomplete(false)} onCompleted={()=>void crm.refresh()}/></div>}
+      </div>}
       {/* Top Header Row matching Image 3 */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>

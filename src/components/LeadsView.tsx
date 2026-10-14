@@ -79,14 +79,14 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   activities = []
 }) => {
   const crm=useCrm();
-  const [incomplete,setIncomplete]=useState(false);
+  const [section,setSection]=useState<'pipeline'|'incomplete'>('pipeline');
   const [noteError,setNoteError]=useState('');
   const [employeeQuotationRequests,setEmployeeQuotationRequests]=useState<any[]>([]);
   const [feeConfig,setFeeConfig]=useState<any>({payableFee:2999});
   const isEmployeePortal = crm.user.role === 'EMPLOYEE';
   const isManagerPortal = crm.user.role === 'MANAGER';
   const isAdminPortal = crm.user.role === 'ADMIN';
-  const [activeTab, setActiveTab] = useState<'all' | 'my' | 'unassigned'>(crm.user.role === 'EMPLOYEE' ? 'my' : 'all');
+  const [activeTab, setActiveTab] = useState<'all' | 'my' | 'unassigned' | 'incomplete'>(crm.user.role === 'EMPLOYEE' ? 'my' : 'all');
   useEffect(() => {
     let active=true;
     crm.fee('snapshot',{})
@@ -190,6 +190,9 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
 
     if (activeTab === 'my') {
       return matchesSearch && matchesStage && matchesState && matchesSource && (crm.leads.find(row=>row.id===l.id)?.assigned_to===crm.user.id);
+    }
+    if (activeTab === 'incomplete') {
+      return matchesSearch && matchesStage && matchesState && matchesSource && !l.applicationEligible;
     }
     if (activeTab === 'unassigned') {
       return matchesSearch && matchesStage && matchesState && matchesSource && (!l.assignedTo || l.assignedTo === 'Unassigned');
@@ -412,17 +415,13 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
     return name.slice(0, 2).toUpperCase();
   };
 
-  const incompleteInquiries=leads.filter(l=>l.sourceDetail==='Website Inquiry Form'&&!l.applicationEligible);
+  const incompleteInquiries=leads.filter(l=>!l.applicationEligible);
+  const createdDates=crm.leads.map(r=>new Date(r.created_at).getTime()).filter(t=>!Number.isNaN(t));
+  const fmtDay=(t:number)=>new Date(t).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  const dateRangeLabel=createdDates.length?`${fmtDay(Math.min(...createdDates))} - ${fmtDay(Math.max(...createdDates))}`:'No leads yet';
   if(!leads.length && crm.user.role!=='ADMIN')return <div className="p-6"><h1 className="text-xl font-bold">Leads</h1><p className="my-4">No leads yet.</p><button onClick={onOpenAddLead}>Add Lead</button></div>;
   return (
     <div className="p-3 sm:p-5 lg:p-6 space-y-4 max-w-[1680px] mx-auto font-sans antialiased text-slate-800">
-      {crm.user.role==='ADMIN'&&<div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-3">
-        <button onClick={()=>setIncomplete(v=>!v)} aria-expanded={incomplete} className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm font-extrabold text-amber-950">
-          <span className="flex items-center gap-2"><Clock className="h-4 w-4"/>Incomplete Leads <span className="text-xs font-medium text-amber-700">Applications in progress + website inquiries ({incompleteInquiries.length} inquiries)</span></span>
-          <span>{incomplete?'Hide section −':'View incomplete leads +'}</span>
-        </button>
-        {incomplete&&<div className="mt-3"><IncompleteApplications embedded kind="customer" inquiries={incompleteInquiries} onOpenInquiry={lead=>{setIncomplete(false);setSelectedLead(lead);onSelectLead(lead);}} onBack={()=>setIncomplete(false)} onCompleted={()=>void crm.refresh()}/></div>}
-      </div>}
       {/* Top Header Row matching Image 3 */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
@@ -486,9 +485,21 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             </div>
           </div>
 
+          {!isEmployeePortal && (
+            <button type="button" onClick={()=>isAdminPortal?setSection('incomplete'):(setSection('pipeline'),setActiveTab('incomplete'))} title="Leads whose customer registration is not submitted yet" className="flex items-center gap-2 px-3 py-1.5 bg-rose-50/70 border border-rose-200/80 rounded-xl text-xs text-left hover:bg-rose-100/70">
+              <div className="w-7 h-7 rounded-lg bg-rose-600 text-white flex items-center justify-center font-bold">
+                <AlertCircle className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <div className="text-[10px] text-slate-500 font-medium leading-none">Incomplete</div>
+                <div className="text-sm font-extrabold text-rose-950 font-mono mt-0.5">{incompleteInquiries.length}</div>
+              </div>
+            </button>
+          )}
+
           <div className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 shadow-2xs">
             <Calendar className="w-3.5 h-3.5 text-slate-500" />
-            <span className="font-mono text-[11px]">01 Sep 2026 - 30 Sep 2026</span>
+            <span className="font-mono text-[11px]">{dateRangeLabel}</span>
           </div>
 
           {!isEmployeePortal && (
@@ -503,8 +514,31 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
         </div>
       </div>
 
+      {/* Section switcher: pipeline workspace vs incomplete leads */}
+      {!isEmployeePortal && (
+        <div role="tablist" aria-label="Lead sections" className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/90 bg-white p-1.5 shadow-2xs w-fit">
+          <button role="tab" aria-selected={section==='pipeline'} onClick={()=>setSection('pipeline')} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${section==='pipeline'?'bg-[#0b2818] text-white shadow-xs':'text-slate-600 hover:bg-slate-100'}`}>
+            <Users className="w-3.5 h-3.5"/>Leads Pipeline <span className={`rounded-full px-2 py-0.5 text-[10px] ${section==='pipeline'?'bg-white/15':'bg-slate-100'}`}>{leads.length}</span>
+          </button>
+          <button role="tab" aria-selected={section==='incomplete'} onClick={()=>isAdminPortal?setSection('incomplete'):setActiveTab('incomplete')} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${section==='incomplete'?'bg-amber-500 text-slate-950 shadow-xs':'text-slate-600 hover:bg-amber-50'}`}>
+            <Clock className="w-3.5 h-3.5"/>Incomplete Leads <span className={`rounded-full px-2 py-0.5 text-[10px] ${section==='incomplete'?'bg-white/40':'bg-amber-100 text-amber-900'}`}>{incompleteInquiries.length}</span>
+          </button>
+        </div>
+      )}
+
+      {section==='incomplete' && isAdminPortal && (
+        <IncompleteApplications
+          embedded
+          kind="customer"
+          inquiries={incompleteInquiries}
+          onOpenInquiry={lead=>{setSection('pipeline');setActiveTab('incomplete');setSelectedLead(lead);onSelectLead(lead);}}
+          onBack={()=>setSection('pipeline')}
+          onCompleted={()=>void crm.refresh()}
+        />
+      )}
+
       {/* Main 3-Column Grid Layout matching Image 3 */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+      {section==='pipeline' && <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         {/* ================= COLUMN 1: Leads List (4 cols) ================= */}
         <div className={`${isEmployeePortal ? 'lg:col-span-4' : 'lg:col-span-4'} bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col ${isEmployeePortal ? 'h-[760px]' : 'h-[820px]'}`}>
           {/* Top Sub-tabs */}
@@ -520,7 +554,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                 </div>
               </div>
             ) : (
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+            <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-xl text-[11px] font-bold">
               <button
                 onClick={() => setActiveTab('all')}
                 className={`px-2.5 py-1 rounded-lg transition-all ${
@@ -544,6 +578,14 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                 }`}
               >
                 Unassigned ({leads.filter(l => !l.assignedTo || l.assignedTo === 'Unassigned').length})
+              </button>
+              <button
+                onClick={() => setActiveTab('incomplete')}
+                className={`px-2.5 py-1 rounded-lg transition-all ${
+                  activeTab === 'incomplete' ? 'bg-amber-400 text-slate-950 shadow-2xs font-extrabold' : 'text-amber-700 hover:text-amber-900'
+                }`}
+              >
+                Incomplete ({incompleteInquiries.length})
               </button>
             </div>
             )}
@@ -818,7 +860,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
               </div>
 
               {/* Action Buttons right */}
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {isEmployeePortal ? (
                   quotationReviewPending ? (
                     <div className="px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-xs font-black flex items-center gap-1.5">
@@ -885,14 +927,14 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             </div>
 
             {/* Sub-tabs bar */}
-            <div className={`flex items-center ${isEmployeePortal ? 'gap-1.5' : 'gap-2'} border-b border-slate-100 pb-2 overflow-x-auto text-xs font-semibold`}>
+            <div className={`flex flex-wrap items-center ${isEmployeePortal ? 'gap-1.5' : 'gap-1.5'} border-b border-slate-100 pb-2 text-xs font-semibold`}>
               {[
                 { id: 'overview', label: 'Overview' },
                 { id: 'project', label: 'Project Details' },
                 { id: 'financial', label: 'Financial' },
-                { id: 'documents', label: 'Documents' },
+                { id: 'documents', label: `Documents (${relatedDocuments.length})` },
                 { id: 'activities', label: 'Activities' },
-                { id: 'followups', label: 'Follow-ups' }
+                { id: 'followups', label: `Follow-ups (${relatedFollowUps.length})` }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -955,6 +997,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
               />
             )}
 
+            <div className="grid xl:grid-cols-2 gap-3">
             {/* Basic Information Box */}
             <div className="bg-slate-50/60 rounded-xl p-3.5 border border-slate-200/80 space-y-2 text-xs">
               <div className="flex items-center gap-2 font-bold text-slate-900 border-b border-slate-200/60 pb-1.5">
@@ -1039,11 +1082,13 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
               </div>
             </div>
 
+            </div>
+
             {/* Current Status Box */}
             <div className="bg-slate-50/60 rounded-xl p-3.5 border border-slate-200/80 space-y-2 text-xs">
               <div className="flex items-center gap-2 font-bold text-slate-900 border-b border-slate-200/60 pb-1.5">
                 <Target className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Current Status</span>
+                <span>Status & Ownership</span>
               </div>
               <div className="grid grid-cols-2 gap-y-1.5 gap-x-4 text-slate-700">
                 <div>
@@ -1083,38 +1128,6 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                   <span className="text-slate-400 text-[11px]">Remarks:</span>
                   <div className="text-slate-700 bg-white p-2 rounded-lg border border-slate-200/80 mt-1">
                     {currentLead.notes || 'No notes recorded.'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Lead Ownership & Routing */}
-            <div className="rounded-xl border border-emerald-200 bg-gradient-to-r from-white via-emerald-50/30 to-white p-3.5">
-              <div className="flex items-center justify-between gap-3 border-b border-emerald-100 pb-2">
-                <div className="flex items-center gap-2 font-bold text-slate-900">
-                  <Users className="w-4 h-4 text-emerald-700" />
-                  <span>Lead Ownership & Routing</span>
-                </div>
-                <span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${getStatusBadgeStyle(currentLead.status)}`}>
-                  {currentLead.status}
-                </span>
-              </div>
-              <div className="grid sm:grid-cols-3 gap-3 mt-3 text-xs">
-                <div className="rounded-lg border border-amber-100 bg-amber-50/70 p-3">
-                  <div className="text-[10px] uppercase tracking-wide text-amber-700 font-bold">Responsible Manager</div>
-                  <div className="mt-1 font-black text-slate-900">{managerDisplayName}</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">{managerDisplayLogin}</div>
-                </div>
-                <div className="rounded-lg border border-blue-100 bg-blue-50/70 p-3">
-                  <div className="text-[10px] uppercase tracking-wide text-blue-700 font-bold">Current Employee</div>
-                  <div className="mt-1 font-black text-slate-900">{leadAssignee?.name || 'Unassigned'}</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">{leadAssignee ? leadAssigneeTitle : ''}</div>
-                </div>
-                <div className="rounded-lg border border-emerald-100 bg-emerald-50/70 p-3">
-                  <div className="text-[10px] uppercase tracking-wide text-emerald-700 font-bold">Active Work Item</div>
-                  <div className="mt-1 font-black text-slate-900">{currentWorkItem?.title || 'No active task'}</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">
-                    {currentWorkItem ? `${currentWorkItem.kind} · ${currentWorkOwner?.name || 'Unassigned'}` : 'Lead is currently idle'}
                   </div>
                 </div>
               </div>
@@ -1204,6 +1217,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                 </button>
               </div>
               <div className="grid grid-cols-3 gap-2 text-xs">
+                {similarLeads.length===0 && <p className="col-span-3 text-[11px] text-slate-400">No similar leads yet.</p>}
                 {similarLeads.map((item) => (
                   <button key={item.id} onClick={() => handleSelectLeadCard(item)} className="p-2 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white transition-all cursor-pointer text-left">
                     <div className="flex items-center gap-1.5">
@@ -1214,7 +1228,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                     </div>
                     <div className="text-[10px] text-slate-500 mt-1">{item.location}</div>
                     <div className="text-[10px] font-bold font-mono text-emerald-900">{item.estimatedCost || item.budgetEstimate}</div>
-                    <div className="text-[9px] text-slate-400">{item.birdCapacity.toLocaleString()} Birds</div>
+                    <div className="text-[9px] text-slate-400">{(item.birdCapacity || 0).toLocaleString()} Birds</div>
                   </button>
                 ))}
               </div>
@@ -1598,7 +1612,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             </div>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Soft Quotation Modal is never available to employees; employees can only request manager review. */}
       {!isEmployeePortal && (

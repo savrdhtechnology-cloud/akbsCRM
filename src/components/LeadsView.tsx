@@ -419,24 +419,35 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   const createdDates=crm.leads.map(r=>new Date(r.created_at).getTime()).filter(t=>!Number.isNaN(t));
   const fmtDay=(t:number)=>new Date(t).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
   const dateRangeLabel=createdDates.length?`${fmtDay(Math.min(...createdDates))} - ${fmtDay(Math.max(...createdDates))}`:'No leads yet';
+  const sectionTabs = isEmployeePortal ? null : (
+        <div role="tablist" aria-label="Lead sections" className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/90 bg-white p-1 shadow-2xs w-fit">
+          <button role="tab" aria-selected={section==='pipeline'} onClick={()=>setSection('pipeline')} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${section==='pipeline'?'bg-[#0b2818] text-white shadow-xs':'text-slate-600 hover:bg-slate-100'}`}>
+            <Users className="w-3.5 h-3.5"/>Leads Pipeline <span className={`rounded-full px-2 py-0.5 text-[10px] ${section==='pipeline'?'bg-white/15':'bg-slate-100'}`}>{leads.length}</span>
+          </button>
+          <button role="tab" aria-selected={section==='incomplete'} onClick={()=>isAdminPortal?setSection('incomplete'):setActiveTab('incomplete')} className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${section==='incomplete'?'bg-amber-500 text-slate-950 shadow-xs':'text-slate-600 hover:bg-amber-50'}`}>
+            <Clock className="w-3.5 h-3.5"/>Incomplete Leads <span className={`rounded-full px-2 py-0.5 text-[10px] ${section==='incomplete'?'bg-white/40':'bg-amber-100 text-amber-900'}`}>{incompleteInquiries.length}</span>
+          </button>
+        </div>
+  );
   if(!leads.length && crm.user.role!=='ADMIN')return <div className="p-6"><h1 className="text-xl font-bold">Leads</h1><p className="my-4">No leads yet.</p><button onClick={onOpenAddLead}>Add Lead</button></div>;
   return (
-    <div className="p-3 sm:p-5 lg:p-6 space-y-4 max-w-[1680px] mx-auto font-sans antialiased text-slate-800">
+    <div className="p-3 sm:p-4 space-y-3 max-w-[1680px] mx-auto font-sans antialiased text-slate-800">
       {/* Top Header Row matching Image 3 */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <span>{isEmployeePortal ? 'My Lead Workspace' : 'Leads Management'}</span>
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {isEmployeePortal ? 'Work only on leads assigned to you and update every customer interaction.' : 'Manage, track and convert your poultry project leads into successful customers.'}
-          </p>
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div>
+            <h1 className="text-xl font-black text-slate-900 tracking-tight leading-tight">
+              {isEmployeePortal ? 'My Lead Workspace' : 'Leads Management'}
+            </h1>
+            {isEmployeePortal && <p className="text-xs text-slate-500 mt-0.5">Work only on leads assigned to you and update every customer interaction.</p>}
+          </div>
+          {sectionTabs}
         </div>
 
         {/* Counter Badges Row */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs">
-            <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 px-2.5 py-1 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs">
+            <div className="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold">
               <Users className="w-3.5 h-3.5" />
             </div>
             <div>
@@ -445,8 +456,8 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50/70 border border-emerald-200/80 rounded-xl text-xs">
-            <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold">
+          <div className="flex items-center gap-2 px-2.5 py-1 bg-emerald-50/70 border border-emerald-200/80 rounded-xl text-xs">
+            <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold">
               <Target className="w-3.5 h-3.5" />
             </div>
             <div>
@@ -455,8 +466,8 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50/70 border border-amber-200/80 rounded-xl text-xs">
-            <div className="w-7 h-7 rounded-lg bg-amber-600 text-white flex items-center justify-center font-bold">
+          <div className="flex items-center gap-2 px-2.5 py-1 bg-amber-50/70 border border-amber-200/80 rounded-xl text-xs">
+            <div className="w-6 h-6 rounded-lg bg-amber-600 text-white flex items-center justify-center font-bold">
               <Clock className="w-3.5 h-3.5" />
             </div>
             <div>
@@ -465,8 +476,8 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50/70 border border-purple-200/80 rounded-xl text-xs">
-            <div className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center font-bold">
+          <div className="flex items-center gap-2 px-2.5 py-1 bg-purple-50/70 border border-purple-200/80 rounded-xl text-xs">
+            <div className="w-6 h-6 rounded-lg bg-purple-600 text-white flex items-center justify-center font-bold">
               <Building className="w-3.5 h-3.5" />
             </div>
             <div>
@@ -475,8 +486,8 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-teal-50/70 border border-teal-200/80 rounded-xl text-xs">
-            <div className="w-7 h-7 rounded-lg bg-teal-600 text-white flex items-center justify-center font-bold">
+          <div className="flex items-center gap-2 px-2.5 py-1 bg-teal-50/70 border border-teal-200/80 rounded-xl text-xs">
+            <div className="w-6 h-6 rounded-lg bg-teal-600 text-white flex items-center justify-center font-bold">
               <CheckCircle2 className="w-3.5 h-3.5" />
             </div>
             <div>
@@ -486,8 +497,8 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
           </div>
 
           {!isEmployeePortal && (
-            <button type="button" onClick={()=>isAdminPortal?setSection('incomplete'):(setSection('pipeline'),setActiveTab('incomplete'))} title="Leads whose customer registration is not submitted yet" className="flex items-center gap-2 px-3 py-1.5 bg-rose-50/70 border border-rose-200/80 rounded-xl text-xs text-left hover:bg-rose-100/70">
-              <div className="w-7 h-7 rounded-lg bg-rose-600 text-white flex items-center justify-center font-bold">
+            <button type="button" onClick={()=>isAdminPortal?setSection('incomplete'):(setSection('pipeline'),setActiveTab('incomplete'))} title="Leads whose customer registration is not submitted yet" className="flex items-center gap-2 px-2.5 py-1 bg-rose-50/70 border border-rose-200/80 rounded-xl text-xs text-left hover:bg-rose-100/70">
+              <div className="w-6 h-6 rounded-lg bg-rose-600 text-white flex items-center justify-center font-bold">
                 <AlertCircle className="w-3.5 h-3.5" />
               </div>
               <div>
@@ -514,18 +525,6 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
         </div>
       </div>
 
-      {/* Section switcher: pipeline workspace vs incomplete leads */}
-      {!isEmployeePortal && (
-        <div role="tablist" aria-label="Lead sections" className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/90 bg-white p-1.5 shadow-2xs w-fit">
-          <button role="tab" aria-selected={section==='pipeline'} onClick={()=>setSection('pipeline')} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${section==='pipeline'?'bg-[#0b2818] text-white shadow-xs':'text-slate-600 hover:bg-slate-100'}`}>
-            <Users className="w-3.5 h-3.5"/>Leads Pipeline <span className={`rounded-full px-2 py-0.5 text-[10px] ${section==='pipeline'?'bg-white/15':'bg-slate-100'}`}>{leads.length}</span>
-          </button>
-          <button role="tab" aria-selected={section==='incomplete'} onClick={()=>isAdminPortal?setSection('incomplete'):setActiveTab('incomplete')} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${section==='incomplete'?'bg-amber-500 text-slate-950 shadow-xs':'text-slate-600 hover:bg-amber-50'}`}>
-            <Clock className="w-3.5 h-3.5"/>Incomplete Leads <span className={`rounded-full px-2 py-0.5 text-[10px] ${section==='incomplete'?'bg-white/40':'bg-amber-100 text-amber-900'}`}>{incompleteInquiries.length}</span>
-          </button>
-        </div>
-      )}
-
       {section==='incomplete' && isAdminPortal && (
         <IncompleteApplications
           embedded
@@ -538,9 +537,9 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
       )}
 
       {/* Main 3-Column Grid Layout matching Image 3 */}
-      {section==='pipeline' && <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+      {section==='pipeline' && <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
         {/* ================= COLUMN 1: Leads List (4 cols) ================= */}
-        <div className={`${isEmployeePortal ? 'lg:col-span-4' : 'lg:col-span-4'} bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col ${isEmployeePortal ? 'h-[760px]' : 'h-[820px]'}`}>
+        <div className={`${isEmployeePortal ? 'lg:col-span-4' : 'lg:col-span-4 xl:col-span-3'} bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col min-h-0 h-[70vh] lg:h-[calc(100vh-11rem)] lg:min-h-[560px]`}>
           {/* Top Sub-tabs */}
           <div className="p-3 border-b border-slate-100 flex items-center justify-between">
             {isEmployeePortal ? (
@@ -760,12 +759,13 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
         </div>
 
         {/* ================= COLUMN 2: Lead Details & Requirements (5 cols) ================= */}
-        <div className={`${isEmployeePortal ? 'lg:col-span-8' : 'lg:col-span-5'} space-y-4`}>
+        <div className={`${isEmployeePortal ? 'lg:col-span-8' : 'lg:col-span-8 xl:col-span-6'} min-h-0 lg:h-[calc(100vh-11rem)] lg:min-h-[560px]`}>
           {/* Main Card Header */}
-          <div className={`bg-white rounded-2xl border border-slate-200/90 shadow-xs ${isEmployeePortal ? 'p-4 sm:p-4 space-y-3' : 'p-4 sm:p-5 space-y-4'}`}>
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col min-h-0 lg:h-full overflow-hidden">
+            <div className="shrink-0 px-4 pt-4 pb-0 space-y-3 border-b border-slate-100 bg-white">
             <div className="flex items-start justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm shadow-sm ${getAvatarColor(currentLead.name)}`}>
+                <div className={`w-11 h-11 shrink-0 rounded-2xl flex items-center justify-center font-black text-sm shadow-sm ${getAvatarColor(currentLead.name)}`}>
                   {getInitials(currentLead.name)}
                 </div>
                 <div>
@@ -851,9 +851,9 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                     </button> : <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600">Registration not submitted · Fee not applicable yet</span>}
                   </div>
                   )}
-                  {!currentLead.applicationEligible&&<div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">
+                  {!currentLead.applicationEligible&&<div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-950 flex flex-wrap items-center justify-between gap-2">
                     <p>{currentLead.sourceDetail==='Website Inquiry Form'?'This lead came from the website inquiry form.':'This lead does not have a submitted customer application.'} Customer registration must be completed before the registration fee is payable.</p>
-                    <div className="mt-2 flex flex-wrap gap-2"><button disabled={registrationReminders.disabled({purpose:'registration',leadId:currentLead.id})||!currentLead.email} onClick={()=>void sendRegistrationReminder(currentLead)} title={currentLead.email?'Send the registration link to the recorded customer email':'Customer email is missing'} className="rounded-lg bg-emerald-800 px-3 py-2 font-bold text-white disabled:opacity-50">{registrationReminders.label({purpose:'registration',leadId:currentLead.id},'Email Registration Reminder')}</button><button onClick={()=>void navigator.clipboard.writeText('https://crm.akbspoultry.com/customer-registration').then(()=>setSavedMessage('Customer registration link copied.')).catch(()=>setNoteError('Unable to copy registration link.'))} className="rounded-lg border bg-white px-3 py-2 font-bold">Copy Registration Link</button></div>
+                    <div className="flex flex-wrap gap-2"><button disabled={registrationReminders.disabled({purpose:'registration',leadId:currentLead.id})||!currentLead.email} onClick={()=>void sendRegistrationReminder(currentLead)} title={currentLead.email?'Send the registration link to the recorded customer email':'Customer email is missing'} className="rounded-lg bg-emerald-800 px-2.5 py-1.5 font-bold text-white disabled:opacity-50">{registrationReminders.label({purpose:'registration',leadId:currentLead.id},'Email Registration Reminder')}</button><button onClick={()=>void navigator.clipboard.writeText('https://crm.akbspoultry.com/customer-registration').then(()=>setSavedMessage('Customer registration link copied.')).catch(()=>setNoteError('Unable to copy registration link.'))} className="rounded-lg border bg-white px-2.5 py-1.5 font-bold">Copy Registration Link</button></div>
                     {noteError&&<p role="alert" className="mt-2 text-rose-700">{noteError}</p>}
                   </div>}
                 </div>
@@ -927,7 +927,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             </div>
 
             {/* Sub-tabs bar */}
-            <div className={`flex flex-wrap items-center ${isEmployeePortal ? 'gap-1.5' : 'gap-1.5'} border-b border-slate-100 pb-2 text-xs font-semibold`}>
+            <div role="tablist" className="flex items-center gap-1 overflow-x-auto text-xs font-semibold -mb-px">
               {[
                 { id: 'overview', label: 'Overview' },
                 { id: 'project', label: 'Project Details' },
@@ -942,10 +942,12 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                     setActiveDetailTab(tab.id as any);
                     setSavedMessage('');
                   }}
-                  className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-all ${
+                  role="tab"
+                  aria-selected={activeDetailTab === tab.id}
+                  className={`px-3 py-2 whitespace-nowrap border-b-2 transition-all ${
                     activeDetailTab === tab.id
-                      ? 'bg-[#0f2e20] text-white font-bold shadow-2xs'
-                      : 'text-slate-500 hover:text-slate-800'
+                      ? 'border-emerald-700 text-emerald-900 font-bold'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   {tab.label}
@@ -953,6 +955,8 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
               ))}
             </div>
 
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
             {savedMessage && (
               <div className="px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5" />
@@ -962,6 +966,68 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
 
             {activeDetailTab === 'overview' && (
               <>
+            {/* Quick Actions Grid matching Image 3 */}
+            <div className="space-y-2">
+              <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                <CheckSquare className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Quick Actions</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 2xl:grid-cols-6 gap-2 text-[11px]">
+                <button
+                  onClick={() => onOpenQuickAction && onOpenQuickAction('call', currentLead)}
+                  className="px-2 py-2 rounded-xl border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 transition-all flex items-center justify-center gap-2 font-bold text-slate-700"
+                >
+                  <Phone className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Log Call</span>
+                </button>
+
+                <button
+                  onClick={() => onOpenQuickAction && onOpenQuickAction('followup', currentLead)}
+                  className="px-2 py-2 rounded-xl border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 transition-all flex items-center justify-center gap-2 font-bold text-slate-700"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Schedule Follow-up</span>
+                </button>
+
+                <a
+                  href={`https://wa.me/${currentLead.whatsApp?.replace(/[^0-9]/g, '') || currentLead.phone.replace(/[^0-9]/g, '')}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-2 py-2 rounded-xl border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 transition-all flex items-center justify-center gap-2 font-bold text-slate-700"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Send WhatsApp</span>
+                </a>
+
+                <button
+                  onClick={() => onOpenQuickAction && onOpenQuickAction('email', currentLead)}
+                  className="px-2 py-2 rounded-xl border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 transition-all flex items-center justify-center gap-2 font-bold text-slate-700"
+                >
+                  <Send className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Send Email</span>
+                </button>
+
+                <button
+                  onClick={() => onOpenQuickAction && onOpenQuickAction('task', currentLead)}
+                  className="px-2 py-2 rounded-xl border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 transition-all flex items-center justify-center gap-2 font-bold text-slate-700"
+                >
+                  <FileText className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Create Task</span>
+                </button>
+
+                {!isEmployeePortal && (
+                  <button
+                    onClick={() => onConvertLeadToCustomer?.(currentLead.id)}
+                    disabled={currentLead.status === 'Converted'}
+                    className="px-2 py-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-60 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 font-bold text-emerald-900"
+                  >
+                    <UserCheck className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>{currentLead.status === 'Converted' ? 'Customer Converted' : 'Convert to Customer'}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
             {isEmployeePortal ? (
               <div className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-white to-emerald-50/50 p-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1090,7 +1156,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                 <Target className="w-3.5 h-3.5 text-emerald-700" />
                 <span>Status & Ownership</span>
               </div>
-              <div className="grid grid-cols-2 gap-y-1.5 gap-x-4 text-slate-700">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-1.5 gap-x-4 text-slate-700">
                 <div>
                   <span className="text-slate-400 text-[11px]">Stage:</span>
                   <div>
@@ -1124,84 +1190,12 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                   <span className="text-slate-400 text-[11px]">Next Follow-up:</span>
                   <div className="font-mono text-slate-900">{currentLead.nextFollowUp || 'Not provided'}</div>
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-2 sm:col-span-3">
                   <span className="text-slate-400 text-[11px]">Remarks:</span>
                   <div className="text-slate-700 bg-white p-2 rounded-lg border border-slate-200/80 mt-1">
                     {currentLead.notes || 'No notes recorded.'}
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Quick Actions Grid matching Image 3 */}
-            <div className="space-y-2">
-              <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                <CheckSquare className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Quick Actions</span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                {!isEmployeePortal && (
-                  <button
-                    onClick={() => setIsQuotationModalOpen(true)}
-                    className="p-2.5 rounded-xl border-2 border-emerald-600 bg-gradient-to-r from-emerald-50 via-emerald-100/60 to-emerald-50 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2 font-black text-emerald-950 shadow-xs col-span-2 sm:col-span-3"
-                  >
-                    <FileText className="w-4 h-4" />
-                    <span>Soft Quotation</span>
-                  </button>
-                )}
-
-                <button
-                  onClick={() => onOpenQuickAction && onOpenQuickAction('call', currentLead)}
-                  className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 transition-all flex items-center justify-center gap-2 font-bold text-slate-700"
-                >
-                  <Phone className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Log Call</span>
-                </button>
-
-                <button
-                  onClick={() => onOpenQuickAction && onOpenQuickAction('followup', currentLead)}
-                  className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 transition-all flex items-center justify-center gap-2 font-bold text-slate-700"
-                >
-                  <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Schedule Follow-up</span>
-                </button>
-
-                <a
-                  href={`https://wa.me/${currentLead.whatsApp?.replace(/[^0-9]/g, '') || currentLead.phone.replace(/[^0-9]/g, '')}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 transition-all flex items-center justify-center gap-2 font-bold text-slate-700"
-                >
-                  <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Send WhatsApp</span>
-                </a>
-
-                <button
-                  onClick={() => onOpenQuickAction && onOpenQuickAction('email', currentLead)}
-                  className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 transition-all flex items-center justify-center gap-2 font-bold text-slate-700"
-                >
-                  <Send className="w-3.5 h-3.5 text-purple-600" />
-                  <span>Send Email</span>
-                </button>
-
-                <button
-                  onClick={() => onOpenQuickAction && onOpenQuickAction('task', currentLead)}
-                  className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 transition-all flex items-center justify-center gap-2 font-bold text-slate-700"
-                >
-                  <FileText className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Create Task</span>
-                </button>
-
-                {!isEmployeePortal && (
-                  <button
-                    onClick={() => onConvertLeadToCustomer?.(currentLead.id)}
-                    disabled={currentLead.status === 'Converted'}
-                    className="p-2.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-60 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 font-bold text-emerald-900"
-                  >
-                    <UserCheck className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>{currentLead.status === 'Converted' ? 'Customer Converted' : 'Convert to Customer'}</span>
-                  </button>
-                )}
               </div>
             </div>
 
@@ -1474,12 +1468,13 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
                 )) : <div className="p-4 bg-white border border-dashed border-slate-300 rounded-xl text-slate-500 text-center">No follow-ups scheduled for this lead.</div>}
               </div>
             )}
+            </div>
 
           </div>
         </div>
 
         {/* ================= COLUMN 3: Activity Log, Notes, Follow-ups, Documents (3 cols) ================= */}
-        <div className={`${isEmployeePortal ? 'hidden' : 'lg:col-span-3'} space-y-4`}>
+        <div className={`${isEmployeePortal ? 'hidden' : 'lg:col-span-12 xl:col-span-3 grid sm:grid-cols-2 xl:block xl:space-y-3 gap-3 xl:overflow-y-auto xl:pr-1 xl:h-[calc(100vh-11rem)] xl:min-h-[560px]'}`}>
           {/* Timeline / Activity Log */}
           <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">

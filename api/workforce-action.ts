@@ -1,4 +1,7 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+// Minimal request/response types so `tsc` passes without the @vercel/node package
+// (it is not a dependency; Vercel provides the runtime objects).
+type VercelRequest={method?:string;headers:Record<string,string|string[]|undefined>;body?:any;query?:Record<string,string|string[]>};
+type VercelResponse={status(code:number):VercelResponse;json(body:unknown):VercelResponse;setHeader(name:string,value:string):VercelResponse;end(body?:string):void};
 
 const emailRe=/^[^\s,;<>@]+@[^\s,;<>@]+\.[^\s,;<>@]+$/;
 const uuidRe=/^[0-9a-f-]{36}$/i;

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   AKBS Royal Navy — premium CRM theme
+   AKBS Indigo & Violet — premium CRM theme
    Scoped to .crm-portal (all signed-in portals) and .crm-login-page.
    ========================================================================== */
 .crm-portal,.crm-login-page{
@@ -60,7 +60,7 @@
 .pc-shell.collapsed .pc-sidebar-foot{flex-direction:column;padding:8px}
 .pc-shell.collapsed .pc-nav-group{border-top:1px solid rgba(255,255,255,.06);padding-top:6px}
 
-.pc-topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;padding:14px 26px;background:rgba(8,22,41,.82);backdrop-filter:blur(14px) saturate(1.2);border-bottom:1px solid var(--pc-edge)}
+.pc-topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;padding:14px 26px;background:rgba(18,17,31,.92);backdrop-filter:blur(14px) saturate(1.2);border-bottom:1px solid var(--pc-edge)}
 .pc-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;border:1px solid transparent;background:transparent;color:var(--pc-soft);cursor:pointer;position:relative;transition:background-color .2s,color .2s,border-color .2s}
 .pc-icon:hover{background:rgba(255,255,255,.06);color:#fff;border-color:var(--pc-edge2)}
 .pc-icon .pc-dot-badge{position:absolute;top:6px;right:6px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--pc-red);color:#fff;font-size:10.5px;font-weight:700;display:grid;place-items:center;box-shadow:0 0 0 2px #19182d;animation:pc-pulse 2.4s ease-in-out infinite}
@@ -96,7 +96,7 @@
 .pc-btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
 .pc-link{border:0;background:none;color:var(--pc-gold);font-weight:600;font-size:13px;cursor:pointer;padding:4px 0}
 .pc-link:hover{color:var(--pc-gold-hi);text-decoration:underline}
-.pc-select{appearance:none;-webkit-appearance:none;height:44px;padding:0 36px 0 14px;border-radius:12px;border:1px solid var(--pc-edge2);color:var(--pc-text);font-size:14px;cursor:pointer;background:rgba(21,20,37,.85) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%23c7d2e6' stroke-width='2'%3E%3Cpath d='m3 5 4 4 4-4'/%3E%3C/svg%3E") no-repeat right 12px center;min-width:150px;transition:border-color .2s}
+ .pc-select{appearance:none;-webkit-appearance:none;height:44px;padding:0 36px 0 14px;border-radius:12px;border:1px solid var(--pc-edge2);color:var(--pc-text);font-size:14px;cursor:pointer;background:rgba(21,20,37,.85) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%23c7d2e6' stroke-width='2'%3E%3Cpath d='m3 5 4 4 4-4'/%3E%3C/svg%3E") no-repeat right 12px center;min-width:150px;transition:border-color .2s}
 .pc-select:hover,.pc-select:focus{border-color:rgba(139,92,246,.6);outline:0}
 .pc-select option{background:#141321;color:var(--pc-text)}
 .pc-select.small{height:38px;min-width:76px}
@@ -179,7 +179,7 @@
 .pc-dot{position:absolute;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:var(--pc-gold);box-shadow:0 0 0 3px rgba(139,92,246,.2);opacity:0;animation:pc-pop .4s var(--pc-ease) forwards;cursor:default}
 .pc-dot.violet{width:7px;height:7px;margin:-3.5px 0 0 -3.5px;background:var(--pc-violet);box-shadow:none;animation-delay:1s}
 @keyframes pc-pop{from{opacity:0;transform:scale(0)}to{opacity:1;transform:none}}
-.pc-dot b{position:absolute;bottom:16px;left:50%;transform:translate(-50%,6px);white-space:nowrap;padding:6px 10px;border-radius:9px;background:#020b18;border:1px solid rgba(139,92,246,.4);font-size:12px;font-weight:600;color:#fff;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s var(--pc-ease);z-index:5}
+.pc-dot b{position:absolute;bottom:16px;left:50%;transform:translate(-50%,6px);white-space:nowrap;padding:6px 10px;border-radius:9px;background:#100f1c;border:1px solid rgba(139,92,246,.4);font-size:12px;font-weight:600;color:#fff;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s var(--pc-ease);z-index:5}
 .pc-dot:hover{transform:scale(1.5)}
 .pc-dot:hover b{opacity:1;transform:translate(-50%,0)}
 .pc-trend-x{grid-column:2;position:relative;font-size:11.5px;color:var(--pc-muted)}
@@ -271,7 +271,7 @@
 .pc-tool-icons button.on{background:rgba(139,92,246,.18);border-color:rgba(139,92,246,.6);color:var(--pc-gold)}
 .pc-bulk{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;border-radius:12px;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.35);animation:pc-rise .3s var(--pc-ease)}
 .pc-bulk strong{color:var(--pc-gold-hi);margin-right:6px}
-.pc-table-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--pc-edge);scrollbar-width:thin;scrollbar-color:#24406a transparent}
+.pc-table-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--pc-edge);scrollbar-width:thin;scrollbar-color:#3a3566 transparent}
 .pc-table{width:100%;border-collapse:collapse;font-size:14px}
 .pc-table thead th{position:sticky;top:0;padding:14px 12px;text-align:left;font-size:13.5px;font-weight:700;color:var(--pc-soft);background:#19182d;white-space:nowrap;border-bottom:1px solid var(--pc-edge2)}
 .pc-table tbody tr{border-top:1px solid rgba(38,64,106,.55);cursor:pointer;animation:pc-row .45s var(--pc-ease) backwards;transition:background-color .2s}
@@ -279,7 +279,7 @@
 .pc-table tbody tr:hover{background:rgba(139,92,246,.06)}
 .pc-table tbody tr.picked{background:rgba(139,92,246,.1)}
 .crm-portal .pc-table td{padding:12px;vertical-align:middle;color:var(--pc-text);background:transparent;font-size:14px;border-bottom:0}
-.crm-portal .pc-table th{padding:14px 12px;font-size:13.5px;background:#0e2240}
+.crm-portal .pc-table th{padding:14px 12px;font-size:13.5px;background:#201e39}
 .crm-portal .pc-table td small,.crm-portal .pc-card small{font-size:12.5px}
 .crm-portal .pc-table{font-size:14px;white-space:normal}
 .pc-check{width:40px;padding-left:16px!important}
@@ -289,7 +289,7 @@
 .pc-lead b{display:block;font-weight:700;white-space:nowrap}
 .pc-lead small,.pc-req small,.pc-date small{display:block;color:var(--pc-muted);font-size:12.5px;margin-top:1px}
 .pc-avatar{display:inline-grid;place-items:center;flex-shrink:0;border-radius:50%;color:#fff;font-weight:800;box-shadow:inset 0 0 0 2px rgba(255,255,255,.12)}
-.pc-avatar.ghost{width:30px;height:30px;background:#33415c;color:var(--pc-soft);font-size:12px}
+.pc-avatar.ghost{width:30px;height:30px;background:#3b3a59;color:var(--pc-soft);font-size:12px}
 .pc-contact{width:220px;min-width:200px;max-width:260px}
 .pc-contact span{display:flex;align-items:flex-start;gap:7px;white-space:nowrap;font-size:13.5px;min-width:0}
 .pc-contact span.muted{color:var(--pc-muted);font-size:12.5px;margin-top:3px;white-space:normal;overflow-wrap:anywhere;word-break:break-word;line-height:1.4;min-width:0}
@@ -319,7 +319,7 @@
 .pc-menu button:hover{background:rgba(139,92,246,.12)}
 .pc-menu button svg{color:var(--pc-gold)}
 .pc-menu button:disabled{opacity:.45;cursor:default;background:none}
-.pc-table th:last-child,.crm-portal .pc-table td:last-child{position:sticky;right:0;z-index:1;background:#0c1d36;box-shadow:-12px 0 14px -10px rgba(0,0,0,.6)}
+.pc-table th:last-child,.crm-portal .pc-table td:last-child{position:sticky;right:0;z-index:1;background:#1c1b31;box-shadow:-12px 0 14px -10px rgba(0,0,0,.6)}
 .crm-portal .pc-table thead th:last-child{background:#0e2240;z-index:2}
 .pc-col-xl{display:none}
 @media (min-width:1700px){.pc-col-xl{display:table-cell}}
@@ -424,7 +424,7 @@
 .crm-portal .crm-dialog{background:#141321;color:var(--pc-text);border:1px solid var(--pc-edge2);border-radius:18px;box-shadow:0 30px 80px -20px rgba(0,0,0,.9)}
 .crm-portal .crm-dialog[open]{animation:pc-modal .3s var(--pc-ease)}
 @keyframes pc-modal{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
-.crm-portal .crm-dialog::backdrop{background:rgba(2,8,18,.72);backdrop-filter:blur(6px)}
+.crm-portal .crm-dialog::backdrop{background:rgba(10,9,20,.82);backdrop-filter:blur(6px)}
 .crm-portal .crm-dialog>header{border-color:var(--pc-edge)}
 .crm-portal .crm-dialog>header button{color:var(--pc-soft)}
 .crm-portal .crm-dialog .crm-button.secondary{background:rgba(255,255,255,.05)}
@@ -473,7 +473,7 @@
 .crm-portal .crm-command,.crm-portal .crm-command *{border-color:var(--pc-edge)}
 .crm-portal [class*="crm-command"],.crm-portal [class*="crm-live"],.crm-portal [class*="crm-approved"],.crm-portal [class*="crm-admin"]{--green:var(--pc-gold);--dark:#fff;--line:var(--pc-edge)}
 .crm-portal .crm-command-kpi,.crm-portal .crm-command-hero,.crm-portal .crm-live-workcard,.crm-portal .crm-command-lead,.crm-portal .crm-live-card-heading,.crm-portal .crm-command-sources,.crm-portal .crm-command-pipeline,.crm-portal .crm-live-template-preview{background:rgba(28,27,49,.75)!important;color:var(--pc-text)!important;border-color:var(--pc-edge)!important}
-.crm-portal .crm-bottom-nav{background:rgba(8,22,41,.95);border-top:1px solid var(--pc-edge);backdrop-filter:blur(12px)}
+.crm-portal .crm-bottom-nav{background:rgba(18,17,31,.96);border-top:1px solid var(--pc-edge);backdrop-filter:blur(12px)}
 .crm-portal .crm-bottom-nav button{color:var(--pc-soft);background:none}
 .crm-portal .crm-bottom-nav button.active{color:var(--pc-gold)}
 
@@ -534,7 +534,7 @@
   .pc-sidebar{position:fixed;left:0;top:0;bottom:0;width:286px;transform:translateX(-102%);transition:transform .35s var(--pc-ease);box-shadow:30px 0 60px rgba(0,0,0,.5)}
   .pc-shell.mobile-open .pc-sidebar{transform:none}
   .pc-shell.collapsed .pc-brand-text,.pc-shell.collapsed .pc-nav-group>p,.pc-shell.collapsed .pc-nav-item>span,.pc-shell.collapsed .pc-nav-badge,.pc-shell.collapsed .pc-sidebar-foot .pc-user{display:revert}
-  .pc-scrim{position:fixed;inset:0;z-index:25;background:rgba(2,8,18,.6);backdrop-filter:blur(3px);border:0;animation:pc-fade .25s forwards;opacity:0}
+  .pc-scrim{position:fixed;inset:0;z-index:25;background:rgba(10,9,20,.68);backdrop-filter:blur(3px);border:0;animation:pc-fade .25s forwards;opacity:0}
   .pc-topbar{padding:12px 16px}
   .pc-profile>span:last-child{display:none}
   .pc-main{padding:18px 16px 96px}

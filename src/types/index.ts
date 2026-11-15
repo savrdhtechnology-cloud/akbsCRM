@@ -4,6 +4,7 @@ export type NavigationSection =
   | 'customer-portal'
   | 'dashboard'
   | 'website-management'
+  | 'website-visitors'
   | 'leads'
   | 'followups'
   | 'customers'

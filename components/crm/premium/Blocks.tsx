@@ -1,10 +1,10 @@
 'use client';
 
-import {useEffect, useRef, useState, type ComponentType, type ReactNode} from 'react';
-import {ArrowDown, ArrowUp, Bird, Leaf} from 'lucide-react';
+import {useEffect, useRef, useState, type ReactNode} from 'react';
+import {ArrowDown, ArrowUp, Bird, Leaf, type LucideIcon} from 'lucide-react';
 import {avatarColor, initials} from './metrics';
 
-type IconType = ComponentType<{size?: number; className?: string}>;
+type IconType = LucideIcon;
 
 export function useReducedMotion() {
   const [reduced, setReduced] = useState(false);

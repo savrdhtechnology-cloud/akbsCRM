@@ -85,7 +85,7 @@ export default function App() {
     (roleSections[crm.user.role] || ['dashboard']).includes(section);
 
   const safeSetSection = (section: NavigationSection) => {
-    if (canOpenSection(section)) setCurrentSection(section);
+    if (canOpenSection(section)) {setSaveError('');setCurrentSection(section);}
     else setSaveError('This module is not available for your staff role.');
   };
 
@@ -324,7 +324,7 @@ export default function App() {
             setSaveError('This module is not available for your staff role.');
             return;
           }
-          setCurrentSection(sec);
+          setSaveError('');setCurrentSection(sec);
           if(sec==='leads')setSelectedLeadId('');
           if (sec === 'soft-quotations') {
             window.history.pushState({}, '', '/soft-quotations');
@@ -352,7 +352,7 @@ export default function App() {
               setSaveError('This module is not available for your staff role.');
               return;
             }
-            setCurrentSection(sec);
+            setSaveError('');setCurrentSection(sec);
             if (sec === 'soft-quotations') {
               window.history.pushState({}, '', '/soft-quotations');
               window.dispatchEvent(new Event('soft-quotation-route'));
@@ -371,7 +371,7 @@ export default function App() {
 
         {/* Dynamic Route View */}
         <main className="pc-main flex-1 overflow-y-auto">
-          {(saveError||crm.error)&&<div role="alert" className="connection-error">{saveError||crm.error}</div>}
+          {(saveError||crm.error)&&<div role="alert" className="connection-error"><span>{saveError||crm.error}</span>{saveError&&<button type="button" aria-label="Dismiss message" onClick={()=>setSaveError('')}>×</button>}</div>}
           {currentSection === 'dashboard' && (
             <PremiumDashboardView
               leads={leads}

@@ -29,7 +29,8 @@ import {
   RotateCcw,
   FileBarChart2,
   History,
-  Globe2
+  Globe2,
+  Activity
 } from 'lucide-react';
 import { NavigationSection, PortalRole } from '../types';
 import broilerHeroImg from '../assets/images/broiler_farmer_hero_1790287489096.jpg';
@@ -71,7 +72,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, [currentSection]);
 
   const allowedByRole: Record<PortalRole, NavigationSection[]> = {
-    admin: ['dashboard','website-management','registrations','leads','followups','customers','partners','team-management','soft-quotations','proposals','loans','fee-management','manager-portal','tasks','reports','communication','admin-control','settings'],
+    admin: ['dashboard','website-management','website-visitors','registrations','leads','followups','customers','partners','team-management','soft-quotations','proposals','loans','fee-management','manager-portal','tasks','reports','communication','admin-control','settings'],
     manager: ['dashboard','leads','followups','customers','soft-quotations','proposals','manager-portal','tasks','reports','communication'],
     employee: ['dashboard','leads','followups','customers','soft-quotations','employee-portal','tasks','communication'],
     partner: ['partner-portal']
@@ -83,6 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-[18px] h-[18px]" /> },
         { id: 'website-management', label: 'Website Management', icon: <Globe2 className="w-[18px] h-[18px]" /> },
+        { id: 'website-visitors', label: 'Website Visitors', icon: <Activity className="w-[18px] h-[18px]" /> },
         { id: 'registrations', label: 'Registration Modules', icon: <UserRoundPlus className="w-[18px] h-[18px]" />, badge: '2' }
       ]
     },

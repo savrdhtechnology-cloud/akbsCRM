@@ -188,6 +188,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           return (
                             <div key={item.id} className="rounded-xl">
                               <div
+                                data-akbs-menu-group="revenue" data-akbs-active={active}
                                 className={`group relative w-full min-h-[44px] rounded-xl flex items-center transition-all duration-200 overflow-hidden
                                   ${active
                                     ? 'bg-[linear-gradient(135deg,#0caf72_0%,#08724c_100%)] text-white shadow-[0_9px_20px_rgba(3,104,69,0.25)] ring-1 ring-emerald-300/15'
@@ -206,7 +207,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                   className="flex-1 min-w-0 h-[44px] pl-3 pr-2 flex items-center gap-2.5 text-left"
                                 >
                                   <span className={`${active ? 'text-white' : 'text-emerald-200/88'} shrink-0`}>{item.icon}</span>
-                                  <span className="text-[12.5px] font-semibold leading-tight whitespace-nowrap">
+                                  <span className="text-[12.5px] font-semibold leading-tight whitespace-normal break-words">
                                     Revenue &amp; Fee Management
                                   </span>
                                 </button>
@@ -215,6 +216,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                   type="button"
                                   onClick={() => setFeeOpen(v => !v)}
                                   className="w-9 h-[44px] shrink-0 grid place-items-center hover:bg-white/10"
+                                  aria-expanded={feeOpen}
                                   aria-label={feeOpen ? 'Collapse Revenue & Fee Management' : 'Expand Revenue & Fee Management'}
                                 >
                                   <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${feeOpen ? 'rotate-180' : ''}`} />
@@ -226,6 +228,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                   {feeChildren.map(([tabId,label,Icon]) => (
                                     <button
                                       key={tabId}
+                                      aria-current={active && feeTab===tabId ? "page" : undefined}
                                       type="button"
                                       onClick={() => {
                                         setFeeTab(tabId);

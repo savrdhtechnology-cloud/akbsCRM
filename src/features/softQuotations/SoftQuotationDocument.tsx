@@ -134,7 +134,7 @@ export const SoftQuotationDocument: React.FC<Props> = ({ quotation, compact = fa
   return (
     <article
       id="soft-quotation-pdf"
-      className={`sq-document bg-white text-slate-900 mx-auto shadow-[0_18px_50px_rgba(15,23,42,.10)] print:shadow-none ${compact ? 'max-w-[980px]' : 'max-w-[1080px]'}`}
+      className={`akbs-paper-surface sq-document bg-white text-slate-900 mx-auto shadow-[0_18px_50px_rgba(15,23,42,.10)] print:shadow-none ${compact ? 'max-w-[980px]' : 'max-w-[1080px]'}`}
     >
       <section className="sq-page p-8 sm:p-10">
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6 border-b-2 border-[#073323] pb-5">

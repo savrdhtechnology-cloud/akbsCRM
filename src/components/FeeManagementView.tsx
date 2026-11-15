@@ -282,7 +282,7 @@ export const FeeManagementView: React.FC<{leadId?:string;onClearLead?:()=>void;i
     ['This Month Revenue',money(thisMonth),ArrowUpRight,'bg-teal-50 text-teal-700']
   ] as const;
 
-  return <div className="min-h-full bg-[#f5f8f6]">
+  return <div className="min-h-full akbs-module-surface">
     <div className="border-b border-slate-200 bg-white px-4 sm:px-6 py-4">
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>

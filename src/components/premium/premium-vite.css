@@ -24,22 +24,6 @@
 .pc-notice{justify-content:flex-start}
 .pc-legacy-content{margin-top:16px;min-width:0;color:#e9eefb}
 .pc-legacy-content>div{max-width:none}
-.pc-legacy-content .bg-white,.pc-legacy-content [class*="bg-white/"]{background-color:#0d1f38!important}
-.pc-legacy-content .bg-slate-50,.pc-legacy-content .bg-slate-100,.pc-legacy-content [class*="bg-slate-50/"]{background-color:#102641!important}
-.pc-legacy-content .text-slate-900,.pc-legacy-content .text-slate-950,.pc-legacy-content .text-slate-800,.pc-legacy-content .text-slate-700{color:#e9eefb!important}
-.pc-legacy-content .text-slate-600,.pc-legacy-content .text-slate-500,.pc-legacy-content .text-slate-400{color:#a9bbd7!important}
-.pc-legacy-content [class*="border-slate-"]{border-color:#294363!important}
-.pc-legacy-content [class*="divide-slate-"]>:not(:last-child){border-color:#294363!important}
-.pc-legacy-content input:not([type=checkbox]):not([type=radio]),.pc-legacy-content select,.pc-legacy-content textarea{background-color:#0b1b31!important;border-color:#355477!important;color:#edf3ff!important;color-scheme:dark}
-.pc-legacy-content table tr:hover{background:#19314d!important}
-.pc-legacy-content button:hover{filter:brightness(1.08)}
-.pc-legacy-content .bg-emerald-900,.pc-legacy-content .bg-emerald-800,.pc-legacy-content [class*="bg-[#0b2818]"]{background:linear-gradient(180deg,#ffe49b,#e2ad37)!important;color:#1e1608!important}
-.pc-legacy-content .bg-emerald-50,.pc-legacy-content .bg-blue-50,.pc-legacy-content .bg-amber-50,.pc-legacy-content .bg-rose-50{color:#15243b!important}
-.pc-legacy-content .bg-emerald-50 .text-emerald-900,.pc-legacy-content .bg-emerald-50 .text-emerald-800{color:#065f46!important}
-.pc-legacy-content .fixed[role=dialog] .bg-white,.pc-legacy-content [role=dialog] .bg-white{background:#fff!important;color:#142238!important}
-.pc-legacy-content [role=dialog] .text-slate-900,.pc-legacy-content [role=dialog] .text-slate-800,.pc-legacy-content [role=dialog] .text-slate-600,.pc-legacy-content [role=dialog] .text-slate-500{color:#334155!important}
-.pc-legacy-content [role=dialog] input:not([type=checkbox]),.pc-legacy-content [role=dialog] select,.pc-legacy-content [role=dialog] textarea{background:#fff!important;color:#142238!important;color-scheme:light;border-color:#cbd5e1!important}
-.pc-legacy-content [role=dialog] .bg-emerald-50{background:#ecfdf5!important}
 .pc-website-preview{padding:12px 0;display:grid;gap:12px}.pc-website-preview img{width:100%;height:190px;object-fit:cover;border-radius:12px}.pc-website-preview h3{font-size:20px;font-weight:700}.pc-website-preview p{color:#adc0dc;font-size:13px}.pc-website-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}.pc-website-form{display:grid;gap:13px}.pc-website-form label{display:grid;gap:6px;color:#cbd7ec;font-size:13px;font-weight:600}.pc-website-form input,.pc-website-form textarea{width:100%;padding:12px;border:1px solid #29496a;border-radius:10px;background:#0b1b31;color:#f3f6ff;outline:none}.pc-website-form input:focus,.pc-website-form textarea:focus{border-color:#f5c451}.pc-muted{color:#a6b6d1;font-size:12px}
 .crm-login{background:#071526;color:#e9eefb}
 .crm-login-shell{background:#071526}
@@ -179,43 +163,6 @@
 .akbs-premium-shell .pc-detail-grid{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(240px,1fr);gap:13px;align-items:start}
 .akbs-premium-shell .pc-detail-aside{display:grid;gap:12px;min-width:0}
 .akbs-premium-shell .pc-detail-main .space-y-3>div{min-width:0}
-.akbs-premium-shell .pc-detail-dialog .pc-legacy-content .bg-white{background:#10243e!important;color:#e9eefb!important}
-.akbs-premium-shell .pc-detail-dialog .pc-legacy-content :is(h1,h2,h3,h4){color:#f3f7ff!important}
-.akbs-premium-shell .pc-detail-dialog .pc-legacy-content [role=tab][aria-selected=true]{color:#f5c451!important;border-bottom-color:#f5c451!important}
-.akbs-premium-shell .pc-legacy-content [class*="bg-amber-50"],.akbs-premium-shell .pc-legacy-content [class*="bg-amber-100"]{background:#3c2e18!important;color:#ffdc86!important;border-color:#82602e!important}
-.akbs-premium-shell .pc-legacy-content [class*="bg-emerald-50"],.akbs-premium-shell .pc-legacy-content [class*="bg-emerald-100"]{background:#103d35!important;color:#89e6c0!important;border-color:#28695b!important}
-.akbs-premium-shell .pc-legacy-content [class*="bg-blue-50"],.akbs-premium-shell .pc-legacy-content [class*="bg-blue-100"]{background:#173354!important;color:#b9d4ff!important;border-color:#385981!important}
-.akbs-premium-shell .pc-legacy-content [class*="bg-rose-50"],.akbs-premium-shell .pc-legacy-content [class*="bg-red-50"]{background:#492631!important;color:#ffc0c7!important;border-color:#78434e!important}
-.akbs-premium-shell .pc-legacy-content [class*="bg-amber-50"] :is(p,span,strong,small,div),.akbs-premium-shell .pc-legacy-content [class*="bg-amber-100"] :is(p,span,strong,small,div){color:inherit}
-.akbs-premium-shell .pc-legacy-content [class*="text-emerald-800"],.akbs-premium-shell .pc-legacy-content [class*="text-emerald-900"],.akbs-premium-shell .pc-legacy-content [class*="text-emerald-700"]{color:#6fe3b4!important}
-.akbs-premium-shell .pc-legacy-content [class*="text-amber-900"],.akbs-premium-shell .pc-legacy-content [class*="text-amber-950"],.akbs-premium-shell .pc-legacy-content [class*="text-amber-700"]{color:#ffd67a!important}
-.akbs-premium-shell .pc-legacy-content [class*="text-blue-900"],.akbs-premium-shell .pc-legacy-content [class*="text-blue-950"],.akbs-premium-shell .pc-legacy-content [class*="text-blue-700"]{color:#b5d2ff!important}
-.akbs-premium-shell .pc-legacy-content [class*="text-rose-700"]{color:#ffb0b9!important}
-.akbs-premium-shell .pc-legacy-content [class*="bg-gradient-to-"],.akbs-premium-shell .pc-legacy-content [class*="bg-linear-to-"]{background-image:none!important;background-color:#142b46!important}
-.akbs-premium-shell .pc-legacy-content button[class*="bg-amber-400"],.akbs-premium-shell .pc-legacy-content button[class*="bg-emerald-800"]{background:linear-gradient(180deg,#ffe49b,#e8b443)!important;color:#211604!important}
-.akbs-premium-shell .pc-legacy-content button[class*="bg-amber-400"] *,.akbs-premium-shell .pc-legacy-content button[class*="bg-emerald-800"] *{color:#211604!important}
-.akbs-premium-shell .crm-modal-panel,.akbs-premium-shell>.fixed>div.bg-white,.akbs-premium-shell .pc-detail-dialog .fixed>div.bg-white{background:#10243e!important;color:#edf3ff!important;border-color:#365376!important}
-.akbs-premium-shell .crm-modal-panel :is(h1,h2,h3,h4),.akbs-premium-shell>.fixed>div.bg-white :is(h1,h2,h3,h4){color:#f4f7ff!important}
-.akbs-premium-shell .crm-modal-panel [class*="text-slate-"],.akbs-premium-shell>.fixed>div.bg-white [class*="text-slate-"]{color:#d3e1f4!important}
-.akbs-premium-shell .crm-modal-panel :is(input,textarea,select),.akbs-premium-shell>.fixed>div.bg-white :is(input,textarea,select){background:#0b1b31!important;color:#eef4ff!important;border-color:#395776!important;color-scheme:dark}
-.akbs-premium-shell .crm-modal-panel .bg-slate-50,.akbs-premium-shell .crm-modal-panel .bg-slate-100,.akbs-premium-shell>.fixed>div.bg-white .bg-slate-50{background:#18314f!important;color:#e9eefb!important;border-color:#395776!important}
-.akbs-premium-shell .crm-modal-panel .bg-white{background:#10243e!important}
-.akbs-premium-shell .crm-modal-panel [class*="bg-amber-400"],.akbs-premium-shell .crm-modal-panel [class*="bg-[#0b2818]"]{color:#fff!important}
 @media(max-width:900px){.akbs-premium-shell .pc-detail-grid{grid-template-columns:minmax(0,1fr)}.akbs-premium-shell .pc-detail-overlay{padding:8px}.akbs-premium-shell .pc-detail-dialog{max-height:96dvh}.akbs-premium-shell .pc-detail-scroll{padding:10px}}
 @media(min-width:1024px){.akbs-premium-shell .crm-sidebar,.akbs-premium-shell .crm-sidebar-panel{width:224px!important;flex-basis:224px!important}.akbs-premium-shell .crm-sidebar:not([class*="translate-x-0"]){width:0!important;flex-basis:0!important}}
 
-/* Shared portal surfaces: scoped to the authenticated AKBS CRM, not public pages or documents. */
-.akbs-premium-shell {--akbs-surface:#071526;--akbs-panel:#10243e;--akbs-raised:#18314f;--akbs-line:#304b6b;--akbs-text:#edf3ff;--akbs-muted:#a9bbd7; color-scheme:dark}
-.akbs-premium-shell .pc-main,.akbs-premium-shell .pc-legacy-content{background-color:var(--akbs-surface);color:var(--akbs-text)}
-.akbs-premium-shell .pc-legacy-content :is([class~="bg-[#f5f8f6]"],[class~="bg-[#f3f6f4]"],[class~="bg-[#f5f7f6]"],[class~="bg-[#f8fafc]"],[class~="bg-[#f7faf8]"],[class~="bg-gray-50"],[class~="bg-gray-100"],[class~="bg-neutral-50"],[class~="bg-zinc-50"],[class~="bg-stone-50"]){background-color:var(--akbs-surface)!important}
-.akbs-premium-shell .pc-legacy-content :is([class~="bg-gray-200"],[class~="bg-slate-200"],[class~="bg-neutral-100"],[class~="bg-zinc-100"],[class~="bg-[#f1f5f9]"],[class~="bg-[#f4f6f5]"]){background-color:var(--akbs-raised)!important}
-.akbs-premium-shell .pc-legacy-content :is(.text-gray-900,.text-gray-800,.text-gray-700,.text-neutral-900,.text-black,.text-zinc-900){color:var(--akbs-text)!important}
-.akbs-premium-shell .pc-legacy-content :is(.text-gray-500,.text-gray-600,.text-neutral-500,.text-zinc-500){color:var(--akbs-muted)!important}
-.akbs-premium-shell .pc-legacy-content :is([class*="border-gray-"],[class*="border-neutral-"],[class*="border-black/"]){border-color:var(--akbs-line)!important}
-.akbs-premium-shell .pc-legacy-content :is(button,a)[class~="bg-[#075c3e]"],.akbs-premium-shell .pc-legacy-content :is(button,a)[class~="bg-[#087849]"]{background:linear-gradient(180deg,#ffe49b,#e8b443)!important;color:#211604!important}
-.akbs-premium-shell .pc-legacy-content :is(button,a)[class~="bg-[#075c3e]"] svg,.akbs-premium-shell .pc-legacy-content :is(button,a)[class~="bg-[#087849]"] svg{color:inherit}
-.akbs-premium-shell .crm-sidebar nav button[aria-expanded=true]{background:#18314f!important;color:#f5c451!important}
-.akbs-premium-shell .crm-sidebar nav button[aria-current=page]{background:linear-gradient(180deg,#ffe49b,#e9b444)!important;color:#211604!important}
-.akbs-premium-shell .pc-legacy-content :is(input,textarea,select){color-scheme:dark}
-.akbs-premium-shell .pc-legacy-content :is(input,textarea)::placeholder{color:#94a9c6!important}
-@media print{.akbs-premium-shell{color-scheme:light}.akbs-premium-shell .pc-legacy-content{background:white!important;color:black!important}}

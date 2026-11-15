@@ -971,7 +971,7 @@ _Note: This is a preliminary soft quotation for bank feasibility and planning pu
           )}
 
           {/* OFFICIAL QUOTATION DOCUMENT LETTERHEAD (PRINTABLE & PREVIEW) */}
-          <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200 shadow-sm space-y-6 print:p-0 print:border-none print:shadow-none">
+          <div className="akbs-paper-surface bg-white p-5 sm:p-7 rounded-2xl border border-slate-200 shadow-sm space-y-6 print:p-0 print:border-none print:shadow-none">
             {/* Letterhead Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b-2 gap-4" style={{ borderColor: templateConfig.primaryColor }}>
               <div className="flex items-center gap-3.5">

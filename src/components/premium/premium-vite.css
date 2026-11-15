@@ -54,3 +54,77 @@
 .crm-login-mobile-brand{background:#fff;border-radius:10px;padding:7px}
 @media(max-width:1023px){.akbs-premium-shell .pc-main{padding:16px 14px 28px}.pc-draft-status{margin:0 0 12px}.pc-legacy-content{margin-top:12px}.akbs-premium-shell .crm-header{flex-wrap:wrap}}
 @media(prefers-reduced-motion:reduce){.akbs-premium-shell *, .akbs-premium-shell *::before,.akbs-premium-shell *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* Compact desktop composition: approved original dashboard reference. */
+@media(min-width:1024px){
+.akbs-premium-shell .crm-sidebar,.akbs-premium-shell .crm-sidebar-panel{width:208px!important;flex-basis:208px!important}
+.akbs-premium-shell .crm-sidebar:has(.crm-sidebar-panel):not([class*="translate-x-0"]){width:0!important;flex-basis:0!important}
+.akbs-premium-shell .crm-sidebar-panel{flex-shrink:0}
+.akbs-premium-shell .sidebar-brand{margin:0!important;border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0}
+.akbs-premium-shell .sidebar-brand-link{min-height:62px!important;background:#fff;border-radius:10px;padding:5px!important}
+.akbs-premium-shell .premium-sidebar-scroll{padding:10px!important;background:linear-gradient(180deg,#081729 0%,#081729e8 65%,#08172955),url('/images/akbs/sidebar-farm.webp') center bottom/cover!important}
+.akbs-premium-shell .crm-sidebar nav button{min-height:30px!important;font-size:12px!important;padding:4px 8px!important;border-radius:8px!important}
+.akbs-premium-shell .crm-sidebar nav button svg{width:15px;height:15px}
+.akbs-premium-shell .crm-sidebar nav [class*="tracking-[0.16em]"]{font-size:9px;margin-bottom:3px}
+.akbs-premium-shell .crm-header{min-height:50px;height:50px;padding:0 16px}
+.akbs-premium-shell .crm-header .crm-header-search input{padding-top:6px;padding-bottom:6px}
+.akbs-premium-shell .pc-main{padding:14px 16px 28px}
+.akbs-premium-shell .pc-page{gap:10px}
+.akbs-premium-shell .pc-hero{margin:-14px -16px 0;padding:14px 16px 12px}
+.akbs-premium-shell .pc-hero-head{margin-bottom:9px;gap:10px}
+.akbs-premium-shell .pc-crumb{font-size:11px;margin-bottom:3px}
+.akbs-premium-shell .pc-hero h1{font-size:23px;line-height:1.1;margin-bottom:4px}
+.akbs-premium-shell .pc-hero p{font-size:12px}
+.akbs-premium-shell .pc-hero-rooster{width:190px;height:156px;top:-14px}
+.akbs-premium-shell .pc-hero-img{background-position:right 54%;animation-duration:55s}
+.akbs-premium-shell .pc-kpis{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.akbs-premium-shell .pc-kpis.compact{grid-template-columns:repeat(5,minmax(0,1fr))}
+.akbs-premium-shell .pc-kpi{min-height:72px;padding:8px 9px;gap:2px 8px;border-radius:10px}
+.akbs-premium-shell .pc-kpi-icon,.akbs-premium-shell .pc-kpis.compact .pc-kpi-icon{width:34px;height:34px;border-radius:9px}
+.akbs-premium-shell .pc-kpi-icon svg{width:19px;height:19px}
+.akbs-premium-shell .pc-kpi-label{font-size:11px}
+.akbs-premium-shell .pc-kpi-value{font-size:23px}
+.akbs-premium-shell .pc-delta{font-size:10px}
+.akbs-premium-shell .pc-delta small{display:none}
+.akbs-premium-shell .pc-spark{width:42%;height:22px}
+.akbs-premium-shell .pc-grid-3.charts{grid-template-columns:1.2fr 1fr 1fr;gap:10px}
+.akbs-premium-shell .pc-grid-3.charts .pc-card{padding:11px 12px;min-height:0;border-radius:11px}
+.akbs-premium-shell .pc-grid-3.charts .pc-card-head{margin-bottom:7px;gap:5px}
+.akbs-premium-shell .pc-card-head h3{font-size:13px;gap:5px}
+.akbs-premium-shell .pc-card-head h3 small{font-size:10px}
+.akbs-premium-shell .pc-legend-inline{font-size:10px;margin-bottom:6px}
+.akbs-premium-shell .pc-trend{grid-template-columns:21px 1fr;grid-template-rows:106px 18px;gap:0 6px}
+.akbs-premium-shell .pc-trend-x,.akbs-premium-shell .pc-trend-y{font-size:9px}
+.akbs-premium-shell .pc-donut-wrap{min-height:140px;gap:10px}
+.akbs-premium-shell .pc-donut{width:108px;height:108px}
+.akbs-premium-shell .pc-donut-center strong{font-size:24px}
+.akbs-premium-shell .pc-donut-center span{font-size:10px}
+.akbs-premium-shell .pc-legend{font-size:10px;gap:5px}
+.akbs-premium-shell .pc-legend small{font-size:10px}
+.akbs-premium-shell .pc-funnel{gap:9px;padding-top:3px}
+.akbs-premium-shell .pc-funnel-track{height:25px;border-radius:6px}
+.akbs-premium-shell .pc-funnel-track span{font-size:11px;padding:0 8px}
+.akbs-premium-shell .pc-funnel-row b{font-size:11px;width:33px}
+.akbs-premium-shell .pc-leads{padding:10px;border-radius:12px}
+.akbs-premium-shell .pc-leads-head{gap:8px;margin-bottom:8px}
+.akbs-premium-shell .pc-leads-title h2{font-size:16px}
+.akbs-premium-shell .pc-leads-title p{font-size:10px}
+.akbs-premium-shell .pc-tabs{gap:3px}
+.akbs-premium-shell .pc-tabs button{font-size:10px;padding:6px 7px;min-height:28px}
+.akbs-premium-shell .pc-toolbar{gap:6px;margin-bottom:8px}
+.akbs-premium-shell .pc-search,.akbs-premium-shell .pc-select,.akbs-premium-shell .pc-btn{min-height:30px;height:30px;font-size:11px;border-radius:8px;padding:5px 9px}
+.akbs-premium-shell .pc-select{min-width:100px;padding-right:24px}
+.akbs-premium-shell .pc-table-wrap{border-radius:8px}
+.akbs-premium-shell .pc-table th,.akbs-premium-shell .pc-table td{padding:5px 6px;font-size:11px}
+.akbs-premium-shell .pc-table td small{font-size:10px;line-height:1.15}
+.akbs-premium-shell .pc-table .pc-avatar{max-width:28px;max-height:28px}
+.akbs-premium-shell .pc-table .pc-pill{font-size:10px;padding:3px 5px}
+.akbs-premium-shell .pc-table .pc-icon-btn{width:25px;height:25px}
+.akbs-premium-shell .pc-row-actions{gap:4px}
+.akbs-premium-shell .pc-table .pc-complete{font-size:9px;padding:4px}
+.akbs-premium-shell .pc-table .pc-complete svg{width:12px}
+.akbs-premium-shell .pc-table-footer{padding-top:8px}
+}
+.akbs-premium-shell .crm-header-actions>div:last-child>button .text-slate-900,.akbs-premium-shell .crm-header-actions>div:last-child>button .text-slate-800{color:#eef4ff!important}
+.akbs-premium-shell .connection-error{position:relative;margin:0 0 12px;z-index:5;border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.akbs-premium-shell .connection-error button{font-size:18px;line-height:1;padding:3px 8px;color:inherit}

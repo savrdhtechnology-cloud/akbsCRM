@@ -203,3 +203,19 @@
 .akbs-premium-shell .crm-modal-panel [class*="bg-amber-400"],.akbs-premium-shell .crm-modal-panel [class*="bg-[#0b2818]"]{color:#fff!important}
 @media(max-width:900px){.akbs-premium-shell .pc-detail-grid{grid-template-columns:minmax(0,1fr)}.akbs-premium-shell .pc-detail-overlay{padding:8px}.akbs-premium-shell .pc-detail-dialog{max-height:96dvh}.akbs-premium-shell .pc-detail-scroll{padding:10px}}
 @media(min-width:1024px){.akbs-premium-shell .crm-sidebar,.akbs-premium-shell .crm-sidebar-panel{width:224px!important;flex-basis:224px!important}.akbs-premium-shell .crm-sidebar:not([class*="translate-x-0"]){width:0!important;flex-basis:0!important}}
+
+/* Shared portal surfaces: scoped to the authenticated AKBS CRM, not public pages or documents. */
+.akbs-premium-shell {--akbs-surface:#071526;--akbs-panel:#10243e;--akbs-raised:#18314f;--akbs-line:#304b6b;--akbs-text:#edf3ff;--akbs-muted:#a9bbd7; color-scheme:dark}
+.akbs-premium-shell .pc-main,.akbs-premium-shell .pc-legacy-content{background-color:var(--akbs-surface);color:var(--akbs-text)}
+.akbs-premium-shell .pc-legacy-content :is([class~="bg-[#f5f8f6]"],[class~="bg-[#f3f6f4]"],[class~="bg-[#f5f7f6]"],[class~="bg-[#f8fafc]"],[class~="bg-[#f7faf8]"],[class~="bg-gray-50"],[class~="bg-gray-100"],[class~="bg-neutral-50"],[class~="bg-zinc-50"],[class~="bg-stone-50"]){background-color:var(--akbs-surface)!important}
+.akbs-premium-shell .pc-legacy-content :is([class~="bg-gray-200"],[class~="bg-slate-200"],[class~="bg-neutral-100"],[class~="bg-zinc-100"],[class~="bg-[#f1f5f9]"],[class~="bg-[#f4f6f5]"]){background-color:var(--akbs-raised)!important}
+.akbs-premium-shell .pc-legacy-content :is(.text-gray-900,.text-gray-800,.text-gray-700,.text-neutral-900,.text-black,.text-zinc-900){color:var(--akbs-text)!important}
+.akbs-premium-shell .pc-legacy-content :is(.text-gray-500,.text-gray-600,.text-neutral-500,.text-zinc-500){color:var(--akbs-muted)!important}
+.akbs-premium-shell .pc-legacy-content :is([class*="border-gray-"],[class*="border-neutral-"],[class*="border-black/"]){border-color:var(--akbs-line)!important}
+.akbs-premium-shell .pc-legacy-content :is(button,a)[class~="bg-[#075c3e]"],.akbs-premium-shell .pc-legacy-content :is(button,a)[class~="bg-[#087849]"]{background:linear-gradient(180deg,#ffe49b,#e8b443)!important;color:#211604!important}
+.akbs-premium-shell .pc-legacy-content :is(button,a)[class~="bg-[#075c3e]"] svg,.akbs-premium-shell .pc-legacy-content :is(button,a)[class~="bg-[#087849]"] svg{color:inherit}
+.akbs-premium-shell .crm-sidebar nav button[aria-expanded=true]{background:#18314f!important;color:#f5c451!important}
+.akbs-premium-shell .crm-sidebar nav button[aria-current=page]{background:linear-gradient(180deg,#ffe49b,#e9b444)!important;color:#211604!important}
+.akbs-premium-shell .pc-legacy-content :is(input,textarea,select){color-scheme:dark}
+.akbs-premium-shell .pc-legacy-content :is(input,textarea)::placeholder{color:#94a9c6!important}
+@media print{.akbs-premium-shell{color-scheme:light}.akbs-premium-shell .pc-legacy-content{background:white!important;color:black!important}}

@@ -290,8 +290,10 @@
 .pc-lead small,.pc-req small,.pc-date small{display:block;color:var(--pc-muted);font-size:12.5px;margin-top:1px}
 .pc-avatar{display:inline-grid;place-items:center;flex-shrink:0;border-radius:50%;color:#fff;font-weight:800;box-shadow:inset 0 0 0 2px rgba(255,255,255,.12)}
 .pc-avatar.ghost{width:30px;height:30px;background:#33415c;color:var(--pc-soft);font-size:12px}
-.pc-contact span{display:flex;align-items:center;gap:7px;white-space:nowrap;font-size:13.5px}
-.pc-contact span.muted{color:var(--pc-muted);font-size:12.5px;margin-top:3px}
+.pc-contact{width:220px;min-width:200px;max-width:260px}
+.pc-contact span{display:flex;align-items:flex-start;gap:7px;white-space:nowrap;font-size:13.5px;min-width:0}
+.pc-contact span.muted{color:var(--pc-muted);font-size:12.5px;margin-top:3px;white-space:normal;overflow-wrap:anywhere;word-break:break-word;line-height:1.4;min-width:0}
+.pc-contact span.muted svg{margin-top:2px}
 .pc-contact svg,.pc-loc svg{color:var(--pc-muted);flex-shrink:0}
 .pc-loc{display:flex;align-items:flex-start;gap:6px;min-width:150px;max-width:200px}
 .pc-req{min-width:170px;max-width:230px}

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
-import { PremiumDashboardView, PremiumLeadsView } from './components/premium/PremiumViews';
+import { PremiumDashboardView, PremiumLeadsView, PremiumLeadPopup } from './components/premium/PremiumViews';
 import WebsiteManagement from './components/WebsiteManagement';
 import { PremiumHero } from './components/premium/Blocks';
 
@@ -30,7 +30,6 @@ import { AdminControlView } from './components/portals/AdminControlView';
 import {
   AddLeadModal,
   AddCustomerModal,
-  LeadDetailDrawer,
   EditLeadModal,
   AssignLeadModal,
   AddFollowUpModal,
@@ -119,6 +118,8 @@ export default function App() {
     setCurrentRole(crm.user.role==='FINANCE'?'employee':crm.user.role.toLowerCase() as PortalRole);
     setCurrentSection(prev => (roleSections[crm.user.role] || ['dashboard']).includes(prev) ? prev : 'dashboard');
   },[crm.user.role]);
+
+  useEffect(()=>{document.querySelector('.pc-main')?.scrollTo({top:0,left:0});},[currentSection]);
 
   // Modal State
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
@@ -324,7 +325,7 @@ export default function App() {
             setSaveError('This module is not available for your staff role.');
             return;
           }
-          setSaveError('');setCurrentSection(sec);
+          setSaveError('');setSelectedLeadForDrawer(null);setCurrentSection(sec);
           if(sec==='leads')setSelectedLeadId('');
           if (sec === 'soft-quotations') {
             window.history.pushState({}, '', '/soft-quotations');
@@ -363,7 +364,7 @@ export default function App() {
           customers={customers}
           onSelectLead={(lead) => {
             setSelectedLeadId(lead.id);
-            if(canOpenSection('leads'))setCurrentSection('leads');else setSelectedLeadForDrawer(lead);
+            setSelectedLeadForDrawer(lead);
           }}
           currentRole={currentRole}
           onSelectRole={()=>setSaveError('Your access role is set by your staff account.')}
@@ -381,7 +382,7 @@ export default function App() {
               onOpenQuickAction={handleOpenQuickAction}
               onSelectLead={(lead) => {
                 setSelectedLeadId(lead.id);
-                if(canOpenSection('leads'))setCurrentSection('leads');else setSelectedLeadForDrawer(lead);
+                setSelectedLeadForDrawer(lead);
               }}
               onToggleTask={handleToggleTask}
               onUpdateLeadStatus={handleUpdateLeadStatus}
@@ -412,7 +413,7 @@ export default function App() {
             />
           )}
 
-          {currentSection === 'website-management' && crm.user.role==='ADMIN' && <WebsiteManagement leads={leads} onOpenLead={lead=>{setSelectedLeadId(lead.id);setCurrentSection('leads');}} onEditLead={lead=>handleOpenQuickAction('edit',lead)}/>}
+          {currentSection === 'website-management' && crm.user.role==='ADMIN' && <WebsiteManagement leads={leads} onOpenLead={lead=>{setSelectedLeadId(lead.id);setSelectedLeadForDrawer(lead);}} onEditLead={lead=>handleOpenQuickAction('edit',lead)}/>}
           {moduleTitles[currentSection]&&<PremiumHero crumb={'CRM / '+moduleTitles[currentSection]} title={moduleTitles[currentSection]!} subtitle="Manage your AKBS operations securely in one workspace."/>}
           <div className="pc-legacy-content">
           {currentSection === 'customers' && (
@@ -585,19 +586,19 @@ export default function App() {
         onAdd={handleAddCustomer}
       />
 
-      <LeadDetailDrawer
-        lead={selectedLeadForDrawer}
-        onClose={() => setSelectedLeadForDrawer(null)}
-        onUpdateStatus={handleUpdateLeadStatus}
-        onOpenCreateProposal={() => setCurrentSection('proposals')}
-        userRole={crm.user.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'FINANCE'}
-        onOpenSoftQuotation={() => {
-          if (!selectedLeadForDrawer) return;
-          setCurrentSection('soft-quotations');
-          window.history.pushState({}, '', `/soft-quotations/new?lead=${selectedLeadForDrawer.id}`);
-          window.dispatchEvent(new Event('soft-quotation-route'));
-        }}
-      />
+      {selectedLeadForDrawer && <PremiumLeadPopup key={selectedLeadForDrawer.id}
+        leads={leads} selectedLeadId={selectedLeadForDrawer.id}
+        onClose={()=>{setSelectedLeadForDrawer(null);setSelectedLeadId('');}}
+        onSelectLead={lead=>{setSelectedLeadId(lead.id);setSelectedLeadForDrawer(lead);}}
+        onOpenAddLead={()=>setIsAddLeadOpen(true)}
+        onOpenFees={canOpenSection('fee-management')?(id)=>{setSelectedLeadForDrawer(null);setFeeLeadId(id);safeSetSection('fee-management');}:undefined}
+        onUpdateLeadStatus={handleUpdateLeadStatus}
+        onConvertLeadToCustomer={handleConvertLeadToCustomer}
+        onDeleteLead={handleDeleteLead}
+        onEditLead={handleEditLead}
+        onOpenQuickAction={(key,lead)=>{if(['send-soft-quotation','create-proposal','loan-application','task','send-email','email'].includes(key))setSelectedLeadForDrawer(null);handleOpenQuickAction(key,lead);}}
+        documents={documents} followUps={followUps} activities={activities}
+      />}
 
       <EditLeadModal
         isOpen={isEditLeadOpen}

@@ -281,9 +281,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
     setIsProjectEditing(false);
     setIsFinancialEditing(false);
   }, [currentLead?.id]);
-  const relatedDocuments = documents.filter(d =>
-    d.relatedEntity.toLowerCase().includes(currentLead?.name?.toLowerCase() || '')
-  );
+  const relatedDocuments = documents.filter(d => currentLead?.id && crm.documents.some(row=>row.id===d.id && row.lead_id===currentLead.id));
   const relatedFollowUps = followUps.filter(f => f.leadId === currentLead?.id);
   const similarLeads = leads
     .filter(l => l.id !== currentLead?.id)
@@ -422,337 +420,12 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
   const sectionTabs = null;
   if(!leads.length && crm.user.role!=='ADMIN')return <div className="p-6"><h1 className="text-xl font-bold">Leads</h1><p className="my-4">No leads yet.</p><button onClick={onOpenAddLead}>Add Lead</button></div>;
   return (
-    <div className="p-3 sm:p-4 space-y-3 max-w-[1680px] mx-auto font-sans antialiased text-slate-800">
-      {/* Top Header Row matching Image 3 */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <div>
-            <h1 className="text-xl font-black text-slate-900 tracking-tight leading-tight">
-              {isEmployeePortal ? 'My Lead Workspace' : 'Leads Management'}
-            </h1>
-            {isEmployeePortal && <p className="text-xs text-slate-500 mt-0.5">Work only on leads assigned to you and update every customer interaction.</p>}
-          </div>
-          {sectionTabs}
-        </div>
-
-        {/* Counter Badges Row */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 px-2.5 py-1 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs">
-            <div className="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold">
-              <Users className="w-3.5 h-3.5" />
-            </div>
-            <div>
-              <div className="text-[10px] text-slate-500 font-medium leading-none">{isEmployeePortal ? 'My Leads' : 'Total Leads'}</div>
-              <div className="text-sm font-extrabold text-blue-950 font-mono mt-0.5">{isEmployeePortal ? leads.filter(l => crm.leads.find(row=>row.id===l.id)?.assigned_to===crm.user.id).length : leads.length}</div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 px-2.5 py-1 bg-emerald-50/70 border border-emerald-200/80 rounded-xl text-xs">
-            <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold">
-              <Target className="w-3.5 h-3.5" />
-            </div>
-            <div>
-              <div className="text-[10px] text-slate-500 font-medium leading-none">New Leads</div>
-              <div className="text-sm font-extrabold text-emerald-950 font-mono mt-0.5">{leads.filter(l => l.status === 'New').length}</div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 px-2.5 py-1 bg-amber-50/70 border border-amber-200/80 rounded-xl text-xs">
-            <div className="w-6 h-6 rounded-lg bg-amber-600 text-white flex items-center justify-center font-bold">
-              <Clock className="w-3.5 h-3.5" />
-            </div>
-            <div>
-              <div className="text-[10px] text-slate-500 font-medium leading-none">In Process</div>
-              <div className="text-sm font-extrabold text-amber-950 font-mono mt-0.5">{leads.filter(l => !['New','Converted','Lost'].includes(l.status)).length}</div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 px-2.5 py-1 bg-purple-50/70 border border-purple-200/80 rounded-xl text-xs">
-            <div className="w-6 h-6 rounded-lg bg-purple-600 text-white flex items-center justify-center font-bold">
-              <Building className="w-3.5 h-3.5" />
-            </div>
-            <div>
-              <div className="text-[10px] text-slate-500 font-medium leading-none">Site Visit</div>
-              <div className="text-sm font-extrabold text-purple-950 font-mono mt-0.5">{leads.filter(l => l.status === 'Site Visit').length}</div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 px-2.5 py-1 bg-teal-50/70 border border-teal-200/80 rounded-xl text-xs">
-            <div className="w-6 h-6 rounded-lg bg-teal-600 text-white flex items-center justify-center font-bold">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-            </div>
-            <div>
-              <div className="text-[10px] text-slate-500 font-medium leading-none">Converted</div>
-              <div className="text-sm font-extrabold text-teal-950 font-mono mt-0.5">{leads.filter(l => l.status === 'Converted').length}</div>
-            </div>
-          </div>
-
-          {!isEmployeePortal && (
-            <button type="button" onClick={()=>{setSection('pipeline');setActiveTab('incomplete');}} title="Leads whose customer registration is not submitted yet" className="flex items-center gap-2 px-2.5 py-1 bg-rose-50/70 border border-rose-200/80 rounded-xl text-xs text-left hover:bg-rose-100/70">
-              <div className="w-6 h-6 rounded-lg bg-rose-600 text-white flex items-center justify-center font-bold">
-                <AlertCircle className="w-3.5 h-3.5" />
-              </div>
-              <div>
-                <div className="text-[10px] text-slate-500 font-medium leading-none">Incomplete</div>
-                <div className="text-sm font-extrabold text-rose-950 font-mono mt-0.5">{incompleteInquiries.length}</div>
-              </div>
-            </button>
-          )}
-
-          <div className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 shadow-2xs">
-            <Calendar className="w-3.5 h-3.5 text-slate-500" />
-            <span className="font-mono text-[11px]">{dateRangeLabel}</span>
-          </div>
-
-          {!isEmployeePortal && (
-            <button
-              onClick={onOpenAddLead}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-[#0b2818] hover:bg-[#123e27] text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Add Lead</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {section==='incomplete' && isAdminPortal && (
-        <IncompleteApplications
-          embedded
-          kind="customer"
-          inquiries={incompleteInquiries}
-          onOpenInquiry={lead=>{setSection('pipeline');setActiveTab('incomplete');setSelectedLead(lead);onSelectLead(lead);}}
-          onBack={()=>setSection('pipeline')}
-          onCompleted={()=>void crm.refresh()}
-        />
-      )}
-
-      {/* Main 3-Column Grid Layout matching Image 3 */}
-      {section==='pipeline' && <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
-        {/* ================= COLUMN 1: Leads List (4 cols) ================= */}
-        <div className={`${isEmployeePortal ? 'lg:col-span-4' : 'lg:col-span-4 xl:col-span-3'} bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col min-h-0 h-[70vh] lg:h-[calc(100vh-11rem)] lg:min-h-[560px]`}>
-          {/* Top Sub-tabs */}
-          <div className="p-3 border-b border-slate-100 flex items-center justify-between">
-            {isEmployeePortal ? (
-              <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 px-3 py-2 rounded-xl">
-                <UserCheck className="w-4 h-4 text-blue-700" />
-                <div>
-                  <div className="text-[11px] font-black text-blue-950">My Assigned Leads</div>
-                  <div className="text-[10px] text-blue-600">
-                    {leads.filter(l => crm.leads.find(row=>row.id===l.id)?.assigned_to===crm.user.id).length} leads assigned to you
-                  </div>
-                </div>
-              </div>
-            ) : (
-            <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-xl text-[11px] font-bold">
-              <button
-                onClick={() => setActiveTab('all')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  activeTab === 'all' ? 'bg-white text-slate-900 shadow-2xs font-extrabold' : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                All Leads ({leads.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('my')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  activeTab === 'my' ? 'bg-white text-slate-900 shadow-2xs font-extrabold' : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                My Leads ({leads.filter(l => crm.leads.find(row=>row.id===l.id)?.assigned_to===crm.user.id).length})
-              </button>
-              <button
-                onClick={() => setActiveTab('unassigned')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  activeTab === 'unassigned' ? 'bg-white text-slate-900 shadow-2xs font-extrabold' : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Unassigned ({leads.filter(l => !l.assignedTo || l.assignedTo === 'Unassigned').length})
-              </button>
-              <button
-                onClick={() => setActiveTab('incomplete')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  activeTab === 'incomplete' ? 'bg-amber-400 text-slate-950 shadow-2xs font-extrabold' : 'text-amber-700 hover:text-amber-900'
-                }`}
-              >
-                Incomplete ({incompleteInquiries.length})
-              </button>
-            </div>
-            )}
-            <button onClick={exportFilteredLeads} className="text-slate-400 hover:text-slate-600 p-1" title="Export filtered leads CSV">
-              <Download className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Search bar & Filter row */}
-          <div className="p-3 border-b border-slate-100 space-y-2 bg-slate-50/50">
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name, mobile, location..."
-                className="w-full pl-8 pr-8 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-600"
-              />
-              <Filter className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-2.5" />
-            </div>
-
-            <div className="grid grid-cols-3 gap-1.5 text-[11px]">
-              <select
-                value={stageFilter}
-                onChange={(e) => setStageFilter(e.target.value)}
-                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-medium focus:outline-none"
-              >
-                <option value="All Stages">All Stages</option>
-                <option value="New">New</option>
-                <option value="Contacted">Contacted</option>
-                <option value="Qualified">Qualified</option>
-                <option value="Site Visit">Site Visit</option>
-                <option value="DPR">DPR</option>
-                <option value="Loan Processing">Loan Processing</option>
-                <option value="Converted">Converted</option>
-                <option value="Lost">Lost</option>
-              </select>
-
-              <select
-                value={stateFilter}
-                onChange={(e) => setStateFilter(e.target.value)}
-                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-medium focus:outline-none"
-              >
-                <option value="All States">All States</option>
-                <option value="Madhya Pradesh">Madhya Pradesh</option>
-                <option value="Chhattisgarh">Chhattisgarh</option>
-                <option value="Maharashtra">Maharashtra</option>
-                <option value="Rajasthan">Rajasthan</option>
-                <option value="Uttar Pradesh">Uttar Pradesh</option>
-              </select>
-
-              <select
-                value={sourceFilter}
-                onChange={(e) => setSourceFilter(e.target.value)}
-                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-medium focus:outline-none"
-              >
-                <option value="All Sources">All Sources</option>
-                <option value="Website">Website</option>
-                <option value="WhatsApp">WhatsApp</option>
-                <option value="Direct Call">Direct Call</option>
-                <option value="Email">Email</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Lead Cards List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-100 p-2 space-y-1">
-            {pagedLeads.map((lead) => {
-              const isSelected = lead.id === currentLead.id;
-              const initials = getInitials(lead.name);
-
-              return (
-                <div
-                  key={lead.id}
-                  onClick={() => handleSelectLeadCard(lead)}
-                  className={`p-3 rounded-xl cursor-pointer transition-all border ${
-                    isSelected
-                      ? 'bg-emerald-50/70 border-emerald-400/80 shadow-2xs'
-                      : 'hover:bg-slate-50 border-transparent'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${getAvatarColor(lead.name)}`}>
-                        {initials}
-                      </div>
-                      <div>
-                        <div className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
-                          <span>{lead.name}</span>
-                          {lead.isHot && (
-                            <span className="text-[10px] text-red-500 font-bold">★</span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-slate-500">
-                          {lead.location || 'India'}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <div className="text-xs font-bold font-mono text-slate-900">
-                        {lead.estimatedCost || lead.budgetEstimate || 'Not provided'}
-                      </div>
-                      <div className="text-[10px] text-slate-500">
-                        {lead.birdCapacity ? `${lead.birdCapacity.toLocaleString()} Birds` : 'Poultry'} {lead.shedType?.includes('EC') ? '(EC)' : ''}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-2.5 flex items-center justify-between gap-2 text-[10px]">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className={`px-2 py-0.5 rounded-md font-semibold border ${getStatusBadgeStyle(lead.status)}`}>
-                        {lead.status}
-                      </span>
-                      {lead.applicationEligible ? <button type="button" disabled={!onOpenFees} onClick={e=>{e.stopPropagation();onOpenFees?.(lead.id);}} title="Open this application’s fees and payment reminders" className={`px-2 py-0.5 rounded-md font-bold border hover:underline ${
-                        lead.feeStatus === 'Verified'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : lead.feeStatus === 'Proof Submitted'
-                            ? 'bg-blue-50 text-blue-700 border-blue-200'
-                            : lead.feeStatus === 'Rejected'
-                              ? 'bg-rose-50 text-rose-700 border-rose-200'
-                              : 'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>
-                        Fee: {lead.feeStatus || 'Pending'}
-                      </button> : <span className="px-2 py-0.5 rounded-md font-bold border bg-slate-50 text-slate-600 border-slate-200">Registration required</span>}
-                    </div>
-                    <span className="text-slate-400 shrink-0">
-                      {lead.relativeTime || lead.date || 'Today'}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Pagination Footer */}
-          <div className="p-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-slate-50/50">
-            <span>
-              Showing {filteredLeads.length === 0 ? 0 : (safePage - 1) * perPage + 1}-{Math.min(safePage * perPage, filteredLeads.length)} of {filteredLeads.length} leads
-            </span>
-            <div className="flex items-center gap-1 font-mono">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={safePage <= 1}
-                className="w-6 h-6 rounded flex items-center justify-center border bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-              {Array.from({ length: Math.min(3, pageCount) }, (_, index) => {
-                const start = Math.max(1, Math.min(safePage - 1, pageCount - 2));
-                const pageNo = start + index;
-                return (
-                  <button
-                    key={pageNo}
-                    onClick={() => setPage(pageNo)}
-                    className={`w-6 h-6 rounded flex items-center justify-center border font-bold text-xs ${safePage === pageNo ? 'bg-[#0b2818] text-white border-[#0b2818]' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
-                  >
-                    {pageNo}
-                  </button>
-                );
-              })}
-              <button
-                onClick={() => setPage(p => Math.min(pageCount, p + 1))}
-                disabled={safePage >= pageCount}
-                className="w-6 h-6 rounded flex items-center justify-center border bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40"
-              >
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        </div>
-
+    <div className="pc-lead-detail-content">
+      <div className="pc-detail-grid">
         {/* ================= COLUMN 2: Lead Details & Requirements (5 cols) ================= */}
-        <div className={`${isEmployeePortal ? 'lg:col-span-8' : 'lg:col-span-8 xl:col-span-6'} min-h-0 lg:h-[calc(100vh-11rem)] lg:min-h-[560px]`}>
+        <div className={'pc-detail-main min-w-0'}>
           {/* Main Card Header */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col min-h-0 lg:h-full overflow-hidden">
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col min-h-0 overflow-hidden">
             <div className="shrink-0 px-4 pt-4 pb-0 space-y-3 border-b border-slate-100 bg-white">
             <div className="flex items-start justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
@@ -947,7 +620,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             </div>
 
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+            <div className="p-4 space-y-4">
             {savedMessage && (
               <div className="px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5" />
@@ -1465,7 +1138,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
         </div>
 
         {/* ================= COLUMN 3: Activity Log, Notes, Follow-ups, Documents (3 cols) ================= */}
-        <div className={`${isEmployeePortal ? 'hidden' : 'lg:col-span-12 xl:col-span-3 grid sm:grid-cols-2 xl:block xl:space-y-3 gap-3 xl:overflow-y-auto xl:pr-1 xl:h-[calc(100vh-11rem)] xl:min-h-[560px]'}`}>
+        <div className={isEmployeePortal ? 'hidden' : 'pc-detail-aside'}>
           {/* Timeline / Activity Log */}
           <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
@@ -1544,23 +1217,7 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
               </button>
             </div>
 
-            <div className="p-3 rounded-xl border border-slate-200/90 bg-slate-50/70 space-y-1 text-xs">
-              <div className="flex items-center justify-between">
-                <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Call with {currentLead.name}</span>
-                </div>
-                <button onClick={() => setActiveDetailTab('followups')} className="text-slate-400 hover:text-slate-600">
-                  <MoreVertical className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <div className="text-[11px] text-emerald-800 font-mono font-medium">
-                23 Sep 2026, 11:00 AM
-              </div>
-              <p className="text-[11px] text-slate-500">
-                Discuss land documents and financing options
-              </p>
-            </div>
+            {relatedFollowUps.length?relatedFollowUps.slice(0,3).map(f=><div key={f.id} className="p-3 rounded-xl border border-slate-200 bg-slate-50 text-xs"><b>{f.type}</b><p>{f.scheduledDate} · {f.scheduledTime}</p><p>{f.notes}</p></div>):<p className="text-xs">No follow-ups scheduled.</p>}
           </div>
 
           {/* Related Documents Card */}
@@ -1577,28 +1234,11 @@ export const LeadsView: React.FC<LeadsViewProps> = ({
             </div>
 
             <div className="space-y-2 text-xs">
-              {[
-                { name: 'Land Photo.jpg', size: '2.4 MB', date: '22 Sep 2026', icon: '🖼️' },
-                { name: 'Aadhaar.pdf', size: '1.1 MB', date: '22 Sep 2026', icon: '📄' },
-                { name: 'Project Proposal (Customer).pdf', size: '3.2 MB', date: '22 Sep 2026', icon: '📑' }
-              ].map((doc, idx) => (
-                <div key={idx} className="flex items-center justify-between p-2 rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100/70 transition-colors">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">{doc.icon}</span>
-                    <div>
-                      <div className="font-semibold text-slate-800 text-[11px]">{doc.name}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">{doc.size} • {doc.date}</div>
-                    </div>
-                  </div>
-                  <button onClick={() => setActiveDetailTab('documents')} className="text-slate-400 hover:text-slate-600">
-                    <MoreVertical className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
+              {relatedDocuments.length?relatedDocuments.slice(0,5).map(doc=><button type="button" key={doc.id} onClick={()=>setActiveDetailTab('documents')} className="w-full text-left p-2 rounded-xl border border-slate-200 bg-slate-50"><b>{doc.name}</b><small className="block">{doc.fileSize} · {doc.uploadDate}</small></button>):<p>No documents linked to this lead.</p>}
             </div>
           </div>
         </div>
-      </div>}
+      </div>
 
       {/* Soft Quotation Modal is never available to employees; employees can only request manager review. */}
       {!isEmployeePortal && (

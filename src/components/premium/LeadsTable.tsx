@@ -121,7 +121,7 @@ export default function LeadsTable({data, leads, title = 'All Leads', subtitle =
     const reg = registrationComplete(l);
     const items: [typeof Phone, string, () => void, boolean?][] = [
       ...(l.draft&&actions.onDraft ? [[FileCheck2,'Open & complete saved draft',()=>actions.onDraft!(l)]] as [typeof Phone,string,()=>void][] : []),
-      [FileCheck2, reg ? 'Registration complete' : 'Complete Registration', () => window.open(`${waHref(l.phone)}?text=${encodeURIComponent(reminderText(l))}`, '_blank', 'noopener'), reg],
+      [FileCheck2, reg ? 'Registration complete' : 'Send registration link', () => window.open(`${waHref(l.phone)}?text=${encodeURIComponent(reminderText(l))}`, '_blank', 'noopener'), reg],
       ...(actions.onRegistrationReminder&&!l.draftOnly ? [[Bell,'Email registration reminder',()=>void actions.onRegistrationReminder!(l),reg]] as [typeof Phone,string,()=>void,boolean?][] : []),
       [Phone, 'Call Now', () => { window.location.href = telHref(l.phone); }],
       [MessageCircle, 'WhatsApp', () => window.open(waHref(l.phone), '_blank', 'noopener')],
@@ -144,7 +144,7 @@ export default function LeadsTable({data, leads, title = 'All Leads', subtitle =
 
   const actionsCell = (l: Lead) => l.draftOnly ? <button type="button" className="pc-btn gold" onClick={e=>{e.stopPropagation();actions.onOpen(l);}}>Open & Complete</button> : <div className="pc-row-actions" onClick={e => e.stopPropagation()}>
     {l.draft&&actions.onDraft&&<button className="pc-complete" onClick={()=>actions.onDraft!(l)} title="Continue saved registration"><FileCheck2 size={15}/><span>Saved<br/>Draft</span></button>}
-    {!l.draft&&!registrationComplete(l) && !!l.phone && l.stage !== 'CONVERTED' && l.stage !== 'LOST' && <a className="pc-complete" href={`${waHref(l.phone)}?text=${encodeURIComponent(reminderText(l))}`} target="_blank" rel="noreferrer" title="Send registration link"><FileCheck2 size={15}/><span>Send<br/>Registration Link</span></a>}
+    {!l.draft&&!registrationComplete(l) && !!l.phone && l.stage !== 'CONVERTED' && l.stage !== 'LOST' && <a className="pc-complete" href={`${waHref(l.phone)}?text=${encodeURIComponent(reminderText(l))}`} target="_blank" rel="noreferrer" aria-label={`Send registration link to ${l.name}`} title="Send registration link"><FileCheck2 size={15}/><span className="pc-action-label">Registration link</span></a>}
     <a className="pc-icon-btn green" href={telHref(l.phone)} aria-label={`Call ${l.name}`}><Phone size={15}/></a>
     <a className="pc-icon-btn green" href={waHref(l.phone)} target="_blank" rel="noreferrer" aria-label={`WhatsApp ${l.name}`}><MessageCircle size={15}/></a>
     <span className="pc-menu-anchor"><button className={`pc-icon-btn ${menu === l.id ? 'gold' : ''}`} aria-haspopup="menu" aria-expanded={menu === l.id} aria-label="More actions" onMouseDown={e => e.stopPropagation()} onClick={e => { const r = e.currentTarget.getBoundingClientRect(); const below = window.innerHeight - r.bottom > 380; setMenuPos({top: below ? r.bottom + 6 : Math.max(8, r.top - 380), right: Math.max(8, window.innerWidth - r.right)}); setMenu(menu === l.id ? null : l.id); }}><MoreVertical size={16}/></button>{menu === l.id && rowMenu(l)}</span>
@@ -181,7 +181,7 @@ export default function LeadsTable({data, leads, title = 'All Leads', subtitle =
     </div>}
 
     {!filtered.length ? <EmptyState title="No leads match these filters" text="Clear the search or choose another status tab to see more leads." action={<button className="pc-btn" onClick={() => { setQ(''); setStage('ALL'); setSource('ALL'); setState('ALL'); setOwner('ALL'); onTab('All'); }}>Reset filters</button>}/> :
-    view === 'list' ? <><div className="pc-table-wrap"><table className="pc-table">
+    view === 'list' ? <><div className="pc-table-wrap" tabIndex={0} aria-label="Leads table, scroll horizontally for more columns"><table className="pc-table">
       <thead><tr>
         <th className="pc-check"><input type="checkbox" disabled={!selectable.length} checked={allPicked} onChange={toggleAll} aria-label="Select all leads on this page"/></th><th>#</th>
         <th>Lead Name</th><th>Contact</th><th>Location</th><th>Requirement / Budget</th><th>Source</th><th>Lead Status</th><th>Registration</th><th>Stage</th><th>Owner</th><th>Created</th><th className="pc-col-xl">Last Activity</th><th>Actions</th>

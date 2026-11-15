@@ -77,8 +77,8 @@ export function WebsiteVisitorsView() {
         <p>Real visits recorded on akbspoultry.com. Visitor IDs are temporary and anonymous.</p>
       </div>
       <div className="pc-visitors-controls">
-        <label className="pc-select pc-visitors-range">Date range
-          <select value={range} onChange={event => setRange(Number(event.target.value))} aria-label="Website visitor date range">
+        <label className="pc-visitors-range">Date range
+          <select className="pc-select" value={range} onChange={event => setRange(Number(event.target.value))} aria-label="Website visitor date range">
             <option value={7}>Last 7 days</option>
             <option value={30}>Last 30 days</option>
             <option value={90}>Last 90 days</option>

@@ -1,0 +1,11 @@
+export const STAGES=['NEW','CONTACTED','QUALIFIED','SITE_VISIT','DPR','PROPOSAL','LOAN_PROCESSING','CONVERTED','LOST'] as const;
+export type Stage=typeof STAGES[number];
+export type WorkflowKind='followup'|'task'|'visit'|'proposal'|'financing';
+export const label=(s:string)=>String(s||'').toLowerCase().replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
+export const money=(v:number|string|undefined)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(Number(v||0));
+export type User={id:string;name:string;role:string;active:boolean;manager_id:string|null};
+export type DraftRow={requestId:string;email:string;name:string;mobile:string;form:Record<string,any>;signupAt:string;updatedAt:string};
+export type Lead={id:string;reference:string;name:string;phone:string;email:string;location:string;source:string;stage:Stage;priority:string;project_type:string;capacity:number;project_cost:number;assigned_to:string|null;manager_id?:string|null;details:Record<string,any>;version:number;created_at:string;updated_at:string;applicationEligible?:boolean;draft?:DraftRow;draftOnly?:boolean};
+export type Workflow={id:string;lead_id:string;kind:WorkflowKind;title:string;status:string;due_at:string|null;notes:string;amount:number;bank:string;location:string;assignee_id:string|null;shared:boolean;version:number;created_at:string;document_id:string|null};
+export type Activity={id:string;lead_id:string|null;actor_name:string;action:string;note:string;created_at:string;shared:boolean};
+export type DashboardData={user:User;leads:Lead[];workflows:Workflow[];activities:Activity[];users:User[];total:number;stats:{stages:Record<string,number>;sources:Record<string,number>;project_value:number}};

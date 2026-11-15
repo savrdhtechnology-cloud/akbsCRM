@@ -1,0 +1,6 @@
+{
+  "name": "AKBS Poultry CRM",
+  "description": "AKBS Poultry Farming Pvt. Ltd. Enterprise CRM for lead management, customer tracking, DPR & proposals, and poultry operations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,12 @@
+import React from 'react';
+import {afterEach,expect,test,vi} from 'vitest';
+import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import {PartnersView} from '../src/components/PartnersView';
+import {secureRequest} from '../src/lib/secureRequest';
+const state=vi.hoisted(()=>({role:'ADMIN',refresh:vi.fn().mockResolvedValue(undefined)}));
+vi.mock('../src/lib/secureRequest',()=>({secureRequest:vi.fn().mockResolvedValue({ok:true})}));
+vi.mock('../src/lib/crm',()=>({useCrm:()=>({user:{role:state.role},records:[{id:'p1',version:3}],refresh:state.refresh})}));
+const partner:any={id:'p1',name:'Test Partner',contactPerson:'Test Contact',phone:'9999999999',status:'Active',category:'Referral'};
+afterEach(()=>{cleanup();vi.clearAllMocks();state.role='ADMIN';});
+test('remove requires confirmation and then updates the list',async()=>{render(<PartnersView partners={[partner]} onOpenAddPartner={()=>{}}/>);fireEvent.click(screen.getByRole('button',{name:'Remove'}));expect(secureRequest).not.toHaveBeenCalled();fireEvent.click(screen.getByRole('button',{name:'Cancel'}));expect(secureRequest).not.toHaveBeenCalled();fireEvent.click(screen.getByRole('button',{name:'Remove'}));fireEvent.click(screen.getByRole('button',{name:'Confirm Remove'}));await waitFor(()=>expect(secureRequest).toHaveBeenCalledWith('akbs_crm_partner_remove',{p_id:'p1',p_version:3}));await waitFor(()=>expect(screen.queryByText('Test Partner')).toBeNull());expect(state.refresh).toHaveBeenCalled();});
+test('non-admin cannot see remove action',()=>{state.role='MANAGER';render(<PartnersView partners={[partner]} onOpenAddPartner={()=>{}}/>);expect(screen.queryByRole('button',{name:'Remove'})).toBeNull();});

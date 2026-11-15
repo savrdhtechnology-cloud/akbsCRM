@@ -1,36 +1,50 @@
-# AKBS Poultry CRM
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
+</div>
 
-The CRM and business portals for AKBS Poultry Farming Private Limited
-(https://crm.akbspoultry.com). Next.js 15 (App Router) with the AKBS Royal Navy
-& Gold premium interface.
+# Run and deploy your AI Studio app
 
-The public website lives in a separate repository (`akbspoultryweb`) and links
-here for login, customer registration and partner registration.
+This contains everything you need to run your app locally.
 
-## Portals
+View your app in AI Studio: https://ai.studio/apps/8f892ac6-d826-478a-a472-826437b7349f
 
-| Route | Who |
-| --- | --- |
-| `/portal/login` | Staff, partner and customer sign-in |
-| `/admin`, `/manager`, `/employee`, `/finance` | Staff portals (role checked by the API and database) |
-| `/partner`, `/customer` | Referral partner and customer portals |
-| `/customer/register`, `/partner/register` | Public registration forms |
+## Run Locally
 
-Old links keep working: `/customer-registration`, `/partner-registration`,
-`/partner-portal` and `/login` redirect to the routes above.
+**Prerequisites:**  Node.js
 
-## Data
 
-All data comes from the existing AKBS Supabase project through the
-`akbs_crm_gateway` RPC (server-side only, see `lib/crm/server.ts`). There is no
-mock data — every KPI, chart and table is computed from live records.
-The database and the migrations in `supabase/` are unchanged by this app.
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
 
-## Setup
 
-1. Copy `.env.example` to `.env.local` and fill in the values (server-only).
-2. `npm install`
-3. `npm run dev` → http://localhost:3000
-4. `npm run lint` (TypeScript) and `npm run build` before deploying.
+## Deployment
+Production deployment is managed on Vercel from the `main` branch.
 
-Production deploys from `main` on Vercel.
+
+
+## Website / CRM shared data
+
+The CRM reads `akbs_crm.leads` through the authenticated `akbs_crm_workspace`
+RPC on the same Supabase project used by `akbspoultryweb`. Website contact
+submissions already enter this table through `akbs_crm_capture_inquiry`;
+customer registration creates a lead in the same table. There is no second
+lead store or browser-local lead fallback.
+
+- Use an existing AKBS staff login. Permissions are checked in the database.
+- The CRM refreshes on window focus and every 30 seconds while visible.
+- Lead IDs/references are issued by the database. Edits carry a version so
+  concurrent changes cannot silently overwrite one another.
+- Registration links open the website registration forms. Public quotation
+  acceptance keeps its existing route and implementation.
+- `.env.example` contains only public connection settings. Never expose the
+  website gateway key, database password, or service-role key to Vite.
+- `npm test` verifies registration field mapping and partial-update mapping.
+  `npm run lint` checks TypeScript; `npm run build` creates production output.
+
+This integration covers shared leads, dashboard lead metrics, notes,
+follow-ups, staff/workflow/document reads, supported workflow writes, and
+actual document upload/download. The pre-existing soft-quotation storage
+implementation is separate and is not migrated by this connection.

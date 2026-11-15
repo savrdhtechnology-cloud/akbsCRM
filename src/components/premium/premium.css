@@ -586,7 +586,7 @@
 .pc-visitors-controls{display:flex;align-items:center;gap:10px}
 .pc-visitors-controls .pc-btn{min-height:40px}
 .pc-visitors-range{height:40px;display:flex;align-items:center;gap:9px;padding:0 12px;border:1px solid var(--pc-edge2);border-radius:11px;background:#151426;color:var(--pc-muted);font-size:12px;white-space:nowrap}
-.pc-visitors-range select{appearance:none;border:0;background:transparent;color:var(--pc-text);font:600 13px inherit;outline:0;cursor:pointer}
+.pc-visitors-range select{appearance:none;border:0;background:transparent;color:var(--pc-text);font-size:13px;font-weight:600;font-family:inherit;outline:0;cursor:pointer}
 .pc-visitors-range option{background:#151426;color:var(--pc-text)}
 .pc-visitors-kpis{grid-template-columns:repeat(4,minmax(0,1fr))!important}
 .pc-visitors-error{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border:1px solid rgba(248,113,113,.4);border-radius:12px;background:rgba(127,29,29,.18);color:#fecaca}

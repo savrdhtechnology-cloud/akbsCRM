@@ -30,6 +30,10 @@
     {
       "source": "/partner-registration/:path*",
       "destination": "/index.html"
+    },
+    {
+      "source": "/partner-portal",
+      "destination": "/index.html"
     }
   ],
   "headers": [

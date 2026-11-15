@@ -211,27 +211,27 @@ export const ManagerPortalView: React.FC<ManagerPortalViewProps> = ({
 
         <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between text-xs text-slate-500">
-            <span>Active Field Staff</span>
+            <span>Team Members</span>
             <UserCheck className="w-4 h-4 text-blue-600" />
           </div>
           <div className="text-xl lg:text-2xl font-bold font-mono text-slate-900 mt-1">
-            {employees.length} Officers
+            {employees.length}
           </div>
-          <div className="text-[11px] text-emerald-700 font-medium mt-1">
-            100% on-field today
+          <div className="text-[11px] text-slate-500 font-medium mt-1">
+            Live CRM staff records
           </div>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between text-xs text-slate-500">
-            <span>Monthly Target Birds</span>
+            <span>Bird Capacity in Pipeline</span>
             <Award className="w-4 h-4 text-purple-600" />
           </div>
           <div className="text-xl lg:text-2xl font-bold font-mono text-slate-900 mt-1">
-            1,20,000
+            {leads.reduce((sum, lead) => sum + Number(lead.birdCapacity || 0), 0).toLocaleString('en-IN')}
           </div>
-          <div className="text-[11px] text-purple-700 font-medium mt-1">
-            78% target achieved (93.6k birds)
+          <div className="text-[11px] text-slate-500 font-medium mt-1">
+            Combined capacity requested by listed leads
           </div>
         </div>
       </div>

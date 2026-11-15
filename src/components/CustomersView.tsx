@@ -48,7 +48,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
             Registered Customers & Farms
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            18 operational commercial broiler and layer poultry units under AKBS management
+            {customers.length} registered farm{customers.length === 1 ? '' : 's'} in AKBS CRM.
           </p>
         </div>
 

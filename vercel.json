@@ -7,5 +7,6 @@
       "feature/new-premium-crm": true,
       "*": false
     }
-  }
+  },
+  "outputDirectory": ".next"
 }

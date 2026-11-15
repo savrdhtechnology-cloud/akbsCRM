@@ -148,7 +148,7 @@ begin
       select jsonb_agg(jsonb_build_object('at',r.created_at,'path',r.page_path,'source',coalesce(nullif(r.referrer_host,''),'Direct'),'device',r.device_type) order by r.created_at desc)
       from (
         select created_at,page_path,referrer_host,device_type
-        from akbs_crm.website_page_views order by created_at desc limit 50
+        from akbs_crm.website_page_views where created_at>=v_since order by created_at desc limit 50
       ) r
     ),'[]'::jsonb)
   );

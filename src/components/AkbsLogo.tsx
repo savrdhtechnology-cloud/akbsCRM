@@ -18,7 +18,7 @@ export const AkbsLogo: React.FC<AkbsLogoProps> = ({
 
   return (
     <div
-      className={`min-w-0 max-w-full select-none ${theme === 'dark' ? 'rounded-lg bg-white p-2' : ''} ${className}`}
+      className={`akbs-logo-mark min-w-0 max-w-full select-none ${theme === 'dark' ? 'rounded-lg bg-white p-2' : ''} ${className}`}
       style={{ width }}
     >
       {/* Frame the original artwork, removing only its empty outer margins.

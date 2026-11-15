@@ -148,7 +148,7 @@ export const CommunicationView: React.FC<CommunicationViewProps> = ({ leads }) =
           </div>
 
           {/* Chat Messages */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#fafcfb]">
+          <div className="flex-1 p-4 overflow-y-auto space-y-3 akbs-module-surface">
             {messageHistory.map((m) => (
               <div
                 key={m.id}

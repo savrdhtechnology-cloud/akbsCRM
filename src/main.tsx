@@ -10,6 +10,7 @@ import './lib/connection.css';
 import './index.css';
 import './components/premium/premium.css';
 import './components/premium/premium-vite.css';
+import './components/premium/portal-theme.css';
 
 const path = window.location.pathname;
 const isCustomerRegistration = /^\/customer-registration\/?$/.test(path);
@@ -20,11 +21,11 @@ const publicAcceptance = /^\/soft-quotations\/accept\/[^/]+\/?$/.test(path);
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {isCustomerRegistration ? (
-      <CustomerRegistrationPortal />
+      <div className="akbs-self-service"><CustomerRegistrationPortal /></div>
     ) : isPartnerRegistration ? (
-      <PartnerRegistrationPortal />
+      <div className="akbs-self-service"><PartnerRegistrationPortal /></div>
     ) : isPartnerPortal ? (
-      <PartnerBusinessPortal />
+      <div className="akbs-self-service"><PartnerBusinessPortal /></div>
     ) : publicAcceptance ? (
       <SoftQuotationAcceptancePage />
     ) : (

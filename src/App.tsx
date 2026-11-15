@@ -5,6 +5,7 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { PremiumDashboardView, PremiumLeadsView, PremiumLeadPopup } from './components/premium/PremiumViews';
 import WebsiteManagement from './components/WebsiteManagement';
+import { WebsiteVisitorsView } from './components/WebsiteVisitorsView';
 import { PremiumHero } from './components/premium/Blocks';
 
 import { CustomersView } from './components/CustomersView';
@@ -74,7 +75,7 @@ export default function App() {
   const crm=useCrm();
 
   const roleSections: Record<string, NavigationSection[]> = {
-    ADMIN: ['dashboard','website-management','registrations','leads','followups','customers','partners','team-management','soft-quotations','proposals','loans','fee-management','manager-portal','tasks','reports','communication','admin-control','settings'],
+    ADMIN: ['dashboard','website-management','website-visitors','registrations','leads','followups','customers','partners','team-management','soft-quotations','proposals','loans','fee-management','manager-portal','tasks','reports','communication','admin-control','settings'],
     MANAGER: ['dashboard','leads','followups','customers','soft-quotations','proposals','manager-portal','tasks','reports','communication'],
     EMPLOYEE: ['dashboard','leads','followups','customers','soft-quotations','employee-portal','tasks','communication'],
     FINANCE: ['dashboard','loans','reports','communication']
@@ -92,7 +93,7 @@ export default function App() {
   const [saving,setSaving]=useState(false);
   const run=async(action:string,data:Record<string,any>)=>{setSaving(true);setSaveError('');try{return await crm.command(action,data);}catch(e:any){setSaveError(e.message);await crm.refresh().catch(()=>{});return null;}finally{setSaving(false);}};
   const leads=crm.leads.filter(l=>l.source!=='PARTNER_PORTAL').map(l=>mapLead(l,crm.users));
-  const moduleTitles:Partial<Record<NavigationSection,string>>={registrations:'Registration Management',customers:'Customers',partners:'Partners', 'team-management':'Team Management',followups:'Follow-ups', 'soft-quotations':'Soft Quotations',proposals:'DPR & Proposals',loans:'Loan & Financing','fee-management':'Revenue & Fee Management',documents:'Documents',employees:'Employees',tasks:'Tasks',reports:'Reports',communication:'Communication',settings:'Settings','manager-portal':'Site Visits','employee-portal':'Employee Workspace','partner-portal':'Partner Workspace','admin-control':'Access Control'};
+  const moduleTitles:Partial<Record<NavigationSection,string>>={registrations:'Registration Management',customers:'Customers',partners:'Partners', 'team-management':'Team Management',followups:'Follow-ups', 'soft-quotations':'Soft Quotations',proposals:'DPR & Proposals',loans:'Loan & Financing','website-visitors':'Website Visitors','fee-management':'Revenue & Fee Management',documents:'Documents',employees:'Employees',tasks:'Tasks',reports:'Reports',communication:'Communication',settings:'Settings','manager-portal':'Site Visits','employee-portal':'Employee Workspace','partner-portal':'Partner Workspace','admin-control':'Access Control'};
   const nameFor=(id:string)=>leads.find(l=>l.id===id)?.name||'';
   const records=(kind:string)=>crm.records.filter(r=>r.kind===kind).map(r=>({...r.data,id:r.id}));
   const customers:Customer[]=[...records('customer'),...leads.filter(l=>l.status==='Converted').map(l=>({id:l.id,name:l.name,farmName:l.name,phone:l.phone,email:l.email,location:l.location,state:l.state||'',capacity:l.birdCapacity,shedType:'Environment Controlled (EC)' as const,status:'Active' as const,batchesCompleted:0,currentBatchBirds:0,joinedDate:l.date,integrationPartner:''}))];
@@ -416,6 +417,8 @@ export default function App() {
           {currentSection === 'website-management' && crm.user.role==='ADMIN' && <WebsiteManagement leads={leads} onOpenLead={lead=>{setSelectedLeadId(lead.id);setSelectedLeadForDrawer(lead);}} onEditLead={lead=>handleOpenQuickAction('edit',lead)}/>}
           {moduleTitles[currentSection]&&<PremiumHero crumb={'CRM / '+moduleTitles[currentSection]} title={moduleTitles[currentSection]!} subtitle="Manage your AKBS operations securely in one workspace."/>}
           <div className="pc-legacy-content">
+          {currentSection === 'website-visitors' && <WebsiteVisitorsView />}
+
           {currentSection === 'customers' && (
             <CustomersView
               customers={customers}

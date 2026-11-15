@@ -41,3 +41,6 @@
 .akbs-premium-shell .crm-sidebar nav button[aria-current=page]:hover{filter:brightness(1.04)}
 .akbs-paper-surface{background:#fff!important;color:#182534!important;color-scheme:light}
 @media print{.akbs-paper-surface{background:#fff!important;color:#182534!important;box-shadow:none!important}}
+
+/* Retain intentional photo/gold gradients; replace only legacy light form gradients. */
+:is(.akbs-premium-shell .pc-legacy-content,.akbs-self-service) [class~="from-white"][class~="to-emerald-50/50"]:not(:where(.akbs-paper-surface,.akbs-paper-surface *)){background:linear-gradient(135deg,#10243e,#18314f)!important;border-color:var(--akbs-line)!important;color:var(--akbs-text)!important}

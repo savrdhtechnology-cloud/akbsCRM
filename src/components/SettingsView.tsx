@@ -12,12 +12,12 @@ import {
 export const SettingsView: React.FC = () => {
   const [saved, setSaved] = useState(false);
   const [companyName, setCompanyName] = useState('AKBS POULTRY FARMING PVT. LTD.');
-  const [gstin, setGstin] = useState('22AABCA1234F1Z8');
-  const [regNo, setRegNo] = useState('U01409CT2023PTC014520');
-  const [officeAddress, setOfficeAddress] = useState('Plot No. 14, Ring Road No. 1, Transport Nagar, Raipur, Chhattisgarh - 492001');
-  const [broilerRate, setBroilerRate] = useState(118);
-  const [docRate, setDocRate] = useState(36);
-  const [feedRate, setFeedRate] = useState(42.5);
+  const [gstin, setGstin] = useState('');
+  const [regNo, setRegNo] = useState('');
+  const [officeAddress, setOfficeAddress] = useState('');
+  const [broilerRate, setBroilerRate] = useState<number | ''>('');
+  const [docRate, setDocRate] = useState<number | ''>('');
+  const [feedRate, setFeedRate] = useState<number | ''>('');
 
   useEffect(() => {
     try {
@@ -25,12 +25,12 @@ export const SettingsView: React.FC = () => {
       if (!saved) return;
       const data = JSON.parse(saved);
       if (data.companyName) setCompanyName(data.companyName);
-      if (data.gstin) setGstin(data.gstin);
-      if (data.regNo) setRegNo(data.regNo);
-      if (data.officeAddress) setOfficeAddress(data.officeAddress);
-      if (typeof data.broilerRate === 'number') setBroilerRate(data.broilerRate);
-      if (typeof data.docRate === 'number') setDocRate(data.docRate);
-      if (typeof data.feedRate === 'number') setFeedRate(data.feedRate);
+      if (data.gstin && data.gstin !== '22AABCA1234F1Z8') setGstin(data.gstin);
+      if (data.regNo && data.regNo !== 'U01409CT2023PTC014520') setRegNo(data.regNo);
+      if (data.officeAddress && data.officeAddress !== 'Plot No. 14, Ring Road No. 1, Transport Nagar, Raipur, Chhattisgarh - 492001') setOfficeAddress(data.officeAddress);
+      if (typeof data.broilerRate === 'number' && data.broilerRate !== 118) setBroilerRate(data.broilerRate);
+      if (typeof data.docRate === 'number' && data.docRate !== 36) setDocRate(data.docRate);
+      if (typeof data.feedRate === 'number' && data.feedRate !== 42.5) setFeedRate(data.feedRate);
     } catch {}
   }, []);
 
@@ -50,7 +50,7 @@ export const SettingsView: React.FC = () => {
           System & Business Settings
         </h1>
         <p className="text-xs text-slate-500 mt-0.5">
-          AKBS Poultry Farming Pvt. Ltd. corporate registration, daily mandi rates, and CRM defaults
+          Enter verified company details and manually sourced market rates.
         </p>
       </div>
 
@@ -64,7 +64,7 @@ export const SettingsView: React.FC = () => {
                 Daily Poultry Mandi & Farm Gate Rates
               </h2>
             </div>
-            <span className="text-[11px] font-mono text-slate-400">Date: 24 Sep 2026</span>
+            <span className="text-[11px] font-mono text-slate-400">Manual entry · no live market feed</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -77,11 +77,11 @@ export const SettingsView: React.FC = () => {
                 <input
                   type="number"
                   value={broilerRate}
-                  onChange={(e) => setBroilerRate(Number(e.target.value))}
+                  onChange={(e) => setBroilerRate(e.target.value === '' ? '' : Number(e.target.value))}
                   className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-sm font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-600"
                 />
               </div>
-              <span className="text-[10px] text-slate-400 mt-1 block">Prev day: ₹ 115/kg</span>
+              <span className="text-[10px] text-slate-400 mt-1 block">Enter the current rate from your source</span>
             </div>
 
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
@@ -93,11 +93,11 @@ export const SettingsView: React.FC = () => {
                 <input
                   type="number"
                   value={docRate}
-                  onChange={(e) => setDocRate(Number(e.target.value))}
+                  onChange={(e) => setDocRate(e.target.value === '' ? '' : Number(e.target.value))}
                   className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-sm font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-600"
                 />
               </div>
-              <span className="text-[10px] text-slate-400 mt-1 block">Cobb 500 / Ross 308</span>
+              <span className="text-[10px] text-slate-400 mt-1 block">Enter the current rate from your source</span>
             </div>
 
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
@@ -110,11 +110,11 @@ export const SettingsView: React.FC = () => {
                   type="number"
                   step="0.5"
                   value={feedRate}
-                  onChange={(e) => setFeedRate(Number(e.target.value))}
+                  onChange={(e) => setFeedRate(e.target.value === '' ? '' : Number(e.target.value))}
                   className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-sm font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-600"
                 />
               </div>
-              <span className="text-[10px] text-slate-400 mt-1 block">50kg standard bag</span>
+              <span className="text-[10px] text-slate-400 mt-1 block">Enter the current rate from your source</span>
             </div>
           </div>
         </div>
@@ -128,6 +128,7 @@ export const SettingsView: React.FC = () => {
             </h2>
           </div>
 
+          <p className="text-xs text-amber-700">Use details exactly as shown on official company documents. These settings are saved in this browser only.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div>
               <label className="block text-slate-600 font-medium mb-1">Company Legal Name</label>
@@ -176,7 +177,7 @@ export const SettingsView: React.FC = () => {
           {saved && (
             <span className="text-xs text-emerald-700 font-bold flex items-center gap-1">
               <CheckCircle2 className="w-4 h-4" />
-              Settings updated successfully!
+              Settings saved on this device.
             </span>
           )}
           <button
